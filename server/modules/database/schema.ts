@@ -57,6 +57,18 @@ CREATE TABLE IF NOT EXISTS vapid_keys (
 );
 `;
 
+export const TELEGRAM_CONFIG_TABLE_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS telegram_config (
+    user_id INTEGER PRIMARY KEY,
+    bot_token TEXT NOT NULL,
+    chat_id TEXT NOT NULL,
+    enabled BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`;
+
 export const PUSH_SUBSCRIPTIONS_TABLE_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS push_subscriptions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,6 +149,9 @@ ${VAPID_KEYS_TABLE_SCHEMA_SQL}
 
 ${PUSH_SUBSCRIPTIONS_TABLE_SCHEMA_SQL}
 CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id);
+
+${TELEGRAM_CONFIG_TABLE_SCHEMA_SQL}
+CREATE INDEX IF NOT EXISTS idx_telegram_config_enabled ON telegram_config(enabled);
 
 ${PROJECTS_TABLE_SCHEMA_SQL}
 -- NOTE: These indexes are created in migrations after legacy table-shape repairs.

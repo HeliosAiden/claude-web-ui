@@ -65,10 +65,7 @@
     "cancel": "İptal",
     "save": "Kaydet",
     "delete": "Sil",
-    "rename": "Yeniden Adlandır",
-    "joinCommunity": "Topluluğa Katıl",
-    "reportIssue": "Sorun Bildir",
-    "starOnGithub": "GitHub'da Yıldızla"
+    "rename": "Yeniden Adlandır"
   },
   "branding": {
     "openSource": "Açık Kaynak"

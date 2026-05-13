@@ -1,7 +1,12 @@
 import express from 'express';
-import { apiKeysDb, credentialsDb, notificationPreferencesDb, pushSubscriptionsDb } from '../modules/database/index.js';
+import { apiKeysDb, credentialsDb, notificationPreferencesDb, pushSubscriptionsDb, telegramConfigDb } from '../modules/database/index.js';
 import { getPublicKey } from '../services/vapid-keys.js';
 import { createNotificationEvent, notifyUserIfEnabled } from '../services/notification-orchestrator.js';
+import {
+  ensureBotForToken,
+  registerChatForToken,
+  unregisterChatForToken,
+} from '../services/telegram-bot.js';
 
 const router = express.Router();
 
@@ -270,6 +275,106 @@ router.post('/push/unsubscribe', async (req, res) => {
   } catch (error) {
     console.error('Error removing push subscription:', error);
     res.status(500).json({ error: 'Failed to remove push subscription' });
+  }
+});
+
+// ===============================
+// Telegram Notification Config
+// ===============================
+
+router.get('/telegram-config', async (req, res) => {
+  try {
+    const config = telegramConfigDb.getConfig(req.user.id);
+    if (!config) {
+      return res.json({ configured: false });
+    }
+    res.json({
+      configured: true,
+      enabled: config.enabled,
+      chatId: config.chatId,
+      botTokenMasked: config.botToken.substring(0, 8) + '...' + config.botToken.substring(config.botToken.length - 4),
+    });
+  } catch (error) {
+    console.error('Error fetching Telegram config:', error);
+    res.status(500).json({ error: 'Failed to fetch Telegram config' });
+  }
+});
+
+router.put('/telegram-config', async (req, res) => {
+  try {
+    const { botToken, chatId, enabled } = req.body;
+
+    if (!botToken || !botToken.trim()) {
+      const existing = telegramConfigDb.getConfig(req.user.id);
+      if (existing) {
+        unregisterChatForToken(existing.botToken, existing.chatId);
+        telegramConfigDb.deleteConfig(req.user.id);
+      }
+      return res.json({ success: true, configured: false });
+    }
+
+    if (!chatId || !chatId.trim()) {
+      return res.status(400).json({ error: 'Chat ID is required when bot token is provided' });
+    }
+
+    const existing = telegramConfigDb.getConfig(req.user.id);
+    if (existing && existing.botToken !== botToken.trim()) {
+      unregisterChatForToken(existing.botToken, existing.chatId);
+    }
+
+    ensureBotForToken(botToken.trim());
+    registerChatForToken(botToken.trim(), chatId.trim());
+
+    const config = telegramConfigDb.upsertConfig(
+      req.user.id,
+      botToken.trim(),
+      chatId.trim(),
+      enabled !== false
+    );
+
+    res.json({
+      success: true,
+      configured: true,
+      enabled: config.enabled,
+      chatId: config.chatId,
+      botTokenMasked: botToken.substring(0, 8) + '...' + botToken.substring(botToken.length - 4),
+    });
+  } catch (error) {
+    console.error('Error saving Telegram config:', error);
+    res.status(500).json({ error: 'Failed to save Telegram config' });
+  }
+});
+
+router.patch('/telegram-config/toggle', async (req, res) => {
+  try {
+    const existing = telegramConfigDb.getConfig(req.user.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'No Telegram config found' });
+    }
+
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+
+    const config = telegramConfigDb.upsertConfig(
+      req.user.id,
+      existing.botToken,
+      existing.chatId,
+      enabled
+    );
+
+    if (!enabled) {
+      unregisterChatForToken(existing.botToken, existing.chatId);
+    } else {
+      ensureBotForToken(existing.botToken);
+      registerChatForToken(existing.botToken, existing.chatId);
+    }
+
+    res.json({ success: true, enabled: config.enabled });
+  } catch (error) {
+    console.error('Error toggling Telegram config:', error);
+    res.status(500).json({ error: 'Failed to toggle Telegram config' });
   }
 });
 

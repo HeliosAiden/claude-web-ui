@@ -29,12 +29,21 @@ export type NotificationPreferencesState = {
   channels: {
     inApp: boolean;
     webPush: boolean;
+    telegram: boolean;
   };
   events: {
     actionRequired: boolean;
     stop: boolean;
     error: boolean;
   };
+};
+
+export type TelegramConfigState = {
+  configured: boolean;
+  enabled: boolean;
+  botToken?: string;
+  chatId?: string;
+  botTokenMasked?: string;
 };
 
 export type CursorPermissionsState = {

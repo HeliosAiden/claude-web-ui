@@ -110,6 +110,18 @@
       "unsupported": "このブラウザではプッシュ通知がサポートされていません。",
       "denied": "プッシュ通知がブロックされています。ブラウザの設定で許可してください。"
     },
+    "telegram": {
+      "title": "Telegram Notifications",
+      "description": "Receive notifications via Telegram bot. Messages are sent to your Telegram chat.",
+      "enabled": "Enabled",
+      "botToken": "Bot Token",
+      "botTokenLabel": "Telegram Bot Token",
+      "botTokenHelp": "Create a bot with @BotFather on Telegram and paste the token here.",
+      "chatId": "Chat ID",
+      "chatIdLabel": "Your Chat ID",
+      "chatIdHelp": "Send /start to your bot on Telegram to get your Chat ID.",
+      "remove": "Remove Configuration"
+    },
     "events": {
       "title": "イベント種別",
       "actionRequired": "対応が必要",

@@ -10,6 +10,7 @@ type NotificationPreferences = {
   channels: {
     inApp: boolean;
     webPush: boolean;
+    telegram: boolean;
   };
   events: {
     actionRequired: boolean;
@@ -22,6 +23,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   channels: {
     inApp: false,
     webPush: false,
+    telegram: false,
   },
   events: {
     actionRequired: true,
@@ -37,6 +39,7 @@ function normalizeNotificationPreferences(value: unknown): NotificationPreferenc
     channels: {
       inApp: source.channels?.inApp === true,
       webPush: source.channels?.webPush === true,
+      telegram: source.channels?.telegram === true,
     },
     events: {
       actionRequired: source.events?.actionRequired !== false,

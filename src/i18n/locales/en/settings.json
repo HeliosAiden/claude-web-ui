@@ -110,6 +110,18 @@
       "unsupported": "Push notifications are not supported in this browser.",
       "denied": "Push notifications are blocked. Please allow them in your browser settings."
     },
+    "telegram": {
+      "title": "Telegram Notifications",
+      "description": "Receive notifications via Telegram bot. Messages are sent to your Telegram chat.",
+      "enabled": "Enabled",
+      "botToken": "Bot Token",
+      "botTokenLabel": "Telegram Bot Token",
+      "botTokenHelp": "Create a bot with @BotFather on Telegram and paste the token here.",
+      "chatId": "Chat ID",
+      "chatIdLabel": "Your Chat ID",
+      "chatIdHelp": "Send /start to your bot on Telegram to get your Chat ID.",
+      "remove": "Remove Configuration"
+    },
     "events": {
       "title": "Event Types",
       "actionRequired": "Action required",

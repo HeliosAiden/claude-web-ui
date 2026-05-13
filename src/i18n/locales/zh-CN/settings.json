@@ -110,6 +110,18 @@
       "unsupported": "此浏览器不支持推送通知。",
       "denied": "推送通知已被阻止，请在浏览器设置中允许。"
     },
+    "telegram": {
+      "title": "Telegram Notifications",
+      "description": "Receive notifications via Telegram bot. Messages are sent to your Telegram chat.",
+      "enabled": "Enabled",
+      "botToken": "Bot Token",
+      "botTokenLabel": "Telegram Bot Token",
+      "botTokenHelp": "Create a bot with @BotFather on Telegram and paste the token here.",
+      "chatId": "Chat ID",
+      "chatIdLabel": "Your Chat ID",
+      "chatIdHelp": "Send /start to your bot on Telegram to get your Chat ID.",
+      "remove": "Remove Configuration"
+    },
     "events": {
       "title": "事件类型",
       "actionRequired": "需要处理",

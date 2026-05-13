@@ -70,6 +70,7 @@ import modelTestRoutes from './routes/models.js';
 import { startEnabledPluginServers, stopAllPlugins, getPluginPort } from './utils/plugin-process-manager.js';
 import { initializeDatabase, projectsDb } from './modules/database/index.js';
 import { configureWebPush } from './services/vapid-keys.js';
+import { initializeTelegramBots, shutdownTelegramBots } from './services/telegram-bot.js';
 import { validateApiKey, authenticateToken, authenticateWebSocket } from './middleware/auth.js';
 import { IS_PLATFORM } from './constants/config.js';
 import { c } from './utils/colors.js';
@@ -1456,6 +1457,9 @@ async function startServer() {
         // Configure Web Push (VAPID keys)
         configureWebPush();
 
+        // Initialize Telegram bots for users who have configured them
+        initializeTelegramBots();
+
         // Check if running in production mode (dist folder exists)
         const distIndexPath = path.join(APP_ROOT, 'dist', 'index.html');
         const isProduction = fs.existsSync(distIndexPath);
@@ -1493,8 +1497,9 @@ async function startServer() {
         });
 
         await closeSessionsWatcher();
-        // Clean up plugin processes on shutdown
+        // Clean up plugin processes and Telegram bots on shutdown
         const shutdownPlugins = async () => {
+            await shutdownTelegramBots();
             await stopAllPlugins();
             process.exit(0);
         };

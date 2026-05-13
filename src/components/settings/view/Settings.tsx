@@ -29,6 +29,8 @@ function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: Set
     setClaudePermissions,
     notificationPreferences,
     setNotificationPreferences,
+    telegramConfig,
+    setTelegramConfig,
     cursorPermissions,
     setCursorPermissions,
     codexPermissionMode,
@@ -148,6 +150,8 @@ function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: Set
                 isPushLoading={isPushLoading}
                 onEnablePush={handleEnablePush}
                 onDisablePush={handleDisablePush}
+                telegramConfig={telegramConfig}
+                onTelegramConfigChange={setTelegramConfig}
               />
             )}
 

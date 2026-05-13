@@ -1,6 +1,7 @@
 import webPush from 'web-push';
 
 import { notificationPreferencesDb, pushSubscriptionsDb, sessionsDb } from '../modules/database/index.js';
+import { sendTelegramNotification } from './telegram-bot.js';
 
 const KIND_TO_PREF_KEY = {
   action_required: 'actionRequired',
@@ -28,12 +29,9 @@ const cleanupOldEventKeys = () => {
   }
 };
 
-function shouldSendPush(preferences, event) {
-  const webPushEnabled = Boolean(preferences?.channels?.webPush);
+function isEventTypeEnabled(preferences, event) {
   const prefEventKey = KIND_TO_PREF_KEY[event.kind];
-  const eventEnabled = prefEventKey ? Boolean(preferences?.events?.[prefEventKey]) : true;
-
-  return webPushEnabled && eventEnabled;
+  return prefEventKey ? Boolean(preferences?.events?.[prefEventKey]) : true;
 }
 
 function isDuplicate(event) {
@@ -176,16 +174,28 @@ function notifyUserIfEnabled({ userId, event }) {
   }
 
   const preferences = notificationPreferencesDb.getPreferences(userId);
-  if (!shouldSendPush(preferences, event)) {
+  if (!isEventTypeEnabled(preferences, event)) {
     return;
   }
   if (isDuplicate(event)) {
     return;
   }
 
-  sendWebPush(userId, event).catch((err) => {
-    console.error('Web push send error:', err);
-  });
+  // Web Push channel
+  if (Boolean(preferences?.channels?.webPush)) {
+    sendWebPush(userId, event).catch((err) => {
+      console.error('Web push send error:', err);
+    });
+  }
+
+  // Telegram channel
+  if (Boolean(preferences?.channels?.telegram)) {
+    const body = buildPushBody(event);
+    const message = `${body.title}\n\n${body.body}`;
+    sendTelegramNotification(userId, message).catch((err) => {
+      console.error('Telegram send error:', err);
+    });
+  }
 }
 
 function notifyRunStopped({ userId, provider, sessionId = null, stopReason = 'completed', sessionName = null }) {

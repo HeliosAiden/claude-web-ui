@@ -16,6 +16,7 @@ import type {
   NotificationPreferencesState,
   ProjectSortOrder,
   SettingsMainTab,
+  TelegramConfigState,
 } from '../types/types';
 
 type ThemeContextValue = {
@@ -107,6 +108,7 @@ const createDefaultNotificationPreferences = (): NotificationPreferencesState =>
   channels: {
     inApp: true,
     webPush: false,
+    telegram: false,
   },
   events: {
     actionRequired: true,
@@ -135,6 +137,10 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferencesState>(() => (
     createDefaultNotificationPreferences()
   ));
+  const [telegramConfig, setTelegramConfig] = useState<TelegramConfigState>(() => ({
+    configured: false,
+    enabled: false,
+  }));
   const [codexPermissionMode, setCodexPermissionMode] = useState<CodexPermissionMode>('default');
   const [geminiPermissionMode, setGeminiPermissionMode] = useState<GeminiPermissionMode>('default');
 
@@ -195,6 +201,22 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
         }
       } catch {
         setNotificationPreferences(createDefaultNotificationPreferences());
+      }
+
+      // Load Telegram config
+      try {
+        const telegramResponse = await authenticatedFetch('/api/settings/telegram-config');
+        if (telegramResponse.ok) {
+          const telegramData = await telegramResponse.json();
+          setTelegramConfig({
+            configured: telegramData.configured || false,
+            enabled: telegramData.enabled || false,
+            chatId: telegramData.chatId || '',
+            botTokenMasked: telegramData.botTokenMasked || '',
+          });
+        }
+      } catch {
+        // Telegram config fetch failed silently
       }
 
     } catch (error) {
@@ -259,6 +281,21 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
         throw new Error('Failed to save notification preferences');
       }
 
+      // Save Telegram config (only if user has entered a token)
+      if (telegramConfig.botToken) {
+        const telegramResponse = await authenticatedFetch('/api/settings/telegram-config', {
+          method: 'PUT',
+          body: JSON.stringify({
+            botToken: telegramConfig.botToken,
+            chatId: telegramConfig.chatId,
+            enabled: telegramConfig.enabled,
+          }),
+        });
+        if (!telegramResponse.ok) {
+          throw new Error('Failed to save Telegram config');
+        }
+      }
+
       setSaveStatus('success');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -273,6 +310,7 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
     cursorPermissions.disallowedCommands,
     cursorPermissions.skipPermissions,
     notificationPreferences,
+    telegramConfig,
     geminiPermissionMode,
     projectSortOrder,
   ]);
@@ -373,6 +411,8 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
     setCursorPermissions,
     notificationPreferences,
     setNotificationPreferences,
+    telegramConfig,
+    setTelegramConfig,
     codexPermissionMode,
     setCodexPermissionMode,
     providerAuthStatus,

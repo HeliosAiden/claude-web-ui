@@ -110,6 +110,18 @@
       "unsupported": "이 브라우저에서는 푸시 알림이 지원되지 않습니다.",
       "denied": "푸시 알림이 차단되었습니다. 브라우저 설정에서 허용해 주세요."
     },
+    "telegram": {
+      "title": "Telegram Notifications",
+      "description": "Receive notifications via Telegram bot. Messages are sent to your Telegram chat.",
+      "enabled": "Enabled",
+      "botToken": "Bot Token",
+      "botTokenLabel": "Telegram Bot Token",
+      "botTokenHelp": "Create a bot with @BotFather on Telegram and paste the token here.",
+      "chatId": "Chat ID",
+      "chatIdLabel": "Your Chat ID",
+      "chatIdHelp": "Send /start to your bot on Telegram to get your Chat ID.",
+      "remove": "Remove Configuration"
+    },
     "events": {
       "title": "이벤트 유형",
       "actionRequired": "작업 필요",
