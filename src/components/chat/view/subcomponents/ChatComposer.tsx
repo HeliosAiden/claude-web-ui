@@ -13,12 +13,14 @@ import type {
 } from 'react';
 import { ImageIcon, MessageSquareIcon, XIcon, ArrowDownIcon } from 'lucide-react';
 import type { PendingPermissionRequest, PermissionMode, Provider } from '../../types/types';
+import type { LLMProvider } from '../../../../types/app';
 import CommandMenu from './CommandMenu';
 import ClaudeStatus from './ClaudeStatus';
 import ImageAttachment from './ImageAttachment';
 import PermissionRequestsBanner from './PermissionRequestsBanner';
 import ThinkingModeSelector from './ThinkingModeSelector';
 import TokenUsagePie from './TokenUsagePie';
+import ModelSelectorButton from './ModelSelectorButton';
 import {
   PromptInput,
   PromptInputHeader,
@@ -56,6 +58,16 @@ interface ChatComposerProps {
   isLoading: boolean;
   onAbortSession: () => void;
   provider: Provider | string;
+  setProvider: (next: LLMProvider) => void;
+  claudeModel: string;
+  setClaudeModel: Dispatch<SetStateAction<string>>;
+  cursorModel: string;
+  setCursorModel: Dispatch<SetStateAction<string>>;
+  codexModel: string;
+  setCodexModel: Dispatch<SetStateAction<string>>;
+  geminiModel: string;
+  setGeminiModel: Dispatch<SetStateAction<string>>;
+  fccModels: { value: string; label: string }[];
   permissionMode: PermissionMode | string;
   onModeSwitch: () => void;
   thinkingMode: string;
@@ -111,6 +123,16 @@ export default function ChatComposer({
   isLoading,
   onAbortSession,
   provider,
+  setProvider,
+  claudeModel,
+  setClaudeModel,
+  cursorModel,
+  setCursorModel,
+  codexModel,
+  setCodexModel,
+  geminiModel,
+  setGeminiModel,
+  fccModels,
   permissionMode,
   onModeSwitch,
   thinkingMode,
@@ -266,9 +288,74 @@ export default function ChatComposer({
             </div>
           )}
 
-          {attachedImages.length > 0 && (
-            <PromptInputHeader>
-              <div className="rounded-xl bg-muted/40 p-2">
+          {/* Settings bar — model, permission mode, thinking, token usage */}
+          <PromptInputHeader>
+            <div className="flex items-center gap-2 flex-wrap">
+              <ModelSelectorButton
+                provider={provider as LLMProvider}
+                setProvider={setProvider}
+                claudeModel={claudeModel}
+                setClaudeModel={setClaudeModel}
+                cursorModel={cursorModel}
+                setCursorModel={setCursorModel}
+                codexModel={codexModel}
+                setCodexModel={setCodexModel}
+                geminiModel={geminiModel}
+                setGeminiModel={setGeminiModel}
+                fccModels={fccModels}
+              />
+
+              <button
+                type="button"
+                onClick={onModeSwitch}
+                className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
+                  permissionMode === 'default'
+                    ? 'border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted'
+                    : permissionMode === 'acceptEdits'
+                      ? 'border-green-300/60 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-600/40 dark:bg-green-900/15 dark:text-green-300 dark:hover:bg-green-900/25'
+                      : permissionMode === 'auto'
+                        ? 'border-blue-300/60 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-600/40 dark:bg-blue-900/15 dark:text-blue-300 dark:hover:bg-blue-900/25'
+                      : permissionMode === 'bypassPermissions'
+                        ? 'border-orange-300/60 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-600/40 dark:bg-orange-900/15 dark:text-orange-300 dark:hover:bg-orange-900/25'
+                        : 'border-primary/20 bg-primary/5 text-primary hover:bg-primary/10'
+                }`}
+                title={t('input.clickToChangeMode')}
+              >
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      permissionMode === 'default'
+                        ? 'bg-muted-foreground'
+                        : permissionMode === 'acceptEdits'
+                          ? 'bg-green-500'
+                          : permissionMode === 'auto'
+                            ? 'bg-blue-500'
+                            : permissionMode === 'bypassPermissions'
+                              ? 'bg-orange-500'
+                              : 'bg-primary'
+                    }`}
+                  />
+                  <span className="whitespace-nowrap">
+                    {permissionMode === 'default' && t('codex.modes.default')}
+                    {permissionMode === 'acceptEdits' && t('codex.modes.acceptEdits')}
+                    {permissionMode === 'auto' && t('codex.modes.auto')}
+                    {permissionMode === 'bypassPermissions' && t('codex.modes.bypassPermissions')}
+                    {permissionMode === 'plan' && t('codex.modes.plan')}
+                  </span>
+                </div>
+              </button>
+
+              {provider === 'claude' && (
+                <ThinkingModeSelector selectedMode={thinkingMode} onModeChange={setThinkingMode} onClose={() => {}} className="" />
+              )}
+
+              <div className="ml-auto">
+                <TokenUsagePie used={tokenBudget?.used || 0} total={tokenBudget?.total || parseInt(import.meta.env.VITE_CONTEXT_WINDOW) || 160000} />
+              </div>
+            </div>
+
+            {attachedImages.length > 0 && (
+              <div className="mt-2 rounded-xl bg-muted/40 p-2">
                 <div className="flex flex-wrap gap-2">
                   {attachedImages.map((file, index) => (
                     <ImageAttachment
@@ -281,8 +368,8 @@ export default function ChatComposer({
                   ))}
                 </div>
               </div>
-            </PromptInputHeader>
-          )}
+            )}
+          </PromptInputHeader>
 
           <input {...getInputProps()} />
 
@@ -316,52 +403,6 @@ export default function ChatComposer({
             >
               <ImageIcon />
             </PromptInputButton>
-
-            <button
-              type="button"
-              onClick={onModeSwitch}
-              className={`rounded-lg border p-2 text-xs font-medium transition-all duration-200 sm:px-2.5 sm:py-1 ${
-                permissionMode === 'default'
-                  ? 'border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted'
-                  : permissionMode === 'acceptEdits'
-                    ? 'border-green-300/60 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-600/40 dark:bg-green-900/15 dark:text-green-300 dark:hover:bg-green-900/25'
-                    : permissionMode === 'auto'
-                      ? 'border-blue-300/60 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-600/40 dark:bg-blue-900/15 dark:text-blue-300 dark:hover:bg-blue-900/25'
-                      : permissionMode === 'bypassPermissions'
-                        ? 'border-orange-300/60 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-600/40 dark:bg-orange-900/15 dark:text-orange-300 dark:hover:bg-orange-900/25'
-                        : 'border-primary/20 bg-primary/5 text-primary hover:bg-primary/10'
-              }`}
-              title={t('input.clickToChangeMode')}
-            >
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={`h-2.5 w-2.5 rounded-full sm:h-1.5 sm:w-1.5 ${
-                    permissionMode === 'default'
-                      ? 'bg-muted-foreground'
-                      : permissionMode === 'acceptEdits'
-                        ? 'bg-green-500'
-                        : permissionMode === 'auto'
-                          ? 'bg-blue-500'
-                          : permissionMode === 'bypassPermissions'
-                            ? 'bg-orange-500'
-                            : 'bg-primary'
-                  }`}
-                />
-                <span className="hidden whitespace-nowrap sm:inline">
-                  {permissionMode === 'default' && t('codex.modes.default')}
-                  {permissionMode === 'acceptEdits' && t('codex.modes.acceptEdits')}
-                  {permissionMode === 'auto' && t('codex.modes.auto')}
-                  {permissionMode === 'bypassPermissions' && t('codex.modes.bypassPermissions')}
-                  {permissionMode === 'plan' && t('codex.modes.plan')}
-                </span>
-              </div>
-            </button>
-
-            {provider === 'claude' && (
-              <ThinkingModeSelector selectedMode={thinkingMode} onModeChange={setThinkingMode} onClose={() => {}} className="" />
-            )}
-
-            <TokenUsagePie used={tokenBudget?.used || 0} total={tokenBudget?.total || parseInt(import.meta.env.VITE_CONTEXT_WINDOW) || 160000} />
 
             <PromptInputButton
               tooltip={{ content: t('input.showAllCommands') }}

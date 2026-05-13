@@ -14,6 +14,8 @@ const getPermissionModesForProvider = (provider: LLMProvider): PermissionMode[] 
   return ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
 };
 
+type FccModelEntry = { value: string; label: string };
+
 interface UseChatProviderStateArgs {
   selectedSession: ProjectSession | null;
 }
@@ -36,6 +38,7 @@ export function useChatProviderState({ selectedSession }: UseChatProviderStateAr
   const [geminiModel, setGeminiModel] = useState<string>(() => {
     return localStorage.getItem('gemini-model') || GEMINI_MODELS.DEFAULT;
   });
+  const [fccModels, setFccModels] = useState<FccModelEntry[]>([]);
 
   const lastProviderRef = useRef(provider);
 
@@ -94,6 +97,23 @@ export function useChatProviderState({ selectedSession }: UseChatProviderStateAr
       });
   }, [provider]);
 
+  // Fetch FCC-discovered models to augment the Claude model dropdown.
+  // These are only shown as additional options; the default model stays "opus"
+  // and the user can switch to an FCC model if desired.
+  useEffect(() => {
+    let cancelled = false;
+    authenticatedFetch('/api/fcc/models')
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return;
+        if (data.models?.length > 0) {
+          setFccModels(data.models);
+        }
+      })
+      .catch(() => { /* FCC not available — use hardcoded models */ });
+    return () => { cancelled = true; };
+  }, []); // run once on mount
+
   const cyclePermissionMode = useCallback(() => {
     const modes = getPermissionModesForProvider(provider);
 
@@ -123,5 +143,6 @@ export function useChatProviderState({ selectedSession }: UseChatProviderStateAr
     pendingPermissionRequests,
     setPendingPermissionRequests,
     cyclePermissionMode,
+    fccModels,
   };
 }

@@ -15,6 +15,7 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import crypto from 'crypto';
 import { promises as fs } from 'fs';
+
 import path from 'path';
 import os from 'os';
 import { CLAUDE_MODELS } from '../shared/modelConstants.js';
@@ -140,6 +141,7 @@ function matchesToolPermission(entry, toolName, input) {
   return false;
 }
 
+
 /**
  * Maps CLI options to SDK-compatible options format
  * @param {Object} options - CLI options
@@ -150,13 +152,13 @@ function mapCliOptionsToSDK(options = {}) {
 
   const sdkOptions = {};
 
-  // Forward all host env vars (e.g. ANTHROPIC_BASE_URL) to the subprocess.
-  // Since SDK 0.2.113, options.env replaces process.env instead of overlaying it.
   sdkOptions.env = { ...process.env };
-
-  // Resolve the executable eagerly on Windows because the SDK uses raw child_process.spawn,
-  // which does not reliably follow npm's shell wrappers like cross-spawn does.
-  sdkOptions.pathToClaudeCodeExecutable = resolveClaudeCodeExecutablePath(process.env.CLAUDE_CLI_PATH);
+  // Only override the SDK's bundled binary when the user explicitly configures
+  // a custom CLI path. The SDK's own binary speaks the correct protocol, and
+  // FCC routing is handled via ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN env vars.
+  if (process.env.CLAUDE_CLI_PATH) {
+    sdkOptions.pathToClaudeCodeExecutable = resolveClaudeCodeExecutablePath(process.env.CLAUDE_CLI_PATH);
+  }
 
   // Map working directory
   if (cwd) {

@@ -5,6 +5,9 @@ import path from 'node:path';
 const DEFAULT_CLAUDE_COMMAND = 'claude';
 const FCC_CLAUDE_COMMAND = 'fcc-claude';
 const CLAUDE_FALLBACK_COMMANDS = [DEFAULT_CLAUDE_COMMAND, FCC_CLAUDE_COMMAND];
+// When ANTHROPIC_BASE_URL points to a local FCC proxy (not the standard API),
+// prefer the fcc-claude binary which is purpose-built for FCC routing.
+const FCC_PREFERRED_COMMANDS = [FCC_CLAUDE_COMMAND, DEFAULT_CLAUDE_COMMAND];
 const CLAUDE_SCRIPT_EXTENSIONS = new Set(['.cjs', '.js', '.jsx', '.mjs', '.ts', '.tsx']);
 const CLAUDE_WRAPPER_SEGMENTS = ['node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe'] as const;
 
@@ -133,10 +136,14 @@ export function resolveClaudeCodeExecutablePath(
     readFileSync: dependencies.readFileSync ?? fs.readFileSync,
   };
 
-  // Use the explicit configured path if set, otherwise try fallback commands
+  // Use the explicit configured path if set, otherwise try fallback commands.
+  // When ANTHROPIC_BASE_URL points to a local proxy (FCC), try fcc-claude first.
+  const baseUrl = process.env.ANTHROPIC_BASE_URL ?? '';
+  const isFccConfigured = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?/.test(baseUrl);
+  const defaultCommands = isFccConfigured ? FCC_PREFERRED_COMMANDS : CLAUDE_FALLBACK_COMMANDS;
   const commandsToTry = configuredPath
     ? [stripWrappingQuotes(configuredPath)]
-    : CLAUDE_FALLBACK_COMMANDS;
+    : defaultCommands;
 
   if (deps.platform !== 'win32') {
     return commandsToTry[0];

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
+import { authenticatedFetch } from "../../../../utils/api";
 
 import { useServerPlatform } from "../../../../hooks/useServerPlatform";
 import SessionProviderLogo from "../../../llm-logo-provider/SessionProviderLogo";
@@ -45,6 +46,7 @@ type ProviderSelectionEmptyStateProps = {
   setCodexModel: (model: string) => void;
   geminiModel: string;
   setGeminiModel: (model: string) => void;
+  fccModels: { value: string; label: string }[];
   tasksEnabled: boolean;
   isTaskMasterInstalled: boolean | null;
   onShowAllTasks?: (() => void) | null;
@@ -104,6 +106,7 @@ export default function ProviderSelectionEmptyState({
   setCodexModel,
   geminiModel,
   setGeminiModel,
+  fccModels,
   tasksEnabled,
   isTaskMasterInstalled,
   onShowAllTasks,
@@ -113,10 +116,59 @@ export default function ProviderSelectionEmptyState({
   const { isWindowsServer } = useServerPlatform();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [customModel, setCustomModel] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'not_configured' | 'not_ready' } | null>(null);
+
+  // Auto-hide toast
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const testModel = useCallback(async (modelValue: string) => {
+    const isFccModel = fccModels.some(m => m.value === modelValue);
+    const endpoint = isFccModel ? '/api/fcc/test-model' : '/api/models/test';
+    try {
+      const res = await authenticatedFetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: modelValue }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setToast({ message: `Model "${modelValue}" is ready`, type: 'success' });
+      } else if (data.reason === 'not_configured') {
+        setToast({ message: data.error || `Model "${modelValue}" is not configured`, type: 'not_configured' });
+      } else {
+        setToast({ message: data.error || `Model "${modelValue}" is not ready`, type: 'not_ready' });
+      }
+    } catch {
+      setToast({ message: `Could not verify model "${modelValue}"`, type: 'not_ready' });
+    }
+  }, [fccModels]);
 
   const visibleProviderGroups = useMemo(
-    () => (isWindowsServer ? PROVIDER_GROUPS.filter((p) => p.id !== "cursor") : PROVIDER_GROUPS),
-    [isWindowsServer],
+    () => {
+      let groups = isWindowsServer
+        ? PROVIDER_GROUPS.filter((p) => p.id !== "cursor")
+        : [...PROVIDER_GROUPS];
+      // Inject FCC-discovered models into the Claude group
+      if (fccModels.length > 0) {
+        groups = groups.map(group => {
+          if (group.id !== 'claude') return group;
+          const fccValues = new Set(fccModels.map(m => m.value));
+          // Keep only hardcoded models that aren't already in FCC list (avoid duplicates)
+          const mergedModels = [
+            ...fccModels,
+            ...group.models.filter(m => !fccValues.has(m.value)),
+          ];
+          return { ...group, models: mergedModels };
+        });
+      }
+      return groups;
+    },
+    [isWindowsServer, fccModels],
   );
 
   useEffect(() => {
@@ -173,8 +225,10 @@ export default function ProviderSelectionEmptyState({
       setDialogOpen(false);
       setCustomModel("");
       setTimeout(() => textareaRef.current?.focus(), 100);
+      // Test the model if it's an FCC-discovered model
+      testModel(modelValue);
     },
-    [setProvider, setModelForProvider, textareaRef],
+    [setProvider, setModelForProvider, textareaRef, testModel],
   );
 
   const handleCustomModelSubmit = useCallback(() => {
@@ -341,6 +395,22 @@ export default function ProviderSelectionEmptyState({
                 onStartTask={() => setInput(nextTaskPrompt)}
                 onShowAllTasks={onShowAllTasks}
               />
+            </div>
+          )}
+
+          {/* Model test toast */}
+          {toast && (
+            <div
+              className={
+                toast.type === 'success'
+                  ? 'fixed bottom-4 right-4 z-[9999] px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 bg-green-600 text-white animate-in slide-in-from-bottom-2'
+                  : toast.type === 'not_configured'
+                    ? 'fixed bottom-4 right-4 z-[9999] px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 bg-amber-500 text-white animate-in slide-in-from-bottom-2'
+                    : 'fixed bottom-4 right-4 z-[9999] px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 bg-red-600 text-white animate-in slide-in-from-bottom-2'
+              }
+            >
+              {toast.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+              <span className="text-sm">{toast.message}</span>
             </div>
           )}
         </div>
