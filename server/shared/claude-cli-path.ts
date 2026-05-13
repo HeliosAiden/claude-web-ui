@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DEFAULT_CLAUDE_COMMAND = 'claude';
+const FCC_CLAUDE_COMMAND = 'fcc-claude';
+const CLAUDE_FALLBACK_COMMANDS = [DEFAULT_CLAUDE_COMMAND, FCC_CLAUDE_COMMAND];
 const CLAUDE_SCRIPT_EXTENSIONS = new Set(['.cjs', '.js', '.jsx', '.mjs', '.ts', '.tsx']);
 const CLAUDE_WRAPPER_SEGMENTS = ['node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe'] as const;
 
@@ -72,7 +74,7 @@ function resolveClaudeWrapperBinary(
 function resolveWindowsClaudeExecutablePath(
   configuredPath: string,
   deps: Required<ResolveClaudeCodeExecutablePathDependencies>,
-): string {
+): string | null {
   const pathApi = getPathApi(deps.platform);
   const extension = pathApi.extname(configuredPath).toLowerCase();
   const explicitPath = isPathLike(configuredPath) || pathApi.isAbsolute(configuredPath);
@@ -113,10 +115,11 @@ function resolveWindowsClaudeExecutablePath(
       }
     }
   } catch {
-    return configuredPath;
+    // where.exe failed — return null so caller can try fallback commands
+    return null;
   }
 
-  return configuredPath;
+  return null;
 }
 
 export function resolveClaudeCodeExecutablePath(
@@ -130,10 +133,21 @@ export function resolveClaudeCodeExecutablePath(
     readFileSync: dependencies.readFileSync ?? fs.readFileSync,
   };
 
-  const normalizedPath = stripWrappingQuotes(configuredPath || DEFAULT_CLAUDE_COMMAND);
+  // Use the explicit configured path if set, otherwise try fallback commands
+  const commandsToTry = configuredPath
+    ? [stripWrappingQuotes(configuredPath)]
+    : CLAUDE_FALLBACK_COMMANDS;
+
   if (deps.platform !== 'win32') {
-    return normalizedPath;
+    return commandsToTry[0];
   }
 
-  return resolveWindowsClaudeExecutablePath(normalizedPath, deps);
+  for (const command of commandsToTry) {
+    const resolved = resolveWindowsClaudeExecutablePath(command, deps);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return DEFAULT_CLAUDE_COMMAND;
 }

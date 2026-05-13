@@ -1434,6 +1434,8 @@ async function getFileTree(dirPath, maxDepth = 3, currentDepth = 0, showHidden =
     });
 }
 
+// Port isolation: load-env.js skips PORT/HOST from fcc config to prevent fcc's PORT=8082
+// from overriding cloudcli's SERVER_PORT.
 const SERVER_PORT = process.env.SERVER_PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 const DISPLAY_HOST = getConnectableHost(HOST);

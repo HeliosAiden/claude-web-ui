@@ -25,6 +25,7 @@ import {
   CommandGroup,
   CommandItem,
   Card,
+  Input,
 } from "../../../../shared/view/ui";
 
 const MOD_KEY =
@@ -111,6 +112,7 @@ export default function ProviderSelectionEmptyState({
   const { t } = useTranslation("chat");
   const { isWindowsServer } = useServerPlatform();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [customModel, setCustomModel] = useState("");
 
   const visibleProviderGroups = useMemo(
     () => (isWindowsServer ? PROVIDER_GROUPS.filter((p) => p.id !== "cursor") : PROVIDER_GROUPS),
@@ -169,10 +171,17 @@ export default function ProviderSelectionEmptyState({
       localStorage.setItem("selected-provider", providerId);
       setModelForProvider(providerId, modelValue);
       setDialogOpen(false);
+      setCustomModel("");
       setTimeout(() => textareaRef.current?.focus(), 100);
     },
     [setProvider, setModelForProvider, textareaRef],
   );
+
+  const handleCustomModelSubmit = useCallback(() => {
+    const trimmed = customModel.trim();
+    if (!trimmed) return;
+    handleModelSelect(provider, trimmed);
+  }, [customModel, provider, handleModelSelect]);
 
   if (!selectedSession && !currentSessionId) {
     return (
@@ -269,6 +278,29 @@ export default function ProviderSelectionEmptyState({
                   ))}
                 </CommandList>
               </Command>
+              <div className="border-t border-border/40 px-3 py-2">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCustomModelSubmit();
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                      <SessionProviderLogo provider={provider} className="h-3.5 w-3.5 shrink-0" />
+                      {getProviderDisplayName(provider)}
+                    </span>
+                    <Input
+                      value={customModel}
+                      onChange={(e) => setCustomModel(e.target.value)}
+                      placeholder={t("providerSelection.customModelPlaceholder", {
+                        defaultValue: "Custom model...",
+                      })}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </form>
+              </div>
             </DialogContent>
           </Dialog>
 

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import fs from 'node:fs';
 
 import spawn from 'cross-spawn';
 
@@ -15,6 +16,28 @@ type ClaudeCredentialsStatus = {
   method: string | null;
   error?: string;
 };
+
+const FCC_ENV_PATH = path.join(os.homedir(), '.config', 'free-claude-code', '.env');
+
+function readFccEnvValue(key: string): string | undefined {
+  try {
+    const content = fs.readFileSync(FCC_ENV_PATH, 'utf8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) continue;
+      const k = trimmed.slice(0, eqIdx).trim();
+      if (k === key) {
+        const value = trimmed.slice(eqIdx + 1).trim();
+        return value || undefined;
+      }
+    }
+  } catch {
+    // fcc config is optional
+  }
+  return undefined;
+}
 
 export class ClaudeProviderAuth implements IProviderAuth {
   /**
@@ -81,13 +104,22 @@ export class ClaudeProviderAuth implements IProviderAuth {
       return { authenticated: true, email: 'API Key Auth', method: 'api_key' };
     }
 
+    if (process.env.ANTHROPIC_AUTH_TOKEN?.trim()) {
+      return { authenticated: true, email: 'Auth Token (env)', method: 'auth_token' };
+    }
+
     const settingsEnv = await this.loadSettingsEnv();
     if (readOptionalString(settingsEnv.ANTHROPIC_API_KEY)) {
       return { authenticated: true, email: 'API Key Auth', method: 'api_key' };
     }
 
     if (readOptionalString(settingsEnv.ANTHROPIC_AUTH_TOKEN)) {
-      return { authenticated: true, email: 'Configured via settings.json', method: 'api_key' };
+      return { authenticated: true, email: 'Configured via settings.json', method: 'auth_token' };
+    }
+
+    const fccAuthToken = readFccEnvValue('ANTHROPIC_AUTH_TOKEN');
+    if (fccAuthToken) {
+      return { authenticated: true, email: 'Free Claude Code', method: 'auth_token' };
     }
 
     try {
