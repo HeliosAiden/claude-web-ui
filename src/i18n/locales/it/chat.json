@@ -134,7 +134,7 @@
       "enter": "Invio per inviare • Shift+Invio per nuova riga • Tab per cambiare modalità • / per comandi"
     },
     "clickToChangeMode": "Clicca per cambiare modalità permessi (o premi Tab nell'input)",
-    "showAllCommands": "Mostra tutti i comandi",
+    "showAllCommands": "Mostra tutti i comandi e skill",
     "clearInput": "Cancella input",
     "scrollToBottom": "Scorri in basso"
   },

@@ -132,6 +132,67 @@ const builtInCommands = [
 ];
 
 /**
+ * Built-in skills that are always available (global scope)
+ * These are Claude Code skills invoked via the Skill tool
+ */
+const builtInSkills = [
+  {
+    name: '/review',
+    description: 'Review a pull request',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/security-review',
+    description: 'Complete a security review of pending changes on the current branch',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/simplify',
+    description: 'Review changed code for reuse, quality, and efficiency, then fix any issues found',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/init',
+    description: 'Initialize a new CLAUDE.md file with codebase documentation',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/claude-api',
+    description: 'Build, debug, and optimize Claude API / Anthropic SDK apps',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/loop',
+    description: 'Run a prompt or slash command on a recurring interval',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/keybindings-help',
+    description: 'Customize keyboard shortcuts, rebind keys, and add chord bindings',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/fewer-permission-prompts',
+    description: 'Scan transcripts for common read-only tool calls and reduce permission prompts',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+  {
+    name: '/update-config',
+    description: 'Configure the Claude Code harness via settings.json',
+    namespace: 'builtin',
+    metadata: { type: 'skill' }
+  },
+];
+
+/**
  * Built-in command handlers
  * Each handler returns { type: 'builtin', action: string, data: any }
  */
@@ -437,10 +498,15 @@ router.post('/list', async (req, res) => {
     // Sort commands alphabetically by name
     customCommands.sort((a, b) => a.name.localeCompare(b.name));
 
+    const totalCount = allCommands.length + builtInSkills.length;
+
     res.json({
       builtIn: builtInCommands,
       custom: customCommands,
-      count: allCommands.length
+      skills: {
+        builtIn: builtInSkills,
+      },
+      count: totalCount
     });
   } catch (error) {
     console.error('Error listing commands:', error);

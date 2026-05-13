@@ -134,7 +134,7 @@
       "enter": "Göndermek için Enter • Yeni satır için Shift+Enter • Mod değiştirmek için Tab • Slash komutları için /"
     },
     "clickToChangeMode": "İzin modunu değiştirmek için tıkla (veya girdide Tab tuşuna bas)",
-    "showAllCommands": "Tüm komutları göster",
+    "showAllCommands": "Tüm komutları ve becerileri göster",
     "clearInput": "Girdiyi temizle",
     "scrollToBottom": "En alta git"
   },

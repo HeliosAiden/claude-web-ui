@@ -112,6 +112,10 @@ export function useSlashCommands({
             ...command,
             type: 'custom',
           })),
+          ...((data.skills?.builtIn || []) as SlashCommand[]).map((skill) => ({
+            ...skill,
+            type: 'skill',
+          })),
         ];
 
         const parsedHistory = readCommandHistory(selectedProject.projectId);

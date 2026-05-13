@@ -134,7 +134,7 @@
       "enter": "Enter zum Senden • Shift+Enter für neue Zeile • Tab zum Moduswechsel • / für Slash-Befehle"
     },
     "clickToChangeMode": "Klicken, um den Berechtigungsmodus zu ändern (oder Tab in der Eingabe drücken)",
-    "showAllCommands": "Alle Befehle anzeigen",
+    "showAllCommands": "Alle Befehle & Skills anzeigen",
     "clearInput": "Eingabe leeren",
     "scrollToBottom": "Nach unten scrollen"
   },
