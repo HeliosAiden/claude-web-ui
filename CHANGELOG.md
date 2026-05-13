@@ -3,6 +3,16 @@
 All notable changes to CloudCLI UI will be documented in this file.
 
 
+## Unreleased (Claude Web UI fork)
+
+### New Features
+
+* add Free Claude Code (FCC) integration support ([e94e5bd](https://github.com/HeliosAiden/claude-web-ui/commit/e94e5bd))
+  * Auto-load FCC environment variables from `~/.config/free-claude-code/.env`
+  * Automatically fall back to `fcc-claude` CLI binary when standard `claude` is not found
+  * Detect FCC auth tokens and display as "Free Claude Code" in authentication status
+  * Port-safe isolation — avoids conflicting with FCC's own server configuration
+
 ## [1.31.5](https://github.com/siteboon/claudecodeui/compare/v1.31.4...v1.31.5) (2026-04-30)
 
 ### New Features

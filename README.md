@@ -1,7 +1,8 @@
 <div align="center">
   <img src="public/logo.svg" alt="CloudCLI UI" width="64" height="64">
-  <h1>Cloud CLI (aka Claude Code UI)</h1>
-  <p>A desktop and mobile UI for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>, <a href="https://docs.cursor.com/en/cli/overview">Cursor CLI</a>, <a href="https://developers.openai.com/codex">Codex</a>, and <a href="https://geminicli.com/">Gemini-CLI</a>.<br>Use it locally or remotely to view your active projects and sessions from everywhere.</p>
+  <h1>Claude Web UI</h1>
+  <p>A desktop and mobile UI for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>, <a href="https://docs.cursor.com/en/cli/overview">Cursor CLI</a>, <a href="https://developers.openai.com/codex">Codex</a>, <a href="https://geminicli.com/">Gemini-CLI</a>, and <a href="https://github.com/helioaiden/free-claude-code">Free Claude Code</a>.<br>Use it locally or remotely to view your active projects and sessions from everywhere.</p>
+  <p><em>A fork of <a href="https://github.com/siteboon/claudecodeui">CloudCLI</a> with built-in support for Free Claude Code (FCC) integration.</em></p>
 </div>
 
 <p align="center">
@@ -43,7 +44,7 @@
 <h3>CLI Selection</h3>
 <img src="public/screenshots/cli-selection.png" alt="CLI Selection" width="400">
 <br>
-<em>Select between Claude Code, Gemini, Cursor CLI and Codex</em>
+<em>Select between Claude Code, Gemini, Cursor CLI, Codex, and Free Claude Code</em>
 </td>
 </tr>
 </table>
@@ -62,7 +63,30 @@
 - **Session Management** - Resume conversations, manage multiple sessions, and track history
 - **Plugin System** - Extend CloudCLI with custom plugins — add new tabs, backend services, and integrations. [Build your own →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
 - **TaskMaster AI Integration** *(Optional)* - Advanced project management with AI-powered task planning, PRD parsing, and workflow automation
+- **Free Claude Code (FCC) Integration** - Built-in support for Free Claude Code. Auto-discovers FCC configuration, falls back to the `fcc-claude` CLI, and uses FCC auth tokens — no manual setup needed
 - **Model Compatibility** - Works with Claude, GPT, and Gemini model families (see [`shared/modelConstants.js`](shared/modelConstants.js) for the full list of supported models)
+
+
+## Free Claude Code (FCC) Integration
+
+This fork includes built-in support for [Free Claude Code](https://github.com/helioaiden/free-claude-code), allowing you to use Claude Code without an Anthropic subscription. FCC acts as a local proxy between the Claude SDK and alternative API providers.
+
+### How It Works
+
+When you launch Claude Web UI, it automatically detects your FCC setup with zero configuration:
+
+1. **Environment loading** — FCC environment variables from `~/.config/free-claude-code/.env` are loaded automatically, with conflicting variables (PORT, HOST, etc.) safely skipped
+2. **CLI path fallback** — If the standard `claude` CLI is not found, the server falls back to the `fcc-claude` command automatically on Windows
+3. **Auth token detection** — FCC auth tokens stored in `~/.config/free-claude-code/.env` are recognized and show as "Free Claude Code" in the authentication status
+4. **Clean separation** — FCC config is read-only; this fork never modifies your FCC environment
+
+### Setup
+
+1. Install and configure [Free Claude Code](https://github.com/helioaiden/free-claude-code) on your machine
+2. Clone and start Claude Web UI — it discovers your FCC setup automatically
+3. Check the authentication status in the UI to confirm "Free Claude Code" is detected
+
+No extra configuration files, no manual `.env` changes required.
 
 
 ## Quick Start
@@ -95,6 +119,19 @@ Open `http://localhost:3001` — all your existing sessions are discovered autom
 
 Visit the **[documentation →](https://cloudcli.ai/docs)** for full configuration options, PM2, remote server setup and more.
 
+#### Clone (for FCC support)
+
+To run this fork with Free Claude Code support:
+
+```bash
+git clone https://github.com/HeliosAiden/claude-web-ui.git
+cd claude-web-ui
+npm install
+npm run dev
+```
+
+Open `http://localhost:3001`. Your FCC configuration will be auto-discovered from `~/.config/free-claude-code/.env`.
+
 #### Docker Sandboxes (Experimental)
 
 Run agents in isolated sandboxes with hypervisor-level isolation. Starts Claude Code by default. Requires the [`sbx` CLI](https://docs.docker.com/ai/sandboxes/get-started/).
@@ -110,7 +147,7 @@ Supports Claude Code, Codex, and Gemini CLI. See the [sandbox docs](docker/) for
 
 ## Which option is right for you?
 
-CloudCLI UI is the open source UI layer that powers CloudCLI Cloud. You can self-host it on your own machine, run it in a Docker sandbox for isolation, or use CloudCLI Cloud for a fully managed environment.
+Claude Web UI is a fork of the open source UI layer that powers CloudCLI Cloud, with built-in Free Claude Code integration. You can self-host it on your own machine, run it in a Docker sandbox for isolation, or use CloudCLI Cloud for a fully managed environment.
 
 | | Self-Hosted (npm) | Self-Hosted (Docker Sandbox) *(Experimental)* | CloudCLI Cloud |
 |---|---|---|---|
@@ -120,7 +157,7 @@ CloudCLI UI is the open source UI layer that powers CloudCLI Cloud. You can self
 | **Isolation** | Runs on your host | Hypervisor-level sandbox (microVM) | Full cloud isolation |
 | **Machine needs to stay on** | Yes | Yes | No |
 | **Mobile access** | Any browser on your network | Any browser on your network | Any device, native app coming |
-| **Agents supported** | Claude Code, Cursor CLI, Codex, Gemini CLI | Claude Code, Codex, Gemini CLI | Claude Code, Cursor CLI, Codex, Gemini CLI |
+| **Agents supported** | Claude Code, Cursor CLI, Codex, Gemini CLI, Free Claude Code | Claude Code, Codex, Gemini CLI | Claude Code, Cursor CLI, Codex, Gemini CLI |
 | **File explorer and Git** | Yes | Yes | Yes |
 | **MCP configuration** | Synced with `~/.claude` | Managed via UI | Managed via UI |
 | **REST API** | Yes | Yes | Yes |
@@ -179,13 +216,13 @@ CloudCLI has a plugin system that lets you add custom tabs with their own fronte
 
 Claude Code Remote Control lets you send messages to a session already running in your local terminal. Your machine has to stay on, your terminal has to stay open, and sessions time out after roughly 10 minutes without a network connection.
 
-CloudCLI UI and CloudCLI Cloud extend Claude Code rather than sit alongside it — your MCP servers, permissions, settings, and sessions are the exact same ones Claude Code uses natively. Nothing is duplicated or managed separately.
+Claude Web UI and CloudCLI Cloud extend Claude Code rather than sit alongside it — your MCP servers, permissions, settings, and sessions are the exact same ones Claude Code uses natively. Nothing is duplicated or managed separately.
 
 Here's what that means in practice:
 
-- **All your sessions, not just one** — CloudCLI UI auto-discovers every session from your `~/.claude` folder. Remote Control only exposes the single active session to make it available in the Claude mobile app.
-- **Your settings are your settings** — MCP servers, tool permissions, and project config you change in CloudCLI UI are written directly to your Claude Code config and take effect immediately, and vice versa.
-- **Works with more agents** — Claude Code, Cursor CLI, Codex, and Gemini CLI, not just Claude Code.
+- **All your sessions, not just one** — Claude Web UI auto-discovers every session from your `~/.claude` folder. Remote Control only exposes the single active session to make it available in the Claude mobile app.
+- **Your settings are your settings** — MCP servers, tool permissions, and project config you change in Claude Web UI are written directly to your Claude Code config and take effect immediately, and vice versa.
+- **Works with more agents** — Claude Code, Cursor CLI, Codex, Gemini CLI, and Free Claude Code, not just Claude Code.
 - **Full UI, not just a chat window** — file explorer, Git integration, MCP management, and a shell terminal are all built in.
 - **CloudCLI Cloud runs in the cloud** — close your laptop, the agent keeps running. No terminal to babysit, no machine to keep awake.
 
@@ -194,12 +231,28 @@ Here's what that means in practice:
 <details>
 <summary>Do I need to pay for an AI subscription separately?</summary>
 
-Yes. CloudCLI provides the environment, not the AI. You bring your own Claude, Cursor, Codex, or Gemini subscription. CloudCLI Cloud starts at $7/month for the hosted environment on top of that.
+Claude Web UI provides the environment, not the AI. You can bring your own Claude, Cursor, Codex, or Gemini subscription. CloudCLI Cloud starts at $7/month for the hosted environment on top of that.
+
+Alternatively, this fork includes built-in support for [Free Claude Code](https://github.com/helioaiden/free-claude-code), which lets you use Claude Code without an Anthropic subscription by routing through alternative API providers. See the [Free Claude Code (FCC) Integration](#free-claude-code-fcc-integration) section above.
 
 </details>
 
 <details>
-<summary>Can I use CloudCLI UI on my phone?</summary>
+<summary>What is Free Claude Code (FCC) and how does this fork support it?</summary>
+
+[Free Claude Code](https://github.com/helioaiden/free-claude-code) is an open-source project that lets you run Claude Code without an Anthropic subscription by routing API calls through alternative providers. This fork includes built-in integration:
+
+- **Auto-discovery** — FCC environment variables are loaded automatically from `~/.config/free-claude-code/.env`
+- **CLI fallback** — Falls back to the `fcc-claude` binary if `claude` is not found
+- **Auth recognition** — FCC auth tokens are detected and displayed as "Free Claude Code" in the UI
+- **Zero config** — No manual `.env` changes or extra setup required
+
+See the [Free Claude Code Integration](#free-claude-code-fcc-integration) section for details.
+
+</details>
+
+<details>
+<summary>Can I use Claude Web UI on my phone?</summary>
 
 Yes. For self-hosted, run the server on your machine and open `[yourip]:port` in any browser on your network. For CloudCLI Cloud, open it from any device — no VPN, no port forwarding, no setup. A native app is also in the works.
 
@@ -208,7 +261,7 @@ Yes. For self-hosted, run the server on your machine and open `[yourip]:port` in
 <details>
 <summary>Will changes I make in the UI affect my local Claude Code setup?</summary>
 
-Yes, for self-hosted. CloudCLI UI reads from and writes to the same `~/.claude` config that Claude Code uses natively. MCP servers you add via the UI show up in Claude Code immediately and vice versa.
+Yes, for self-hosted. Claude Web UI reads from and writes to the same `~/.claude` config that Claude Code uses natively. MCP servers you add via the UI show up in Claude Code immediately and vice versa.
 
 </details>
 
@@ -218,7 +271,8 @@ Yes, for self-hosted. CloudCLI UI reads from and writes to the same `~/.claude` 
 
 - **[Documentation](https://cloudcli.ai/docs)** — installation, configuration, features, and troubleshooting
 - **[Discord](https://discord.gg/buxwujPNRE)** — get help and connect with other users
-- **[GitHub Issues](https://github.com/siteboon/claudecodeui/issues)** — bug reports and feature requests
+- **[GitHub Issues](https://github.com/HeliosAiden/claude-web-ui/issues)** — bug reports and feature requests
+- **[Upstream Project](https://github.com/siteboon/claudecodeui)** — original CloudCLI project this fork is based on
 - **[Contributing Guide](CONTRIBUTING.md)** — how to contribute to the project
 
 ## License
@@ -227,7 +281,7 @@ GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later) — see [LIC
 
 This project is open source and free to use, modify, and distribute under the AGPL-3.0-or-later license. If you modify this software and run it as a network service, you must make your modified source code available to users of that service.
 
-CloudCLI UI  - (https://cloudcli.ai).
+Claude Web UI — a fork of [CloudCLI](https://cloudcli.ai) with Free Claude Code integration.
 
 ## Acknowledgments
 
@@ -236,6 +290,7 @@ CloudCLI UI  - (https://cloudcli.ai).
 - **[Cursor CLI](https://docs.cursor.com/en/cli/overview)** - Cursor's official CLI
 - **[Codex](https://developers.openai.com/codex)** - OpenAI Codex
 - **[Gemini-CLI](https://geminicli.com/)** - Google Gemini CLI
+- **[Free Claude Code](https://github.com/helioaiden/free-claude-code)** - Open-source Claude Code without Anthropic subscription
 - **[React](https://react.dev/)** - User interface library
 - **[Vite](https://vitejs.dev/)** - Fast build tool and dev server
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
@@ -248,5 +303,5 @@ CloudCLI UI  - (https://cloudcli.ai).
 ---
 
 <div align="center">
-  <strong>Made with care for the Claude Code, Cursor and Codex community.</strong>
+  <strong>Made with care for the Claude Code, Cursor, Codex, and Free Claude Code community.</strong>
 </div>
