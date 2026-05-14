@@ -250,6 +250,9 @@ export function useShellTerminal({
         resizeTimeoutRef.current = null;
       }
       dataSubscription.dispose();
+      // Tell the server to release the PTY immediately so the Chat SDK
+      // can take over the session without FCC conflicts.
+      sendSocketMessage(wsRef.current, { type: 'deactivate' });
       closeSocket();
       disposeTerminal();
     };

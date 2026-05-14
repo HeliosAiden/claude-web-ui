@@ -28,7 +28,7 @@ export type ShellInputMessage = {
   data: string;
 };
 
-export type ShellOutgoingMessage = ShellInitMessage | ShellResizeMessage | ShellInputMessage;
+export type ShellOutgoingMessage = ShellInitMessage | ShellResizeMessage | ShellInputMessage | { type: 'deactivate' };
 
 export type ShellIncomingMessage =
   | { type: 'output'; data: string }

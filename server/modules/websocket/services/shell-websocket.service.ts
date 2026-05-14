@@ -39,6 +39,10 @@ type ShellWebSocketDependencies = {
   normalizeDetectedUrl: (url: string) => string | null;
   extractUrlsFromText: (content: string) => string[];
   shouldAutoOpenUrlFromOutput: (content: string) => boolean;
+  /** Abort the Chat SDK session before Shell PTY takes it over. */
+  abortSDKSession?: (sessionId: string) => Promise<boolean> | boolean;
+  /** Check if a session is currently held by the Chat SDK. */
+  isSDKSessionActive?: (sessionId: string) => boolean;
 };
 
 /**
@@ -250,6 +254,12 @@ export function handleShellConnection(
           return;
         }
 
+        // If the Chat SDK currently holds this session, release it so the
+        // shell CLI can take it over without FCC session conflicts.
+        if (sessionId && dependencies.isSDKSessionActive?.(sessionId)) {
+          await dependencies.abortSDKSession?.(sessionId);
+        }
+
         const shellCommand = buildShellCommand(data, dependencies);
         const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
         const shellArgs =
@@ -415,6 +425,24 @@ export function handleShellConnection(
         if (shellProcess) {
           shellProcess.resize(readNumber(data.cols, 80), readNumber(data.rows, 24));
         }
+        return;
+      }
+
+      if (data.type === 'deactivate') {
+        // Client is releasing the PTY so another interface (Chat) can take
+        // the session. Kill the PTY immediately instead of waiting for the
+        // 30-minute idle timeout.
+        if (ptySessionKey) {
+          const session = ptySessionsMap.get(ptySessionKey);
+          if (session) {
+            if (session.timeoutId) clearTimeout(session.timeoutId);
+            session.pty.kill();
+            ptySessionsMap.delete(ptySessionKey);
+          }
+          shellProcess = null;
+          ptySessionKey = null;
+        }
+        return;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

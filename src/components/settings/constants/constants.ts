@@ -3,7 +3,6 @@ import {
   Bell,
   Bot,
   GitBranch,
-  Info,
   KeyRound,
   ListChecks,
   Palette,
@@ -34,7 +33,6 @@ export const SETTINGS_MAIN_TABS: SettingsMainTabMeta[] = [
   { id: 'tasks', label: 'Tasks', keywords: 'tasks taskmaster', icon: ListChecks },
   { id: 'notifications', label: 'Notifications', keywords: 'notifications alerts push', icon: Bell },
   { id: 'plugins', label: 'Plugins', keywords: 'plugins extensions integrations', icon: Plug },
-  { id: 'about', label: 'About', keywords: 'about version info', icon: Info },
 ];
 
 export const AGENT_PROVIDERS: AgentProvider[] = ['claude', 'cursor', 'codex', 'gemini'];

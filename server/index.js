@@ -119,6 +119,8 @@ const wss = createWebSocketServer(server, {
         normalizeDetectedUrl,
         extractUrlsFromText,
         shouldAutoOpenUrlFromOutput,
+        abortSDKSession: (sessionId) => abortClaudeSDKSession(sessionId),
+        isSDKSessionActive: (sessionId) => isClaudeSDKSessionActive(sessionId),
     },
     getPluginPort,
 });
