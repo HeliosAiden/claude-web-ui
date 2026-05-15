@@ -1,57 +1,12 @@
-<div align="center">
-  <img src="public/logo.svg" alt="Claude Web UI" width="64" height="64">
-  <h1>Claude Web UI</h1>
-  <p>A desktop and mobile UI for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>, <a href="https://docs.cursor.com/en/cli/overview">Cursor CLI</a>, <a href="https://developers.openai.com/codex">Codex</a>, <a href="https://geminicli.com/">Gemini-CLI</a>, and <a href="https://github.com/helioaiden/free-claude-code">Free Claude Code</a>.<br>Use it locally or remotely to view your active projects and sessions from everywhere.</p>
-  <p><em>A fork of <a href="https://github.com/siteboon/claudecodeui">Claude Code UI</a> with built-in support for Free Claude Code (FCC) integration.</em></p>
-</div>
+# Claude Web UI
 
-<p align="center">
-  <a href="https://cloudcli.ai">CloudCLI Cloud</a> · <a href="https://github.com/HeliosAiden/claude-web-ui/issues">Bug Reports</a> · <a href="CONTRIBUTING.md">Contributing</a>
-</p>
+A desktop and mobile UI for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor CLI](https://docs.cursor.com/en/cli/overview), [Codex](https://developers.openai.com/codex), [Gemini-CLI](https://geminicli.com/), and [Free Claude Code](https://github.com/helioaiden/free-claude-code). Use it locally or remotely to view your active projects and sessions from everywhere.
 
-<p align="center">
-  <a href="https://cloudcli.ai"><img src="https://img.shields.io/badge/☁️_CloudCLI_Cloud-Try_Now-0066FF?style=for-the-badge" alt="CloudCLI Cloud"></a>
-  <a href="https://discord.gg/buxwujPNRE"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join our Discord"></a>
-  <br><br>
-  <a href="https://trendshift.io/repositories/15586" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15586" alt="siteboon%2Fclaudecodeui | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
+*A fork of [Claude Code UI](https://github.com/siteboon/claudecodeui) with built-in support for Free Claude Code (FCC) integration.*
 
-<div align="right"><i><b>English</b> · <a href="./README.ru.md">Русский</a> · <a href="./README.de.md">Deutsch</a> · <a href="./README.ko.md">한국어</a> · <a href="./README.zh-CN.md">中文</a> · <a href="./README.ja.md">日本語</a> · <a href="./README.tr.md">Türkçe</a></i></div>
+[CloudCLI Cloud](https://cloudcli.ai) · [Bug Reports](https://github.com/HeliosAiden/claude-web-ui/issues) · [Contributing](CONTRIBUTING.md)
 
----
-
-## Screenshots
-
-<div align="center">
-  
-<table>
-<tr>
-<td align="center">
-<h3>Desktop View</h3>
-<img src="public/screenshots/desktop-main.png" alt="Desktop Interface" width="400">
-<br>
-<em>Main interface showing project overview and chat</em>
-</td>
-<td align="center">
-<h3>Mobile Experience</h3>
-<img src="public/screenshots/mobile-chat.png" alt="Mobile Interface" width="250">
-<br>
-<em>Responsive mobile design with touch navigation</em>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="2">
-<h3>CLI Selection</h3>
-<img src="public/screenshots/cli-selection.png" alt="CLI Selection" width="400">
-<br>
-<em>Select between Claude Code, Gemini, Cursor CLI, Codex, and Free Claude Code</em>
-</td>
-</tr>
-</table>
-
-
-
-</div>
+*English · [Русский](./README.ru.md) · [Deutsch](./README.de.md) · [한국어](./README.ko.md) · [中文](./README.zh-CN.md) · [日本語](./README.ja.md) · [Türkçe](./README.tr.md)*
 
 ## Features
 
@@ -178,12 +133,8 @@ To use Claude Code's full functionality, you'll need to manually enable tools:
 2. **Enable Selectively** - Turn on only the tools you need
 3. **Apply Settings** - Your preferences are saved locally
 
-<div align="center">
-
 ![Tools Settings Modal](public/screenshots/tools-modal.png)
 *Tools Settings interface - enable only what you need*
-
-</div>
 
 **Recommended approach**: Start with basic tools enabled and add more as needed. You can always adjust these settings later.
 
@@ -300,6 +251,4 @@ Claude Web UI — a fork of [CloudCLI](https://cloudcli.ai) with Free Claude Cod
 - [Siteboon - AI powered website builder](https://siteboon.ai)
 ---
 
-<div align="center">
-  <strong>Made with care for the Claude Code, Cursor, Codex, and Free Claude Code community.</strong>
-</div>
+**Made with care for the Claude Code, Cursor, Codex, and Free Claude Code community.**
