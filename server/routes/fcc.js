@@ -28,7 +28,10 @@ async function fetchFccModels(fccBaseUrl) {
 
   // Use /admin/api/status which includes cached_models and provider_status
   const res = await fetch(`${fccBaseUrl}/admin/api/status`, { headers, signal: AbortSignal.timeout(5000) });
-  if (!res.ok) throw new Error(`FCC status returned ${res.status}`);
+  if (!res.ok) {
+    console.error(`[FCC] ${fccBaseUrl}/admin/api/status returned ${res.status} ${res.statusText}`);
+    throw new Error(`FCC status returned ${res.status}`);
+  }
 
   const data = await res.json();
 
@@ -55,6 +58,9 @@ async function fetchFccModels(fccBaseUrl) {
   // Also fetch /v1/models as a fallback for any models not in cached_models
   try {
     const v1Res = await fetch(`${fccBaseUrl}/v1/models`, { headers, signal: AbortSignal.timeout(5000) });
+    if (!v1Res.ok) {
+      console.error(`[FCC] ${fccBaseUrl}/v1/models returned ${v1Res.status} ${v1Res.statusText}`);
+    }
     if (v1Res.ok) {
       const v1Data = await v1Res.json();
       const existingValues = new Set(models.map(m => m.value));
@@ -132,6 +138,9 @@ router.post('/test-model', authenticateToken, async (req, res) => {
     const headers = { 'x-api-key': token };
     try {
       const statusRes = await fetch(`${fccBaseUrl}/admin/api/status`, { headers, signal: AbortSignal.timeout(3000) });
+      if (!statusRes.ok) {
+        console.error(`[FCC] ${fccBaseUrl}/admin/api/status returned ${statusRes.status} ${statusRes.statusText} (pre-flight for model "${model}")`);
+      }
       if (statusRes.ok) {
         const statusData = await statusRes.json();
         // FCC-discovered models have provider prefix like deepseek/…
@@ -165,6 +174,8 @@ router.post('/test-model', authenticateToken, async (req, res) => {
     if (testRes.ok) {
       return res.json({ ok: true, model });
     }
+
+    console.error(`[FCC] ${fccBaseUrl}/v1/messages returned ${testRes.status} ${testRes.statusText} for model "${model}"`);
 
     // Extract error detail from FCC response
     let errorDetail = `FCC returned ${testRes.status}`;

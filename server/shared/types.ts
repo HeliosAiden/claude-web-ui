@@ -86,7 +86,8 @@ export type MessageKind =
   | 'permission_cancelled'
   | 'session_created'
   | 'interactive_prompt'
-  | 'task_notification';
+  | 'task_notification'
+  | 'unfollow_session_result';
 
 /**
  * Provider-neutral message envelope used in REST responses and realtime channels.

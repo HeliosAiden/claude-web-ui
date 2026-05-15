@@ -206,13 +206,17 @@ export function useShellConnection({
   }, [connectWebSocket, isConnected, isConnecting, isInitialized]);
 
   const disconnectFromShell = useCallback(() => {
+    const socket = wsRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      sendSocketMessage(socket, { type: 'deactivate' });
+    }
     closeSocket();
     clearTerminalScreen();
     setIsConnected(false);
     setIsConnecting(false);
     connectingRef.current = false;
     setAuthUrl('');
-  }, [clearTerminalScreen, closeSocket, setAuthUrl]);
+  }, [clearTerminalScreen, closeSocket, setAuthUrl, wsRef]);
 
   useEffect(() => {
     if (!autoConnect || !isInitialized || isConnecting || isConnected) {

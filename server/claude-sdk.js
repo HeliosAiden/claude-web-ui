@@ -32,8 +32,22 @@ import { createNormalizedMessage } from './shared/utils.js';
 
 const activeSessions = new Map();
 const pendingToolApprovals = new Map();
+const ptyOwnedSessions = new Map();
+// sessionId → {
+//   projectPath: string,
+//   followerController: AbortController,
+//   writer: WebSocketWriter | null,
+//   pollTimer: NodeJS.Timeout | null,
+//   bytesRead: number,
+//   status: 'following' | 'completed' | 'error'
+// }
 
 const TOOL_APPROVAL_TIMEOUT_MS = parseInt(process.env.CLAUDE_TOOL_APPROVAL_TIMEOUT_MS, 10) || 55000;
+
+// Prevent the SDK from retrying indefinitely when the upstream API (e.g. FCC proxy)
+// returns persistent 500 errors. After this timeout the query is aborted and an
+// error propagates to the frontend instead of the chat UI hanging silently.
+const QUERY_ABORT_TIMEOUT_MS = parseInt(process.env.CLAUDE_SDK_QUERY_TIMEOUT_MS, 10) || 600_000;
 
 const TOOLS_REQUIRING_INTERACTION = new Set(['AskUserQuestion', 'ExitPlanMode']);
 
@@ -42,6 +56,15 @@ function createRequestId() {
     return crypto.randomUUID();
   }
   return crypto.randomBytes(16).toString('hex');
+}
+
+function computeJSONLPath(sessionId, projectPath) {
+  const safePattern = /^[a-zA-Z0-9_.\-:]+$/;
+  if (!safePattern.test(sessionId)) {
+    throw new Error('Invalid session ID');
+  }
+  const encodedPath = projectPath.replace(/[^a-zA-Z0-9-]/g, '-');
+  return path.join(os.homedir(), '.claude', 'projects', encodedPath, `${sessionId}.jsonl`);
 }
 
 function waitForToolApproval(requestId, options = {}) {
@@ -492,6 +515,9 @@ async function queryClaudeSDK(command, options = {}, ws) {
     });
   };
 
+  let abortController;
+  let abortTimer;
+
   try {
     // Map CLI options to SDK format
     const sdkOptions = mapCliOptionsToSDK(options);
@@ -610,6 +636,15 @@ async function queryClaudeSDK(command, options = {}, ws) {
     const prevStreamTimeout = process.env.CLAUDE_CODE_STREAM_CLOSE_TIMEOUT;
     process.env.CLAUDE_CODE_STREAM_CLOSE_TIMEOUT = '300000';
 
+    // Abort controller with timeout prevents the query from hanging indefinitely
+    // when upstream returns persistent errors that the SDK retries in a loop.
+    abortController = new AbortController();
+    abortTimer = setTimeout(() => {
+      console.warn('SDK query abort timeout reached, aborting query');
+      abortController.abort();
+    }, QUERY_ABORT_TIMEOUT_MS);
+    sdkOptions.abortController = abortController;
+
     let queryInstance;
     try {
       queryInstance = query({
@@ -690,6 +725,7 @@ async function queryClaudeSDK(command, options = {}, ws) {
     }
 
     // Clean up session on completion
+    clearTimeout(abortTimer);
     if (capturedSessionId) {
       removeSession(capturedSessionId);
     }
@@ -710,6 +746,7 @@ async function queryClaudeSDK(command, options = {}, ws) {
 
   } catch (error) {
     console.error('SDK query error:', error);
+    clearTimeout(abortTimer);
 
     // Clean up session on error
     if (capturedSessionId) {
@@ -719,18 +756,42 @@ async function queryClaudeSDK(command, options = {}, ws) {
     // Clean up temporary image files on error
     await cleanupTempFiles(tempImagePaths, tempDir);
 
+    const effectiveSid = capturedSessionId || sessionId || null;
+
+    // If the session was aborted because the Shell PTY is taking over,
+    // send a graceful complete event so the frontend can switch to
+    // follower mode instead of showing an error.
+    if (effectiveSid && ptyOwnedSessions.has(effectiveSid)) {
+      ws.send(createNormalizedMessage({ kind: 'complete', exitCode: 0, isPtyOwned: true, sessionId: effectiveSid, provider: 'claude' }));
+      notifyRunStopped({
+        userId: ws?.userId || null,
+        provider: 'claude',
+        sessionId: effectiveSid,
+        sessionName: sessionSummary,
+        stopReason: 'pty_takeover'
+      });
+      return;
+    }
+
+    const isAbortError = error?.name === 'AbortError' || error?.code === 'ABORT_ERR' || String(error?.message || '').includes('abort');
+
     // Check if Claude CLI is installed for a clearer error message
     const installed = await providerAuthService.isProviderInstalled('claude');
-    const errorContent = !installed
-      ? 'Claude Code is not installed. Please install it first: https://docs.anthropic.com/en/docs/claude-code'
-      : error.message;
+    let errorContent;
+    if (!installed) {
+      errorContent = 'Claude Code is not installed. Please install it first: https://docs.anthropic.com/en/docs/claude-code';
+    } else if (isAbortError) {
+      errorContent = 'The request timed out after several attempts. The upstream API may be experiencing issues. Please try again or check your FCC/API provider configuration.';
+    } else {
+      errorContent = error.message;
+    }
 
     // Send error to WebSocket
-    ws.send(createNormalizedMessage({ kind: 'error', content: errorContent, sessionId: capturedSessionId || sessionId || null, provider: 'claude' }));
+    ws.send(createNormalizedMessage({ kind: 'error', content: errorContent, sessionId: effectiveSid, provider: 'claude' }));
     notifyRunFailed({
       userId: ws?.userId || null,
       provider: 'claude',
-      sessionId: capturedSessionId || sessionId || null,
+      sessionId: effectiveSid,
       sessionName: sessionSummary,
       error
     });
@@ -813,6 +874,266 @@ function getPendingApprovalsForSession(sessionId) {
 }
 
 /**
+ * Registers a session as PTY-owned so the chat SDK can switch to follower mode.
+ * Called by shell-websocket.service before spawning the PTY.
+ * @param {string} sessionId - Session identifier
+ * @param {string} projectPath - Project working directory
+ */
+function registerPtyOwnedSession(sessionId, projectPath) {
+  if (!ptyOwnedSessions.has(sessionId)) {
+    ptyOwnedSessions.set(sessionId, {
+      projectPath,
+      followerController: null,
+      writer: null,
+      pollTimer: null,
+      bytesRead: 0,
+      status: 'following'
+    });
+  }
+}
+
+/**
+ * Unregisters a PTY-owned session.
+ * Called by shell-websocket.service on PTY exit or deactivate.
+ * @param {string} sessionId - Session identifier
+ */
+function unregisterPtyOwnedSession(sessionId) {
+  const entry = ptyOwnedSessions.get(sessionId);
+  if (entry) {
+    if (entry.pollTimer) clearInterval(entry.pollTimer);
+    if (entry.followerController) entry.followerController.abort();
+  }
+  ptyOwnedSessions.delete(sessionId);
+}
+
+/**
+ * Checks if a session is registered as PTY-owned and currently following.
+ * @param {string} sessionId - Session identifier
+ * @returns {boolean} True if session is PTY-owned and following
+ */
+function isSessionPtyOwned(sessionId) {
+  const entry = ptyOwnedSessions.get(sessionId);
+  return !!(entry && entry.status === 'following');
+}
+
+/**
+ * Stops an active JSONL follower for a session.
+ * @param {string} sessionId - Session identifier
+ * @returns {boolean} True if follower was stopped
+ */
+function stopFollowingSession(sessionId) {
+  const entry = ptyOwnedSessions.get(sessionId);
+  if (!entry) return false;
+  if (entry.pollTimer) clearInterval(entry.pollTimer);
+  if (entry.followerController) entry.followerController.abort();
+  ptyOwnedSessions.delete(sessionId);
+  return true;
+}
+
+/**
+ * Follows a PTY-owned session by watching its JSONL file for new messages.
+ * Reuses transformMessage, sessionsService.normalizeMessage, and
+ * extractTokenBudget from the existing SDK pipeline.
+ *
+ * @param {string} sessionId - Session identifier
+ * @param {Object} options - { cwd, sessionSummary }
+ * @param {Object} ws - WebSocketWriter instance
+ * @returns {Promise<void>}
+ */
+async function followSessionViaJSONL(sessionId, options, ws) {
+  const { cwd } = options;
+  const safePattern = /^[a-zA-Z0-9_.\-:]+$/;
+
+  if (!sessionId || !safePattern.test(sessionId)) {
+    ws.send(createNormalizedMessage({ kind: 'error', content: 'Invalid session ID', sessionId, provider: 'claude' }));
+    return;
+  }
+
+  const projectPath = cwd || process.cwd();
+  let jsonlPath;
+  try {
+    jsonlPath = computeJSONLPath(sessionId, projectPath);
+  } catch (err) {
+    ws.send(createNormalizedMessage({ kind: 'error', content: err.message, sessionId, provider: 'claude' }));
+    return;
+  }
+
+  // If already following this session, just swap the writer (reconnect pattern)
+  const existing = ptyOwnedSessions.get(sessionId);
+  if (existing && existing.status === 'following' && existing.pollTimer) {
+    existing.writer = ws;
+    if (existing.bytesRead > 0) {
+      ws.send(createNormalizedMessage({ kind: 'status', text: 'reconnected_follower', sessionId, provider: 'claude' }));
+    }
+    return;
+  }
+
+  const followerController = new AbortController();
+  let bytesRead = 0;
+  let partialLine = '';
+
+  const cleanupFollower = (sid) => {
+    const entry = ptyOwnedSessions.get(sid);
+    if (entry) {
+      if (entry.pollTimer) clearInterval(entry.pollTimer);
+      ptyOwnedSessions.delete(sid);
+    }
+  };
+
+  // Resolves the current writer from the registry so reconnections
+  // (which swap the writer via existing.writer = ws) are picked up.
+  const getWriter = () => ptyOwnedSessions.get(sessionId)?.writer || ws;
+
+  const processLine = (line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    let entry;
+    try {
+      entry = JSON.parse(trimmed);
+    } catch {
+      return;
+    }
+
+    const writer = getWriter();
+    const transformed = transformMessage(entry);
+    const sid = sessionId;
+    const normalized = sessionsService.normalizeMessage('claude', transformed, sid);
+    for (const msg of normalized) {
+      if (transformed.parentToolUseId && !msg.parentToolUseId) {
+        msg.parentToolUseId = transformed.parentToolUseId;
+      }
+      writer.send(msg);
+    }
+
+    if (entry.type === 'result') {
+      const tokenBudgetData = extractTokenBudget(entry);
+      if (tokenBudgetData) {
+        writer.send(createNormalizedMessage({ kind: 'status', text: 'token_budget', tokenBudget: tokenBudgetData, sessionId: sid, provider: 'claude' }));
+      }
+      writer.send(createNormalizedMessage({ kind: 'complete', exitCode: 0, sessionId: sid, provider: 'claude' }));
+      cleanupFollower(sessionId);
+    }
+  };
+
+  const processChunk = (text) => {
+    const lines = text.split('\n');
+    if (lines.length === 0) return;
+    lines[0] = partialLine + lines[0];
+    partialLine = lines.length > 1 ? (lines[lines.length - 1] || '') : '';
+    const end = lines.length > 1 ? lines.length - 1 : lines.length;
+    for (let i = 0; i < end; i++) {
+      const entry = ptyOwnedSessions.get(sessionId);
+      if (!entry || entry.status !== 'following') return;
+      processLine(lines[i]);
+    }
+  };
+
+  // Register (or update) the ptyOwnedSessions entry
+  ptyOwnedSessions.set(sessionId, {
+    projectPath,
+    followerController,
+    writer: ws,
+    pollTimer: null,
+    bytesRead: 0,
+    status: 'following'
+  });
+
+  // Send session-created so the frontend knows this is a live session
+  ws.send(createNormalizedMessage({ kind: 'session_created', newSessionId: sessionId, sessionId, provider: 'claude' }));
+
+  try {
+    // Phase 1: Catch-up — read existing file content
+    let fileExists = false;
+    try {
+      const content = await fs.readFile(jsonlPath, 'utf8');
+      fileExists = true;
+      bytesRead = Buffer.byteLength(content, 'utf8');
+      const lines = content.split('\n');
+      for (let i = 0; i < lines.length - 1; i++) {
+        processLine(lines[i]);
+      }
+      partialLine = lines[lines.length - 1] || '';
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+
+    const reg = ptyOwnedSessions.get(sessionId);
+    if (reg) reg.bytesRead = bytesRead;
+
+    if (!fileExists) {
+      ws.send(createNormalizedMessage({ kind: 'status', text: 'waiting_for_session_data', sessionId, provider: 'claude' }));
+    }
+
+    // Check if already completed during catch-up
+    if (!ptyOwnedSessions.has(sessionId)) return;
+
+    // Phase 2: Polling loop
+    const pollTimer = setInterval(async () => {
+      try {
+        if (followerController.signal.aborted) {
+          clearInterval(pollTimer);
+          return;
+        }
+
+        const currentEntry = ptyOwnedSessions.get(sessionId);
+        if (!currentEntry || currentEntry.status !== 'following') {
+          clearInterval(pollTimer);
+          return;
+        }
+
+        let stat;
+        try {
+          stat = await fs.stat(jsonlPath);
+        } catch (err) {
+          if (err.code === 'ENOENT') return;
+          throw err;
+        }
+
+        if (stat.size === 0) return;
+
+        if (stat.size < bytesRead) {
+          // File truncated — re-read from start
+          bytesRead = 0;
+          partialLine = '';
+          const content = await fs.readFile(jsonlPath, 'utf8');
+          bytesRead = Buffer.byteLength(content, 'utf8');
+          const lines = content.split('\n');
+          for (let i = 0; i < lines.length - 1; i++) {
+            processLine(lines[i]);
+          }
+          partialLine = lines[lines.length - 1] || '';
+          if (currentEntry) currentEntry.bytesRead = bytesRead;
+          return;
+        }
+
+        if (stat.size > bytesRead) {
+          const fd = await fs.open(jsonlPath, 'r');
+          const readSize = stat.size - bytesRead;
+          const buf = Buffer.alloc(readSize);
+          await fd.read(buf, 0, readSize, bytesRead);
+          await fd.close();
+          bytesRead = stat.size;
+
+          processChunk(buf.toString('utf8'));
+          if (currentEntry) currentEntry.bytesRead = bytesRead;
+        }
+      } catch (err) {
+        if (err.code === 'ENOENT') return;
+        console.error('JSONL poll error:', err);
+      }
+    }, 500);
+
+    const updatedReg = ptyOwnedSessions.get(sessionId);
+    if (updatedReg) updatedReg.pollTimer = pollTimer;
+
+  } catch (error) {
+    console.error('followSessionViaJSONL error:', error);
+    ws.send(createNormalizedMessage({ kind: 'error', content: error.message, sessionId, provider: 'claude' }));
+    cleanupFollower(sessionId);
+  }
+}
+
+/**
  * Reconnect a session's WebSocketWriter to a new raw WebSocket.
  * Called when client reconnects (e.g. page refresh) while SDK is still running.
  * @param {string} sessionId - The session ID
@@ -835,5 +1156,10 @@ export {
   getActiveClaudeSDKSessions,
   resolveToolApproval,
   getPendingApprovalsForSession,
-  reconnectSessionWriter
+  reconnectSessionWriter,
+  followSessionViaJSONL,
+  stopFollowingSession,
+  isSessionPtyOwned,
+  registerPtyOwnedSession,
+  unregisterPtyOwnedSession,
 };

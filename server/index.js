@@ -26,6 +26,11 @@ import {
     resolveToolApproval,
     getPendingApprovalsForSession,
     reconnectSessionWriter,
+    followSessionViaJSONL,
+    stopFollowingSession,
+    isSessionPtyOwned,
+    registerPtyOwnedSession,
+    unregisterPtyOwnedSession,
 } from './claude-sdk.js';
 import {
     spawnCursor,
@@ -112,6 +117,9 @@ const wss = createWebSocketServer(server, {
         getActiveCursorSessions,
         getActiveCodexSessions,
         getActiveGeminiSessions,
+        followSessionViaJSONL,
+        stopFollowingSession,
+        isSessionPtyOwned,
     },
     shell: {
         getSessionById: (sessionId) => sessionManager.getSession(sessionId),
@@ -121,6 +129,8 @@ const wss = createWebSocketServer(server, {
         shouldAutoOpenUrlFromOutput,
         abortSDKSession: (sessionId) => abortClaudeSDKSession(sessionId),
         isSDKSessionActive: (sessionId) => isClaudeSDKSessionActive(sessionId),
+        registerPtyOwnedSession: (sessionId, projectPath) => registerPtyOwnedSession(sessionId, projectPath),
+        unregisterPtyOwnedSession: (sessionId) => unregisterPtyOwnedSession(sessionId),
     },
     getPluginPort,
 });

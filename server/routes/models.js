@@ -33,7 +33,10 @@ async function diagnoseFccFailure(fccBaseUrl, token, model) {
       headers: { 'x-api-key': token },
       signal: AbortSignal.timeout(5000),
     });
-    if (!configRes.ok) return null;
+    if (!configRes.ok) {
+      console.error(`[FCC] ${fccBaseUrl}/admin/api/config returned ${configRes.status} ${configRes.statusText} (diagnosing model "${model}")`);
+      return null;
+    }
 
     const config = await configRes.json();
 
@@ -62,7 +65,10 @@ async function diagnoseFccFailure(fccBaseUrl, token, model) {
       headers: { 'x-api-key': token },
       signal: AbortSignal.timeout(5000),
     });
-    if (!statusRes.ok) return null;
+    if (!statusRes.ok) {
+      console.error(`[FCC] ${fccBaseUrl}/admin/api/status returned ${statusRes.status} ${statusRes.statusText} (diagnosing model "${model}")`);
+      return null;
+    }
 
     const status = await statusRes.json();
     const providerInfo = (status.provider_status || []).find(p => p.provider_id === providerId);
@@ -121,6 +127,8 @@ router.post('/test', authenticateToken, async (req, res) => {
       if (testRes.ok) {
         return res.json({ ok: true, model });
       }
+
+      console.error(`[FCC] ${fccBaseUrl}/v1/messages returned ${testRes.status} ${testRes.statusText} for model "${model}"`);
 
       // Try to parse FCC error body for details
       let errorDetail = null;

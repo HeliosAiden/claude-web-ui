@@ -65,7 +65,9 @@ interface UseChatRealtimeHandlersArgs {
   onSessionInactive?: (sessionId?: string | null) => void;
   onSessionProcessing?: (sessionId?: string | null) => void;
   onSessionNotProcessing?: (sessionId?: string | null) => void;
+  onSessionPtyOwned?: (sessionId: string) => void;
   onNavigateToSession?: (sessionId: string, options?: SessionNavigationOptions) => void;
+  onSessionError?: (sessionId?: string | null) => void;
   onWebSocketReconnect?: () => void;
   sessionStore: SessionStore;
 }
@@ -91,7 +93,9 @@ export function useChatRealtimeHandlers({
   onSessionInactive,
   onSessionProcessing,
   onSessionNotProcessing,
+  onSessionPtyOwned,
   onNavigateToSession,
+  onSessionError,
   onWebSocketReconnect,
   sessionStore,
 }: UseChatRealtimeHandlersArgs) {
@@ -149,6 +153,15 @@ export function useChatRealtimeHandlers({
           // Legacy isProcessing format from check-session-status
           const isCurrentSession =
             statusSessionId === currentSessionId || (selectedSession && statusSessionId === selectedSession.id);
+
+          // PTY-owned session: the Shell PTY drives this session, but it IS
+          // processing. Signal the frontend to enter follower mode.
+          if (msg.isPtyOwned) {
+            onSessionProcessing?.(statusSessionId);
+            onSessionPtyOwned?.(statusSessionId);
+            if (isCurrentSession) { setIsLoading(true); setCanAbortSession(false); }
+            return;
+          }
 
           if (msg.isProcessing) {
             onSessionProcessing?.(statusSessionId);
@@ -260,6 +273,17 @@ export function useChatRealtimeHandlers({
         }
         accumulatedStreamRef.current = '';
 
+        // When the SDK releases a session because the Shell PTY is taking
+        // over, transition to follower mode instead of showing "ended".
+        if (msg.isPtyOwned && sid) {
+          setIsLoading(true);
+          setCanAbortSession(false);
+          setClaudeStatus({ text: 'Following via shell...', tokens: 0, can_interrupt: false });
+          setPendingPermissionRequests([]);
+          onSessionPtyOwned?.(sid);
+          return;
+        }
+
         setIsLoading(false);
         setCanAbortSession(false);
         setClaudeStatus(null);
@@ -335,6 +359,7 @@ export function useChatRealtimeHandlers({
         setClaudeStatus(null);
         onSessionInactive?.(sid);
         onSessionNotProcessing?.(sid);
+        onSessionError?.(sid);
         break;
       }
 
@@ -401,7 +426,9 @@ export function useChatRealtimeHandlers({
     onSessionInactive,
     onSessionProcessing,
     onSessionNotProcessing,
+    onSessionPtyOwned,
     onNavigateToSession,
+    onSessionError,
     onWebSocketReconnect,
     sessionStore,
     paletteOps,

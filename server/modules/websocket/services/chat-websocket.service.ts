@@ -52,6 +52,12 @@ type ChatWebSocketDependencies = {
   getActiveCursorSessions: () => unknown;
   getActiveCodexSessions: () => unknown;
   getActiveGeminiSessions: () => unknown;
+  /** Start following a PTY-owned session via JSONL. */
+  followSessionViaJSONL: (sessionId: string, options: unknown, writer: WebSocketWriter) => Promise<unknown>;
+  /** Stop following a PTY-owned session. */
+  stopFollowingSession: (sessionId: string) => boolean;
+  /** Check if a session is PTY-owned. */
+  isSessionPtyOwned: (sessionId: string) => boolean;
 };
 
 /**
@@ -131,6 +137,27 @@ export function handleChatConnection(
 
       if (messageType === 'gemini-command') {
         await dependencies.spawnGemini(data.command ?? '', data.options, writer);
+        return;
+      }
+
+      if (messageType === 'follow-session') {
+        const sessionId = typeof data.sessionId === 'string' ? data.sessionId : '';
+        if (!sessionId) {
+          writer.send(createNormalizedMessage({ kind: 'error', content: 'sessionId is required for follow-session', provider: 'claude' }));
+          return;
+        }
+        const options = {
+          cwd: data.options?.cwd ?? process.cwd(),
+          sessionSummary: data.options?.sessionSummary,
+        };
+        await dependencies.followSessionViaJSONL(sessionId, options, writer);
+        return;
+      }
+
+      if (messageType === 'unfollow-session') {
+        const sessionId = typeof data.sessionId === 'string' ? data.sessionId : '';
+        const success = sessionId ? dependencies.stopFollowingSession(sessionId) : false;
+        writer.send(createNormalizedMessage({ kind: 'unfollow_session_result', sessionId, success, provider: 'claude' }));
         return;
       }
 
@@ -221,11 +248,20 @@ export function handleChatConnection(
           }
         }
 
+        let isPtyOwned = false;
+        if (!isActive && provider === 'claude' && sessionId) {
+          isPtyOwned = dependencies.isSessionPtyOwned(sessionId);
+          if (isPtyOwned) {
+            isActive = true; // Session is active but driven by PTY
+          }
+        }
+
         writer.send({
           type: 'session-status',
           sessionId,
           provider,
           isProcessing: isActive,
+          isPtyOwned,
         });
         return;
       }

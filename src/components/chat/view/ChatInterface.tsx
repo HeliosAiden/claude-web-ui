@@ -36,6 +36,7 @@ function ChatInterface({
   processingSessions,
   onNavigateToSession,
   onShowSettings,
+  onSessionError,
   autoExpandTools,
   showRawParameters,
   showThinking,
@@ -220,6 +221,18 @@ function ChatInterface({
     setCanAbortSession(false);
   }, [selectedProject, selectedSession, sessionStore, setIsLoading, setCanAbortSession]);
 
+  // When the Shell PTY takes over a session, switch the chat to follower
+  // mode so both interfaces show the same session.
+  const handleSessionPtyOwned = useCallback((sessionId: string) => {
+    sendMessage({
+      type: 'follow-session',
+      sessionId,
+      options: {
+        cwd: selectedProject?.fullPath || selectedProject?.path || '',
+      },
+    });
+  }, [sendMessage, selectedProject]);
+
   useChatRealtimeHandlers({
     latestMessage,
     provider,
@@ -237,7 +250,9 @@ function ChatInterface({
     onSessionInactive,
     onSessionProcessing,
     onSessionNotProcessing,
+    onSessionPtyOwned: handleSessionPtyOwned,
     onNavigateToSession,
+    onSessionError,
     onWebSocketReconnect: handleWebSocketReconnect,
     sessionStore,
   });

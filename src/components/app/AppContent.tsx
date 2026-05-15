@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,7 @@ import { PaletteOpsProvider, usePaletteOpsRegister } from '../../contexts/Palett
 import { useDeviceSettings } from '../../hooks/useDeviceSettings';
 import { useSessionProtection } from '../../hooks/useSessionProtection';
 import { useProjectsState } from '../../hooks/useProjectsState';
+import { useOpenSessionTabs } from '../../hooks/useOpenSessionTabs';
 
 export default function AppContent() {
   return (
@@ -37,6 +38,17 @@ function AppContentInner() {
   } = useSessionProtection();
 
   const {
+    openSessions,
+    errorSessions,
+    addOpenSession,
+    removeOpenSession,
+    updateSessionTitle,
+    markSessionError,
+    clearSessionError,
+  } = useOpenSessionTabs();
+
+  const {
+    projects,
     selectedProject,
     selectedSession,
     activeTab,
@@ -58,6 +70,7 @@ function AppContentInner() {
     latestMessage,
     isMobile,
     activeSessions,
+    addOpenSession,
   });
 
   usePaletteOpsRegister({
@@ -137,6 +150,67 @@ function AppContentInner() {
     return () => vv.removeEventListener('resize', update);
   }, []);
 
+  // Keep tab titles up to date when the selected session's metadata arrives
+  useEffect(() => {
+    if (selectedSession?.id && (selectedSession.summary || selectedSession.name)) {
+      const title =
+        selectedSession.__provider === 'cursor'
+          ? (selectedSession.name as string) || 'Untitled Session'
+          : (selectedSession.summary as string) || 'New Session';
+      updateSessionTitle(selectedSession.id, title, selectedSession.__provider);
+    }
+  }, [selectedSession?.id, selectedSession?.summary, selectedSession?.name, selectedSession?.__provider, updateSessionTitle]);
+
+  // Refresh tab titles from the latest projects data when available
+  useEffect(() => {
+    for (const session of openSessions) {
+      if (session.title === 'New Session' || session.title === session.id.slice(0, 8)) {
+        for (const project of projects) {
+          const allSessions = [
+            ...(project.sessions ?? []),
+            ...(project.cursorSessions ?? []),
+            ...(project.codexSessions ?? []),
+            ...(project.geminiSessions ?? []),
+          ];
+          const found = allSessions.find((s) => s.id === session.id);
+          if (found && (found.summary || found.name)) {
+            const title =
+              found.__provider === 'cursor'
+                ? (found.name as string) || 'Untitled Session'
+                : (found.summary as string) || 'New Session';
+            updateSessionTitle(session.id, title, found.__provider);
+            break;
+          }
+        }
+      }
+    }
+  }, [projects, openSessions, updateSessionTitle]);
+
+  const handleNavigateToSession = useCallback(
+    (targetSessionId: string, options?: { replace?: boolean }) => {
+      addOpenSession(targetSessionId);
+      navigate(`/session/${targetSessionId}`, { replace: Boolean(options?.replace) });
+    },
+    [addOpenSession, navigate],
+  );
+
+  const handleCloseTab = useCallback(
+    (sessionId: string) => {
+      const remaining = openSessions.filter((s) => s.id !== sessionId);
+      removeOpenSession(sessionId);
+      if (selectedSession?.id === sessionId) {
+        if (remaining.length > 0) {
+          const closedIndex = openSessions.findIndex((s) => s.id === sessionId);
+          const nextSession = remaining[Math.min(closedIndex, remaining.length - 1)];
+          navigate(`/session/${nextSession.id}`, { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
+      }
+    },
+    [removeOpenSession, selectedSession?.id, openSessions, navigate],
+  );
+
   return (
     <div className="fixed inset-0 flex bg-background" style={{ bottom: 'var(--keyboard-height, 0px)' }}>
       {!isMobile ? (
@@ -190,12 +264,15 @@ function AppContentInner() {
           onSessionProcessing={markSessionAsProcessing}
           onSessionNotProcessing={markSessionAsNotProcessing}
           processingSessions={processingSessions}
-          onNavigateToSession={(targetSessionId: string, options) =>
-            navigate(`/session/${targetSessionId}`, { replace: Boolean(options?.replace) })
-          }
+          onNavigateToSession={handleNavigateToSession}
           onShowSettings={() => setShowSettings(true)}
           externalMessageUpdate={externalMessageUpdate}
           newSessionTrigger={newSessionTrigger}
+          openSessions={openSessions}
+          errorSessions={errorSessions}
+          onSessionError={markSessionError}
+          onSessionErrorClear={clearSessionError}
+          onCloseTab={handleCloseTab}
         />
       </div>
 

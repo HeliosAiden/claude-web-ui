@@ -43,6 +43,10 @@ type ShellWebSocketDependencies = {
   abortSDKSession?: (sessionId: string) => Promise<boolean> | boolean;
   /** Check if a session is currently held by the Chat SDK. */
   isSDKSessionActive?: (sessionId: string) => boolean;
+  /** Register a session as PTY-owned so the chat SDK can switch to follower mode. */
+  registerPtyOwnedSession?: (sessionId: string, projectPath: string) => void;
+  /** Unregister a PTY-owned session (e.g., on PTY exit). */
+  unregisterPtyOwnedSession?: (sessionId: string) => void;
 };
 
 /**
@@ -254,6 +258,13 @@ export function handleShellConnection(
           return;
         }
 
+        // Register this session as PTY-owned before aborting the SDK.
+        // This lets the chat interface switch to follower mode instead of
+        // showing an error state.
+        if (sessionId) {
+          dependencies.registerPtyOwnedSession?.(sessionId, resolvedProjectPath);
+        }
+
         // If the Chat SDK currently holds this session, release it so the
         // shell CLI can take it over without FCC session conflicts.
         if (sessionId && dependencies.isSDKSessionActive?.(sessionId)) {
@@ -386,6 +397,10 @@ export function handleShellConnection(
             clearTimeout(session.timeoutId);
           }
 
+          if (session?.sessionId) {
+            dependencies.unregisterPtyOwnedSession?.(session.sessionId);
+          }
+
           ptySessionsMap.delete(ptySessionKey);
           shellProcess = null;
         });
@@ -436,6 +451,9 @@ export function handleShellConnection(
           const session = ptySessionsMap.get(ptySessionKey);
           if (session) {
             if (session.timeoutId) clearTimeout(session.timeoutId);
+            if (session.sessionId) {
+              dependencies.unregisterPtyOwnedSession?.(session.sessionId);
+            }
             session.pty.kill();
             ptySessionsMap.delete(ptySessionKey);
           }

@@ -18,6 +18,7 @@ type UseProjectsStateArgs = {
   latestMessage: AppSocketMessage | null;
   isMobile: boolean;
   activeSessions: Set<string>;
+  addOpenSession: (id: string, title?: string, provider?: LLMProvider) => void;
 };
 
 type FetchProjectsOptions = {
@@ -241,6 +242,7 @@ export function useProjectsState({
   latestMessage,
   isMobile,
   activeSessions,
+  addOpenSession,
 }: UseProjectsStateArgs) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -619,6 +621,13 @@ export function useProjectsState({
         sessionStorage.setItem('cursorSessionId', session.id);
       }
 
+      const title =
+        session.__provider === 'cursor'
+          ? (session.name as string) || 'Untitled Session'
+          : (session.summary as string) || 'New Session';
+      const resolvedProvider = (session.__provider || provider) as LLMProvider;
+      addOpenSession(session.id, title, resolvedProvider);
+
       if (isMobile) {
         // Sessions are tagged with the owning project's DB `projectId` when
         // picked from the sidebar (see useSidebarController); compare against
@@ -634,7 +643,7 @@ export function useProjectsState({
 
       navigate(`/session/${session.id}`);
     },
-    [activeTab, isMobile, navigate, selectedProject?.projectId],
+    [activeTab, isMobile, navigate, selectedProject?.projectId, addOpenSession],
   );
 
   const handleNewSession = useCallback(

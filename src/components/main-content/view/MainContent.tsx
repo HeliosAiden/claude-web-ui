@@ -17,6 +17,7 @@ import { TaskMasterPanel } from '../../task-master';
 
 import MainContentHeader from './subcomponents/MainContentHeader';
 import MainContentStateView from './subcomponents/MainContentStateView';
+import SessionTabBar from './subcomponents/SessionTabBar';
 import ErrorBoundary from './ErrorBoundary';
 
 type TaskMasterContextValue = {
@@ -51,6 +52,11 @@ function MainContent({
   onShowSettings,
   externalMessageUpdate,
   newSessionTrigger,
+  openSessions,
+  errorSessions,
+  onSessionError,
+  onSessionErrorClear,
+  onCloseTab,
 }: MainContentProps) {
   const { preferences } = useUiPreferences();
   const { autoExpandTools, showRawParameters, showThinking, autoScrollToBottom, sendByCtrlEnter } = preferences;
@@ -119,6 +125,17 @@ function MainContent({
         onMenuClick={onMenuClick}
       />
 
+      {(activeTab === 'chat' || activeTab === 'shell') && (
+        <SessionTabBar
+          openSessions={openSessions}
+          selectedSessionId={selectedSession?.id ?? null}
+          processingSessions={processingSessions}
+          errorSessions={errorSessions}
+          onSelectTab={(sessionId) => onNavigateToSession(sessionId)}
+          onCloseTab={onCloseTab}
+        />
+      )}
+
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className={`flex min-h-0 min-w-[200px] flex-col overflow-hidden ${editorExpanded ? 'hidden' : ''} flex-1`}>
           <div className={`h-full ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
@@ -138,6 +155,7 @@ function MainContent({
                 processingSessions={processingSessions}
                 onNavigateToSession={onNavigateToSession}
                 onShowSettings={onShowSettings}
+                onSessionError={onSessionError}
                 autoExpandTools={autoExpandTools}
                 showRawParameters={showRawParameters}
                 showThinking={showThinking}
