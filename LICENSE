@@ -666,7 +666,7 @@ ADDITIONAL TERMS pursuant to Section 7 of the GNU Affero General Public
 License, Version 3
 
 The following additional terms apply to the CloudCLI UI project
-(https://github.com/siteboon/claudecodeui). These terms are authorized
+(https://github.com/HeliosAiden/claude-web-ui). These terms are authorized
 by Siteboon AI B.V. as copyright holder pursuant to Section 7 of the AGPL-3.0.
 
 1. Attribution Requirement (Section 7(b))
@@ -675,7 +675,7 @@ by Siteboon AI B.V. as copyright holder pursuant to Section 7 of the AGPL-3.0.
    must preserve the following attribution notice in their documentation,
    README, or Appropriate Legal Notices:
 
-     "CloudCLI UI (https://github.com/siteboon/claudecodeui)"
+     "CloudCLI UI (https://github.com/HeliosAiden/claude-web-ui)"
 
    This notice must be reasonably prominent and not hidden in a manner
    designed to avoid notice by recipients of the software.

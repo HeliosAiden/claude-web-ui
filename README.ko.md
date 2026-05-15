@@ -5,7 +5,7 @@
 </div>
 
 <p align="center">
-  <a href="https://cloudcli.ai">CloudCLI Cloud</a> · <a href="https://cloudcli.ai/docs">문서</a> · <a href="https://discord.gg/buxwujPNRE">Discord</a> · <a href="https://github.com/siteboon/claudecodeui/issues">버그 신고</a> · <a href="CONTRIBUTING.md">기여 안내</a>
+  <a href="https://cloudcli.ai">CloudCLI Cloud</a> · <a href="https://cloudcli.ai/docs">문서</a> · <a href="https://discord.gg/buxwujPNRE">Discord</a> · <a href="https://github.com/HeliosAiden/claude-web-ui/issues">버그 신고</a> · <a href="CONTRIBUTING.md">기여 안내</a>
 </p>
 
 <p align="center">
@@ -77,14 +77,14 @@
 **npx**로 즉시 CloudCLI UI를 실행하세요 (Node.js v22+ 필요):
 
 ```bash
-npx @cloudcli-ai/cloudcli
+npx @heliosaiden/claude-web-ui
 ```
 
 **정기적으로 사용한다면 전역 설치:**
 
 ```bash
-npm install -g @cloudcli-ai/cloudcli
-cloudcli
+npm install -g @heliosaiden/claude-web-ui
+claude-web-ui
 ```
 
 `http://localhost:3001`을 열면 기존 세션이 자동으로 발견됩니다.
@@ -96,7 +96,7 @@ cloudcli
 하이퍼바이저 수준 격리로 에이전트를 샌드박스에서 실행합니다. 기본 에이전트는 Claude Code입니다. [`sbx` CLI](https://docs.docker.com/ai/sandboxes/get-started/)가 필요합니다.
 
 ```
-npx @cloudcli-ai/cloudcli@latest sandbox ~/my-project
+npx @heliosaiden/claude-web-ui@latest sandbox ~/my-project
 ```
 
 Claude Code, Codex, Gemini CLI를 지원합니다. 자세한 내용은 [샌드박스 문서](docker/)를 참고하세요.
@@ -111,7 +111,7 @@ CloudCLI UI는 CloudCLI Cloud를 구동하는 오픈 소스 UI 계층입니다. 
 |---|---|---|
 | **적합한 대상** | 로컬 에이전트 세션을 위한 전체 UI가 필요한 개발자 | 어디서든 접근 가능한 클라우드에서 에이전트를 운영하고자 하는 팀 및 개발자 |
 | **접근 방법** | `[yourip]:port`를 통해 브라우저 접속 | 브라우저, IDE, REST API, n8n |
-| **설정** | `npx @cloudcli-ai/cloudcli` | 설정 불필요 |
+| **설정** | `npx @heliosaiden/claude-web-ui` | 설정 불필요 |
 | **기기 유지 필요 여부** | 예 (머신 켜둬야 함) | 아니오 |
 | **모바일 접근** | 네트워크 내 브라우저 | 모든 기기 (네이티브 앱 예정) |
 | **세션 접근** | `~/.claude`에서 자동 발견 | 클라우드 환경 내 세션 |
@@ -211,7 +211,7 @@ CloudCLI UI와 CloudCLI Cloud는 Claude Code를 확장하며 별도로 존재하
 
 - **[문서](https://cloudcli.ai/docs)** — 설치, 구성, 기능, 문제 해결 안내
 - **[Discord](https://discord.gg/buxwujPNRE)** — 도움 및 커뮤니티 참여
-- **[GitHub Issues](https://github.com/siteboon/claudecodeui/issues)** — 버그 보고 및 기능 요청
+- **[GitHub Issues](https://github.com/HeliosAiden/claude-web-ui/issues)** — 버그 보고 및 기능 요청
 - **[기여 안내](CONTRIBUTING.md)** — 프로젝트 참여 방법
 
 ## 라이선스

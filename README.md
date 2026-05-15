@@ -1,12 +1,12 @@
 <div align="center">
-  <img src="public/logo.svg" alt="CloudCLI UI" width="64" height="64">
+  <img src="public/logo.svg" alt="Claude Web UI" width="64" height="64">
   <h1>Claude Web UI</h1>
   <p>A desktop and mobile UI for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>, <a href="https://docs.cursor.com/en/cli/overview">Cursor CLI</a>, <a href="https://developers.openai.com/codex">Codex</a>, <a href="https://geminicli.com/">Gemini-CLI</a>, and <a href="https://github.com/helioaiden/free-claude-code">Free Claude Code</a>.<br>Use it locally or remotely to view your active projects and sessions from everywhere.</p>
-  <p><em>A fork of <a href="https://github.com/siteboon/claudecodeui">CloudCLI</a> with built-in support for Free Claude Code (FCC) integration.</em></p>
+  <p><em>A fork of <a href="https://github.com/siteboon/claudecodeui">Claude Code UI</a> with built-in support for Free Claude Code (FCC) integration.</em></p>
 </div>
 
 <p align="center">
-  <a href="https://cloudcli.ai">CloudCLI Cloud</a> · <a href="https://cloudcli.ai/docs">Documentation</a> · <a href="https://discord.gg/buxwujPNRE">Discord</a> · <a href="https://github.com/siteboon/claudecodeui/issues">Bug Reports</a> · <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="https://cloudcli.ai">CloudCLI Cloud</a> · <a href="https://github.com/HeliosAiden/claude-web-ui/issues">Bug Reports</a> · <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
 <p align="center">
@@ -61,7 +61,7 @@
 - **File Explorer** - Interactive file tree with syntax highlighting and live editing
 - **Git Explorer** - View, stage and commit your changes. You can also switch branches 
 - **Session Management** - Resume conversations, manage multiple sessions, and track history
-- **Plugin System** - Extend CloudCLI with custom plugins — add new tabs, backend services, and integrations. [Build your own →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
+- **Plugin System** - Extend Claude Web UI with custom plugins — add new tabs, backend services, and integrations. [Build your own →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
 - **TaskMaster AI Integration** *(Optional)* - Advanced project management with AI-powered task planning, PRD parsing, and workflow automation
 - **Free Claude Code (FCC) Integration** - Built-in support for Free Claude Code. Auto-discovers FCC configuration, falls back to the `fcc-claude` CLI, and uses FCC auth tokens — no manual setup needed
 - **Model Compatibility** - Works with Claude, GPT, and Gemini model families (see [`shared/modelConstants.js`](shared/modelConstants.js) for the full list of supported models)
@@ -102,22 +102,20 @@ The fastest way to get started — no local setup required. Get a fully managed,
 
 #### npm
 
-Try CloudCLI UI instantly with **npx** (requires **Node.js** v22+):
+Try Claude Web UI instantly with **npx** (requires **Node.js** v22+):
 
 ```
-npx @cloudcli-ai/cloudcli
+npx @heliosaiden/claude-web-ui
 ```
 
 Or install **globally** for regular use:
 
 ```
-npm install -g @cloudcli-ai/cloudcli
-cloudcli
+npm install -g @heliosaiden/claude-web-ui
+claude-web-ui
 ```
 
 Open `http://localhost:3001` — all your existing sessions are discovered automatically.
-
-Visit the **[documentation →](https://cloudcli.ai/docs)** for full configuration options, PM2, remote server setup and more.
 
 #### Clone (for FCC support)
 
@@ -137,7 +135,7 @@ Open `http://localhost:3001`. Your FCC configuration will be auto-discovered fro
 Run agents in isolated sandboxes with hypervisor-level isolation. Starts Claude Code by default. Requires the [`sbx` CLI](https://docs.docker.com/ai/sandboxes/get-started/).
 
 ```
-npx @cloudcli-ai/cloudcli@latest sandbox ~/my-project
+npx @heliosaiden/claude-web-ui@latest sandbox ~/my-project
 ```
 
 Supports Claude Code, Codex, and Gemini CLI. See the [sandbox docs](docker/) for setup and advanced options.
@@ -153,7 +151,7 @@ Claude Web UI is a fork of the open source UI layer that powers CloudCLI Cloud, 
 |---|---|---|---|
 | **Best for** | Local agent sessions on your own machine | Isolated agents with web/mobile IDE | Teams who want agents in the cloud |
 | **How you access it** | Browser via `[yourip]:port` | Browser via `localhost:port` | Browser, any IDE, REST API, n8n |
-| **Setup** | `npx @cloudcli-ai/cloudcli` | `npx @cloudcli-ai/cloudcli@latest sandbox ~/project` | No setup required |
+| **Setup** | `npx @heliosaiden/claude-web-ui` | `npx @heliosaiden/claude-web-ui@latest sandbox ~/project` | No setup required |
 | **Isolation** | Runs on your host | Hypervisor-level sandbox (microVM) | Full cloud isolation |
 | **Machine needs to stay on** | Yes | Yes | No |
 | **Mobile access** | Any browser on your network | Any browser on your network | Any device, native app coming |
@@ -193,7 +191,7 @@ To use Claude Code's full functionality, you'll need to manually enable tools:
 
 ## Plugins
 
-CloudCLI has a plugin system that lets you add custom tabs with their own frontend UI and optional Node.js backend. Install plugins from git repos directly in **Settings > Plugins**, or build your own.
+Claude Web UI has a plugin system that lets you add custom tabs with their own frontend UI and optional Node.js backend. Install plugins from git repos directly in **Settings > Plugins**, or build your own.
 
 ### Available Plugins
 

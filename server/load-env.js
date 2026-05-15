@@ -30,7 +30,7 @@ try {
 // We selectively import relevant vars while skipping PORT/HOST to avoid conflicts.
 {
   const FCC_ENV_PATH = path.join(os.homedir(), '.config', 'free-claude-code', '.env');
-  // Vars to skip — these would conflict with cloudcli's own configuration
+  // Vars to skip — these would conflict with claude-web-ui's own configuration
   const SKIP_VARS = new Set([
     'PORT', 'HOST', 'SERVER_PORT', 'VITE_PORT',
     'DATABASE_PATH', 'LOG_FILE',

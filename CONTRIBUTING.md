@@ -1,11 +1,11 @@
-# Contributing to CloudCLI UI
+# Contributing to Claude Web UI
 
-Thanks for your interest in contributing to CloudCLI UI! Before you start, please take a moment to read through this guide.
+Thanks for your interest in contributing to Claude Web UI! Before you start, please take a moment to read through this guide.
 
 ## Before You Start
 
-- **Search first.** Check [existing issues](https://github.com/siteboon/claudecodeui/issues) and [pull requests](https://github.com/siteboon/claudecodeui/pulls) to avoid duplicating work.
-- **Discuss first** for new features. Open an [issue](https://github.com/siteboon/claudecodeui/issues/new) to discuss your idea before investing time in implementation. We may already have plans or opinions on how it should work.
+- **Search first.** Check [existing issues](https://github.com/HeliosAiden/claude-web-ui/issues) and [pull requests](https://github.com/HeliosAiden/claude-web-ui/pulls) to avoid duplicating work.
+- **Discuss first** for new features. Open an [issue](https://github.com/HeliosAiden/claude-web-ui/issues/new) to discuss your idea before investing time in implementation. We may already have plans or opinions on how it should work.
 - **Bug fixes are always welcome.** If you spot a bug, feel free to open a PR directly.
 
 ## Prerequisites
@@ -18,8 +18,8 @@ Thanks for your interest in contributing to CloudCLI UI! Before you start, pleas
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/<your-username>/claudecodeui.git
-   cd claudecodeui
+   git clone https://github.com/<your-username>/claude-web-ui.git
+   cd claude-web-ui
    ```
 3. Install dependencies:
    ```bash
@@ -37,7 +37,7 @@ Thanks for your interest in contributing to CloudCLI UI! Before you start, pleas
 ## Project Structure
 
 ```
-claudecodeui/
+claude-web-ui/
 ├── src/              # React frontend (Vite + Tailwind)
 │   ├── components/   # UI components
 │   ├── contexts/     # React context providers

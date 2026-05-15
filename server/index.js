@@ -244,7 +244,7 @@ app.post('/api/system/update', authenticateToken, async (req, res) => {
             ? 'npm run update:platform'
             : installMode === 'git'
                 ? 'git checkout main && git pull && npm install'
-                : 'npm install -g @cloudcli-ai/cloudcli@latest';
+                : 'npm install -g @heliosaiden/claude-web-ui@latest';
 
         const updateCwd = IS_PLATFORM || installMode === 'git'
             ? projectRoot
@@ -1454,7 +1454,7 @@ async function getFileTree(dirPath, maxDepth = 3, currentDepth = 0, showHidden =
 }
 
 // Port isolation: load-env.js skips PORT/HOST from fcc config to prevent fcc's PORT=8082
-// from overriding cloudcli's SERVER_PORT.
+// from overriding claude-web-ui's SERVER_PORT.
 const SERVER_PORT = process.env.SERVER_PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 const DISPLAY_HOST = getConnectableHost(HOST);
@@ -1491,12 +1491,12 @@ async function startServer() {
 
             console.log('');
             console.log(c.dim('═'.repeat(63)));
-            console.log(`  ${c.bright('CloudCLI Server - Ready')}`);
+            console.log(`  ${c.bright('Claude Web UI Server - Ready')}`);
             console.log(c.dim('═'.repeat(63)));
             console.log('');
             console.log(`${c.info('[INFO]')} Server URL:  ${c.bright('http://' + DISPLAY_HOST + ':' + SERVER_PORT)}`);
             console.log(`${c.info('[INFO]')} Installed at: ${c.dim(appInstallPath)}`);
-            console.log(`${c.tip('[TIP]')}  Run "cloudcli status" for full configuration details`);
+            console.log(`${c.tip('[TIP]')}  Run "claude-web-ui status" for full configuration details`);
             console.log('');
 
             // Start watching the projects folder for changes

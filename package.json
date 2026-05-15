@@ -1,11 +1,11 @@
 {
-  "name": "@cloudcli-ai/cloudcli",
+  "name": "@heliosaiden/claude-web-ui",
   "version": "1.31.5",
   "description": "A web-based UI for Claude Code CLI",
   "type": "module",
   "main": "dist-server/server/index.js",
   "bin": {
-    "cloudcli": "dist-server/server/cli.js"
+    "claude-web-ui": "dist-server/server/cli.js"
   },
   "files": [
     "server/",
@@ -15,13 +15,13 @@
     "scripts/",
     "README.md"
   ],
-  "homepage": "https://cloudcli.ai",
+  "homepage": "https://github.com/HeliosAiden/claude-web-ui",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/siteboon/claudecodeui.git"
+    "url": "git+https://github.com/HeliosAiden/claude-web-ui.git"
   },
   "bugs": {
-    "url": "https://github.com/siteboon/claudecodeui/issues"
+    "url": "https://github.com/HeliosAiden/claude-web-ui/issues"
   },
   "scripts": {
     "dev": "concurrently --kill-others \"npm run server:dev\" \"npm run client\"",
@@ -48,7 +48,7 @@
     "claude code",
     "claude-code",
     "claude-code-ui",
-    "cloudcli",
+    "claude-web-ui",
     "codex",
     "gemini",
     "gemini-cli",
