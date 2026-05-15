@@ -28,30 +28,53 @@ This fork includes built-in support for [Free Claude Code](https://github.com/he
 
 ### How It Works
 
-When you launch Claude Web UI, it automatically detects your FCC setup with zero configuration:
+When you launch Claude Web UI, it detects your FCC setup from multiple sources, checked in priority order:
 
-1. **Environment loading** — FCC environment variables from `~/.config/free-claude-code/.env` are loaded automatically, with conflicting variables (PORT, HOST, etc.) safely skipped
-2. **CLI path fallback** — If the standard `claude` CLI is not found, the server falls back to the `fcc-claude` command automatically on Windows
-3. **Auth token detection** — FCC auth tokens stored in `~/.config/free-claude-code/.env` are recognized and show as "Free Claude Code" in the authentication status
-4. **Clean separation** — FCC config is read-only; this fork never modifies your FCC environment
+1. **Shell environment** — `export ANTHROPIC_BASE_URL=http://127.0.0.1:8082`
+2. **CLI flags** — `--anthropic-base-url http://127.0.0.1:8082 --anthropic-auth-token mytoken`
+3. **Project `.env`** — place a `.env` file in your working directory
+4. **Global config** — `~/.config/claude-web-ui/.env` (set once, applies everywhere)
+5. **FCC auto-discovery** — `~/.config/free-claude-code/.env` loaded automatically, with conflicting variables (PORT, HOST, etc.) safely skipped
+
+Once configured, the integration works through several layers:
+
+- **API routing** — when `ANTHROPIC_BASE_URL` points to a local FCC proxy, API calls are routed through FCC instead of directly to `api.anthropic.com`
+- **CLI path fallback** — if the standard `claude` CLI is not found, the server falls back to the `fcc-claude` command automatically
+- **Auth token detection** — FCC auth tokens are recognized and show as "Free Claude Code" in the authentication status
+- **Clean separation** — FCC config is read-only; this fork never modifies your FCC environment
 
 ### Setup
 
 1. Install and configure [Free Claude Code](https://github.com/helioaiden/free-claude-code) on your machine
-2. Clone and start Claude Web UI — it discovers your FCC setup automatically
-3. Check the authentication status in the UI to confirm "Free Claude Code" is detected
+2. Configure Claude Web UI to use your FCC proxy — choose one of these methods:
 
-No extra configuration files, no manual `.env` changes required.
+   **CLI flags** (one-off):
+   ```
+   npx @heliosaiden/claude-web-ui --anthropic-base-url http://127.0.0.1:8082
+   ```
+
+   **Project `.env` file** (per-project):
+   ```
+   echo "ANTHROPIC_BASE_URL=http://127.0.0.1:8082" > .env
+   npx @heliosaiden/claude-web-ui
+   ```
+
+   **Global config** (set once, works everywhere):
+   ```
+   mkdir -p ~/.config/claude-web-ui
+   echo "ANTHROPIC_BASE_URL=http://127.0.0.1:8082" >> ~/.config/claude-web-ui/.env
+   ```
+
+   **FCC auto-discovery** (zero config):
+   If your FCC `.env` is at `~/.config/free-claude-code/.env`, Claude Web UI discovers it automatically.
+
+3. Start the server — your FCC setup is detected and used for API routing
+4. Check the authentication status in the UI to confirm "Free Claude Code" is detected
+
+Run `claude-web-ui status` to see your current configuration, or `claude-web-ui help` for all CLI options.
 
 
 ## Quick Start
-
-### CloudCLI Cloud (Recommended)
-
-The fastest way to get started — no local setup required. Get a fully managed, containerized development environment accessible from the web, mobile app, API, or your favorite IDE.
-
-**[Get started with CloudCLI Cloud](https://cloudcli.ai)**
-
 
 ### Self-Hosted (Open source)
 
@@ -61,6 +84,12 @@ Try Claude Web UI instantly with **npx** (requires **Node.js** v22+):
 
 ```
 npx @heliosaiden/claude-web-ui
+```
+
+To use with a local [Free Claude Code](https://github.com/helioaiden/free-claude-code) proxy:
+
+```
+npx @heliosaiden/claude-web-ui --anthropic-base-url http://127.0.0.1:8082
 ```
 
 Or install **globally** for regular use:

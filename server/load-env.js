@@ -9,21 +9,32 @@ const __dirname = getModuleDir(import.meta.url);
 // same top-level .env file from both /server/load-env.js and /dist-server/server/load-env.js.
 const APP_ROOT = findAppRoot(__dirname);
 
-try {
-  const envPath = path.join(APP_ROOT, '.env');
-  const envFile = fs.readFileSync(envPath, 'utf8');
-  envFile.split('\n').forEach(line => {
-    const trimmedLine = line.trim();
-    if (trimmedLine && !trimmedLine.startsWith('#')) {
-      const [key, ...valueParts] = trimmedLine.split('=');
-      if (key && valueParts.length > 0 && !process.env[key]) {
-        process.env[key] = valueParts.join('=').trim();
+function loadEnvFromFile(envPath) {
+  try {
+    const envFile = fs.readFileSync(envPath, 'utf8');
+    envFile.split('\n').forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, ...valueParts] = trimmedLine.split('=');
+        if (key && valueParts.length > 0 && !process.env[key]) {
+          process.env[key] = valueParts.join('=').trim();
+        }
       }
-    }
-  });
-} catch (e) {
-  console.log('No .env file found or error reading it:', e.message);
+    });
+  } catch {
+    // .env file is optional
+  }
 }
+
+// 1. CWD .env — loaded first so user-project overrides take priority over
+//    the package's built-in defaults and FCC auto-discovery.
+loadEnvFromFile(path.join(process.cwd(), '.env'));
+
+// 2. Global user config — persistent cross-project settings.
+loadEnvFromFile(path.join(os.homedir(), '.config', 'claude-web-ui', '.env'));
+
+// 3. Package .env — built-in defaults shipped with the release.
+loadEnvFromFile(path.join(APP_ROOT, '.env'));
 
 // Load Free Claude Code (fcc-server) configuration if available.
 // FCC acts as a proxy between the Claude SDK and alternative API providers.

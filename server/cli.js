@@ -57,10 +57,9 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 // database location that the backend will actually use when no DATABASE_PATH is configured.
 const DEFAULT_DATABASE_PATH = path.join(os.homedir(), '.cloudcli', 'auth.db');
 
-// Load environment variables from .env file if it exists
-function loadEnvFile() {
+// Load environment variables from .env files
+function loadEnvFromPath(envPath) {
     try {
-        const envPath = path.join(APP_ROOT, '.env');
         const envFile = fs.readFileSync(envPath, 'utf8');
         envFile.split('\n').forEach(line => {
             const trimmedLine = line.trim();
@@ -74,6 +73,12 @@ function loadEnvFile() {
     } catch (e) {
         // .env file is optional
     }
+}
+
+function loadEnvFile() {
+    // CWD .env loaded first so user-project overrides take priority
+    loadEnvFromPath(path.join(process.cwd(), '.env'));
+    loadEnvFromPath(path.join(APP_ROOT, '.env'));
 }
 
 // Get the database path (same logic as db.js)
@@ -119,6 +124,8 @@ function showStatus() {
     console.log(`       DATABASE_PATH: ${c.dim(process.env.DATABASE_PATH || '(using default location)')}`);
     console.log(`       CLAUDE_CLI_PATH: ${c.dim(process.env.CLAUDE_CLI_PATH || 'claude (default)')}`);
     console.log(`       CONTEXT_WINDOW: ${c.dim(process.env.CONTEXT_WINDOW || '160000 (default)')}`);
+    console.log(`       ANTHROPIC_BASE_URL: ${c.bright(process.env.ANTHROPIC_BASE_URL || '')} ${c.dim(!process.env.ANTHROPIC_BASE_URL ? '(not set — using default API)' : '(FCC proxy)')}`);
+    console.log(`       ANTHROPIC_AUTH_TOKEN: ${c.dim(process.env.ANTHROPIC_AUTH_TOKEN || 'freecc (default)')}`);
 
     // Claude projects folder
     const claudeProjectsPath = path.join(os.homedir(), '.claude', 'projects');
@@ -161,23 +168,35 @@ Commands:
   version        Show version information
 
 Options:
-  -p, --port <port>           Set server port (default: 3001)
-  --database-path <path>      Set custom database location
-  -h, --help                  Show this help information
-  -v, --version               Show version information
+  -p, --port <port>              Set server port (default: 3001)
+  --database-path <path>         Set custom database location
+  --anthropic-base-url <url>     Point to a local FCC proxy (e.g. http://127.0.0.1:8082)
+  --anthropic-auth-token <token> Auth token for FCC proxy (default: freecc)
+  -h, --help                     Show this help information
+  -v, --version                  Show version information
 
 Examples:
-  $ claude-web-ui                        # Start with defaults
-  $ claude-web-ui --port 8080            # Start on port 8080
-  $ claude-web-ui sandbox ~/my-project   # Run in a Docker sandbox
-  $ claude-web-ui status                 # Show configuration
+  $ claude-web-ui                                      # Start with defaults
+  $ claude-web-ui --port 8080                          # Start on port 8080
+  $ claude-web-ui --anthropic-base-url http://127.0.0.1:8082  # Use local FCC proxy
+  $ claude-web-ui sandbox ~/my-project                 # Run in a Docker sandbox
+  $ claude-web-ui status                               # Show configuration
+
+Configuration locations (loaded in priority order):
+  1. Shell environment variables
+  2. CLI flags
+  3. ./.env (current working directory)
+  4. ~/.config/claude-web-ui/.env (global user config)
+  5. ~/.config/free-claude-code/.env (auto-discovered FCC config)
 
 Environment Variables:
-  SERVER_PORT         Set server port (default: 3001)
-  PORT                Set server port (default: 3001) (LEGACY)
-  DATABASE_PATH       Set custom database location
-  CLAUDE_CLI_PATH     Set custom Claude CLI path
-  CONTEXT_WINDOW      Set context window size (default: 160000)
+  SERVER_PORT            Set server port (default: 3001)
+  PORT                   Set server port (default: 3001) (LEGACY)
+  DATABASE_PATH          Set custom database location
+  CLAUDE_CLI_PATH        Set custom Claude CLI path
+  CONTEXT_WINDOW         Set context window size (default: 160000)
+  ANTHROPIC_BASE_URL     Point to a local FCC proxy (e.g. http://127.0.0.1:8082)
+  ANTHROPIC_AUTH_TOKEN   Auth token for FCC proxy (default: freecc)
 
 Documentation:
   ${packageJson.homepage || 'https://github.com/HeliosAiden/claude-web-ui'}
@@ -619,6 +638,14 @@ function parseArgs(args) {
             parsed.options.databasePath = args[++i];
         } else if (arg.startsWith('--database-path=')) {
             parsed.options.databasePath = arg.split('=')[1];
+        } else if (arg === '--anthropic-base-url') {
+            parsed.options.anthropicBaseUrl = args[++i];
+        } else if (arg.startsWith('--anthropic-base-url=')) {
+            parsed.options.anthropicBaseUrl = arg.split('=')[1];
+        } else if (arg === '--anthropic-auth-token') {
+            parsed.options.anthropicAuthToken = args[++i];
+        } else if (arg.startsWith('--anthropic-auth-token=')) {
+            parsed.options.anthropicAuthToken = arg.split('=')[1];
         } else if (arg === '--help' || arg === '-h') {
             parsed.command = 'help';
         } else if (arg === '--version' || arg === '-v') {
@@ -648,6 +675,12 @@ async function main() {
     }
     if (options.databasePath) {
         process.env.DATABASE_PATH = options.databasePath;
+    }
+    if (options.anthropicBaseUrl) {
+        process.env.ANTHROPIC_BASE_URL = options.anthropicBaseUrl;
+    }
+    if (options.anthropicAuthToken) {
+        process.env.ANTHROPIC_AUTH_TOKEN = options.anthropicAuthToken;
     }
 
     switch (command) {
