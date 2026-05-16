@@ -107,6 +107,10 @@
   "version": {
     "updateAvailable": "Update available"
   },
+  "bookmarks": {
+    "tab": "Bookmarks",
+    "empty": "No bookmarked messages yet"
+  },
   "search": {
     "modeProjects": "Projects",
     "modeConversations": "Conversations",

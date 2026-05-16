@@ -83,6 +83,14 @@ import itChat from './locales/it/chat.json';
 import itCodeEditor from './locales/it/codeEditor.json';
 // eslint-disable-next-line import-x/order
 import itTasks from './locales/it/tasks.json';
+import enBookmarks from './locales/en/bookmarks.json';
+import koBookmarks from './locales/ko/bookmarks.json';
+import zhBookmarks from './locales/zh-CN/bookmarks.json';
+import jaBookmarks from './locales/ja/bookmarks.json';
+import ruBookmarks from './locales/ru/bookmarks.json';
+import deBookmarks from './locales/de/bookmarks.json';
+import trBookmarks from './locales/tr/bookmarks.json';
+import itBookmarks from './locales/it/bookmarks.json';
 
 // Import supported languages configuration
 import { languages } from './languages.js';
@@ -116,6 +124,7 @@ i18n
         chat: enChat,
         codeEditor: enCodeEditor,
         tasks: enTasks,
+        bookmarks: enBookmarks,
       },
       ko: {
         common: koCommon,
@@ -124,6 +133,7 @@ i18n
         sidebar: koSidebar,
         chat: koChat,
         codeEditor: koCodeEditor,
+        bookmarks: koBookmarks,
       },
       'zh-CN': {
         common: zhCommon,
@@ -132,6 +142,7 @@ i18n
         sidebar: zhSidebar,
         chat: zhChat,
         codeEditor: zhCodeEditor,
+        bookmarks: zhBookmarks,
       },
       ja: {
         common: jaCommon,
@@ -141,6 +152,7 @@ i18n
         chat: jaChat,
         codeEditor: jaCodeEditor,
         tasks: jaTasks,
+        bookmarks: jaBookmarks,
       },
       ru: {
         common: ruCommon,
@@ -150,6 +162,7 @@ i18n
         chat: ruChat,
         codeEditor: ruCodeEditor,
         tasks: ruTasks,
+        bookmarks: ruBookmarks,
       },
       de: {
         common: deCommon,
@@ -159,6 +172,7 @@ i18n
         chat: deChat,
         codeEditor: deCodeEditor,
         tasks: deTasks,
+        bookmarks: deBookmarks,
       },
       tr: {
         common: trCommon,
@@ -168,6 +182,7 @@ i18n
         chat: trChat,
         codeEditor: trCodeEditor,
         tasks: trTasks,
+        bookmarks: trBookmarks,
       },
       it: {
         common: itCommon,
@@ -177,6 +192,7 @@ i18n
         chat: itChat,
         codeEditor: itCodeEditor,
         tasks: itTasks,
+        bookmarks: itBookmarks,
       },
     },
 
@@ -190,7 +206,7 @@ i18n
     debug: false,
 
     // Namespaces - load only what's needed
-    ns: ['common', 'settings', 'auth', 'sidebar', 'chat', 'codeEditor', 'tasks'],
+    ns: ['common', 'settings', 'auth', 'sidebar', 'chat', 'codeEditor', 'tasks', 'bookmarks'],
     defaultNS: 'common',
 
     // Key separator for nested keys (default: '.')

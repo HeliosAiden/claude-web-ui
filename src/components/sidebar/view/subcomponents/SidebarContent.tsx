@@ -1,11 +1,11 @@
-import { type ReactNode } from 'react';
-import { Archive, Folder, MessageSquare, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { type ReactNode, useMemo } from 'react';
+import { Archive, Bookmark, Folder, MessageSquare, RotateCcw, Search, Trash2, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { ScrollArea } from '../../../../shared/view/ui';
 import type { Project } from '../../../../types/app';
 import type { ReleaseInfo } from '../../../../types/sharedTypes';
 import type { ConversationSearchResults, SearchProgress } from '../../hooks/useSidebarController';
-import type { ArchivedProjectListItem, ArchivedSessionListItem, SidebarSearchMode } from '../../types/types';
+import type { ArchivedProjectListItem, ArchivedSessionListItem, BookmarkedMessage, SidebarSearchMode } from '../../types/types';
 import SessionProviderLogo from '../../../llm-logo-provider/SessionProviderLogo';
 import SidebarFooter from './SidebarFooter';
 import SidebarHeader from './SidebarHeader';
@@ -144,8 +144,27 @@ type SidebarContentProps = {
   onShowVersionModal: () => void;
   onShowSettings: () => void;
   projectListProps: SidebarProjectListProps;
+  bookmarkedMessages?: BookmarkedMessage[];
+  isBookmarksLoading?: boolean;
+  onBookmarkClick?: (bookmark: BookmarkedMessage) => void;
+  onDeleteBookmark?: (messageUuid: string) => void;
   t: TFunction;
 };
+
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return diffMins + 'm ago';
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return diffHrs + 'h ago';
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return diffDays + 'd ago';
+  return date.toLocaleDateString();
+}
 
 export default function SidebarContent({
   isPWA,
@@ -180,11 +199,26 @@ export default function SidebarContent({
   onShowVersionModal,
   onShowSettings,
   projectListProps,
+  bookmarkedMessages = [],
+  isBookmarksLoading = false,
+  onBookmarkClick,
+  onDeleteBookmark,
   t,
 }: SidebarContentProps) {
   const showConversationSearch = searchMode === 'conversations' && searchFilter.trim().length >= 2;
   const hasPartialResults = conversationResults && conversationResults.results.length > 0;
   const groupedArchivedSessions = groupArchivedSessionsByProject(archivedSessions);
+
+  const filteredBookmarks = useMemo(() => {
+    const q = searchFilter.trim().toLowerCase();
+    if (!q) return bookmarkedMessages;
+    return bookmarkedMessages.filter(
+      (b) =>
+        b.contentSnippet.toLowerCase().includes(q) ||
+        b.provider.toLowerCase().includes(q) ||
+        b.role.toLowerCase().includes(q),
+    );
+  }, [bookmarkedMessages, searchFilter]);
 
   return (
     <div
@@ -307,6 +341,68 @@ export default function SidebarContent({
               ))}
             </div>
           ) : null
+        ) : searchMode === 'bookmarks' ? (
+          isBookmarksLoading ? (
+            <div className="px-4 py-12 text-center md:py-8">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              </div>
+              <p className="text-sm text-muted-foreground">{t('bookmarks.loading', 'Loading bookmarks...')}</p>
+            </div>
+          ) : bookmarkedMessages.length === 0 ? (
+            <div className="px-4 py-12 text-center md:py-8">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                <Bookmark className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="mb-2 text-base font-medium text-foreground">
+                {t('bookmarks.emptyTitle', 'No bookmarked messages')}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t('bookmarks.emptyDescription', 'Bookmark messages in conversations to save them here for quick access.')}
+              </p>
+            </div>
+          ) : (
+            <div>
+              {filteredBookmarks.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    {t('bookmarks.noResults', 'No bookmarks match your search.')}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1 px-2">
+                  {filteredBookmarks.map((bookmark) => (
+                    <div key={bookmark.id} className="group relative rounded-lg hover:bg-accent/50">
+                      <button
+                        className="w-full px-3 py-2.5 text-left"
+                        onClick={() => onBookmarkClick?.(bookmark)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <SessionProviderLogo provider={bookmark.provider} className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="text-[10px] font-medium uppercase text-muted-foreground/60">
+                            {bookmark.role === 'user' ? 'You' : bookmark.provider}
+                          </span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs text-foreground/80">
+                          {bookmark.contentSnippet}
+                        </p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {formatRelativeTime(bookmark.messageTimestamp)}
+                        </p>
+                      </button>
+                      <button
+                        className="absolute right-1 top-1 rounded p-0.5 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+                        onClick={(e) => { e.stopPropagation(); onDeleteBookmark?.(bookmark.messageUuid); }}
+                        aria-label="Delete bookmark"
+                      >
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
         ) : searchMode === 'archived' ? (
           isArchivedSessionsLoading ? (
             <div className="px-4 py-12 text-center md:py-8">

@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import { Bookmark } from 'lucide-react';
+import { FileDown } from 'lucide-react';
 import { authenticatedFetch } from '../../../../utils/api';
 
 type SaveTemplateButtonProps = {
   content: string;
+  isUserMessage?: boolean;
 };
 
-export default function SaveTemplateButton({ content }: SaveTemplateButtonProps) {
+export default function SaveTemplateButton({ content, isUserMessage = false }: SaveTemplateButtonProps) {
   const [saved, setSaved] = useState(false);
+
+  const unsavedClass = isUserMessage
+    ? 'text-blue-100 hover:text-white'
+    : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300';
 
   const handleSave = async () => {
     const name = window.prompt('Template name:');
@@ -35,11 +40,11 @@ export default function SaveTemplateButton({ content }: SaveTemplateButtonProps)
       className={`rounded p-0.5 transition-colors ${
         saved
           ? 'text-green-500 hover:text-green-400'
-          : 'text-muted-foreground/50 hover:text-muted-foreground'
+          : unsavedClass
       }`}
       title={saved ? 'Template saved' : 'Save as template'}
     >
-      <Bookmark className="h-3.5 w-3.5" />
+      <FileDown className="h-3.5 w-3.5" />
     </button>
   );
 }

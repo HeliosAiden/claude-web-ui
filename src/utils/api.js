@@ -136,6 +136,30 @@ export const api = {
     authenticatedFetch(`/api/projects/${encodeURIComponent(projectId)}/toggle-star`, {
       method: 'POST',
     }),
+
+  // Message bookmarks
+  toggleMessageBookmark: (data) =>
+    authenticatedFetch('/api/projects/bookmarks/toggle', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  checkMessageBookmarks: (messageUuids) =>
+    authenticatedFetch('/api/projects/bookmarks/check', {
+      method: 'POST',
+      body: JSON.stringify({ messageUuids }),
+    }),
+
+  getBookmarkedMessages: ({ limit = 50, offset = 0 } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    return authenticatedFetch(`/api/projects/bookmarks?${params.toString()}`);
+  },
+
+  deleteBookmark: (messageUuid) =>
+    authenticatedFetch(`/api/projects/bookmarks/${encodeURIComponent(messageUuid)}`, {
+      method: 'DELETE',
+    }),
+
   readFile: (projectId, filePath) =>
     authenticatedFetch(`/api/projects/${projectId}/file?filePath=${encodeURIComponent(filePath)}`),
   readFileBlob: (projectId, filePath) =>

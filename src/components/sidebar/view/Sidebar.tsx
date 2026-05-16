@@ -109,6 +109,10 @@ function Sidebar({
     setDeleteConfirmation,
     setSessionDeleteConfirmation,
     setShowVersionModal,
+    bookmarkedMessages,
+    isBookmarksLoading,
+    handleBookmarkClick,
+    handleDeleteBookmark,
   } = useSidebarController({
     projects,
     selectedProject,
@@ -296,6 +300,10 @@ function Sidebar({
             onShowVersionModal={() => setShowVersionModal(true)}
             onShowSettings={onShowSettings}
             projectListProps={projectListProps}
+            bookmarkedMessages={bookmarkedMessages}
+            isBookmarksLoading={isBookmarksLoading}
+            onBookmarkClick={handleBookmarkClick}
+            onDeleteBookmark={handleDeleteBookmark}
             t={t}
           />
         </>

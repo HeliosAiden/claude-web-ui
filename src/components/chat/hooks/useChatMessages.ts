@@ -28,6 +28,8 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
 
   for (const msg of messages) {
     const sharedMetadata = {
+      id: msg.id,
+      sessionId: msg.sessionId,
       displayText: msg.displayText,
       commandName: msg.commandName,
       commandMessage: msg.commandMessage,

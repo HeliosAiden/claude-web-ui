@@ -126,6 +126,8 @@ function ChatInterface({
     scrollToBottom,
     scrollToBottomAndReset,
     handleScroll,
+    bookmarkedMessageUuids,
+    pinnedBookmarks,
   } = useChatSessionState({
     selectedProject,
     selectedSession,
@@ -371,6 +373,8 @@ function ChatInterface({
           showRawParameters={showRawParameters}
           showThinking={showThinking}
           selectedProject={selectedProject}
+          bookmarkedMessageUuids={bookmarkedMessageUuids}
+          pinnedBookmarks={pinnedBookmarks}
         />
 
         <ChatComposer

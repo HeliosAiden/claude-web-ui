@@ -7,6 +7,7 @@ import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
 import type {
   ArchivedProjectListItem,
   ArchivedSessionListItem,
+  BookmarkedMessage,
   DeleteProjectConfirmation,
   ProjectSortOrder,
   SidebarSearchMode,
@@ -138,6 +139,8 @@ export function useSidebarController({
   const [isArchivedSessionsLoading, setIsArchivedSessionsLoading] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [optimisticStarByProjectId, setOptimisticStarByProjectId] = useState<Map<string, boolean>>(new Map());
+  const [bookmarkedMessages, setBookmarkedMessages] = useState<BookmarkedMessage[]>([]);
+  const [isBookmarksLoading, setIsBookmarksLoading] = useState(false);
   const [loadingMoreProjects, setLoadingMoreProjects] = useState<Set<string>>(new Set());
   const searchSeqRef = useRef(0);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -425,6 +428,33 @@ export function useSidebarController({
 
   // All sidebar state keys (expanded, starred, loading, etc.) use the DB
   // `projectId` as their identifier after the migration.
+  const fetchBookmarks = useCallback(async () => {
+    setIsBookmarksLoading(true);
+    try {
+      const response = await api.getBookmarkedMessages({ limit: 100 });
+      if (response.ok) {
+        const data = await response.json();
+        setBookmarkedMessages(data.data?.bookmarks || []);
+      }
+    } catch (error) {
+      console.error('[Sidebar] Failed to load bookmarks:', error);
+    } finally {
+      setIsBookmarksLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (searchMode === 'bookmarks') {
+      void fetchBookmarks();
+    }
+  }, [fetchBookmarks, searchMode]);
+
+  useEffect(() => {
+    const handler = () => { void fetchBookmarks(); };
+    window.addEventListener('bookmark-changed', handler);
+    return () => window.removeEventListener('bookmark-changed', handler);
+  }, [fetchBookmarks]);
+
   const toggleProject = useCallback((projectId: string) => {
     setExpandedProjects((prev) => {
       const next = new Set<string>();
@@ -775,6 +805,33 @@ export function useSidebarController({
     [onProjectSelect, setCurrentProject],
   );
 
+  const handleBookmarkClick = useCallback((bookmark: BookmarkedMessage) => {
+    const project = bookmark.projectId
+      ? projects.find((p) => p.projectId === bookmark.projectId)
+      : null;
+
+    if (project) {
+      handleProjectSelect(project);
+    }
+
+    onSessionSelect({
+      id: bookmark.sessionId,
+      __provider: bookmark.provider,
+      __projectId: bookmark.projectId ?? undefined,
+      __searchTargetSnippet: bookmark.contentSnippet,
+      __searchTargetTimestamp: bookmark.messageTimestamp,
+    });
+  }, [handleProjectSelect, onSessionSelect, projects]);
+
+  const handleDeleteBookmark = useCallback(async (messageUuid: string) => {
+    setBookmarkedMessages((prev) => prev.filter((b) => b.messageUuid !== messageUuid));
+    try {
+      await api.deleteBookmark(messageUuid);
+    } catch {
+      void fetchBookmarks();
+    }
+  }, [fetchBookmarks]);
+
   const openArchivedSession = useCallback((session: ArchivedSessionListItem) => {
     const activeProject = session.projectId
       ? projects.find((candidate) => candidate.projectId === session.projectId)
@@ -962,5 +1019,9 @@ export function useSidebarController({
     setDeleteConfirmation,
     setSessionDeleteConfirmation,
     setShowVersionModal,
+    bookmarkedMessages,
+    isBookmarksLoading,
+    handleBookmarkClick,
+    handleDeleteBookmark,
   };
 }

@@ -120,6 +120,13 @@ export function useChatSessionState({
   const [loadAllJustFinished, setLoadAllJustFinished] = useState(false);
   const [showLoadAllOverlay, setShowLoadAllOverlay] = useState(false);
   const [viewHiddenCount, setViewHiddenCount] = useState(0);
+  const [bookmarkedMessageUuids, setBookmarkedMessageUuids] = useState<Set<string>>(new Set());
+  const [pinnedBookmarks, setPinnedBookmarks] = useState<Array<{
+    messageUuid: string;
+    contentSnippet: string;
+    role: string;
+    messageTimestamp: string;
+  }>>([]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [searchTarget, setSearchTarget] = useState<{ timestamp?: string; uuid?: string; snippet?: string } | null>(null);
@@ -265,6 +272,34 @@ export function useChatSessionState({
     if (viewHiddenCount > 0 && viewHiddenCount < all.length) return all.slice(0, -viewHiddenCount);
     return all;
   }, [storeMessages, viewHiddenCount, pendingUserMessage]);
+
+  // Fetch bookmarks for the active session (runs on session change, not message load)
+  useEffect(() => {
+    if (!activeSessionId) {
+      setBookmarkedMessageUuids(new Set());
+      setPinnedBookmarks([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    authenticatedFetch(
+      `/api/projects/bookmarks?sessionId=${encodeURIComponent(activeSessionId)}&limit=100`,
+    )
+      .then((res) => res.json())
+      .then((data: { success?: boolean; data?: { bookmarks?: Array<{ messageUuid: string; contentSnippet: string; role: string; messageTimestamp: string }> } }) => {
+        if (cancelled) return;
+        const list = data.data?.bookmarks || [];
+        const sorted = list.sort(
+          (a, b) => new Date(a.messageTimestamp).getTime() - new Date(b.messageTimestamp).getTime(),
+        );
+        setBookmarkedMessageUuids(new Set(sorted.map((b) => b.messageUuid)));
+        setPinnedBookmarks(sorted);
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [activeSessionId]);
 
   /* ---------------------------------------------------------------- */
   /*  addMessage / clearMessages / rewindMessages                     */
@@ -808,5 +843,7 @@ export function useChatSessionState({
     scrollToBottomAndReset,
     isNearBottom,
     handleScroll,
+    bookmarkedMessageUuids,
+    pinnedBookmarks,
   };
 }

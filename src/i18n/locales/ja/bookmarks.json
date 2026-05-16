@@ -1,0 +1,8 @@
+{
+  "title": "Bookmarks",
+  "loading": "Loading bookmarks...",
+  "emptyTitle": "No bookmarked messages",
+  "emptyDescription": "Bookmark messages in conversations to save them here for quick access.",
+  "addBookmark": "Bookmark this message",
+  "removeBookmark": "Remove bookmark"
+}

@@ -138,6 +138,25 @@ CREATE TABLE IF NOT EXISTS prompt_templates (
 );
 `;
 
+export const MESSAGE_BOOKMARKS_TABLE_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS message_bookmarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    message_uuid TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    content_snippet TEXT NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'claude',
+    role TEXT NOT NULL DEFAULT 'assistant',
+    message_timestamp DATETIME NOT NULL,
+    project_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE SET NULL,
+    UNIQUE(user_id, message_uuid)
+);
+`;
+
 export const INIT_SCHEMA_SQL = `
 -- Initialize authentication database
 PRAGMA foreign_keys = ON;
@@ -184,4 +203,8 @@ ${APP_CONFIG_TABLE_SCHEMA_SQL}
 ${PROMPT_TEMPLATES_TABLE_SCHEMA_SQL}
 CREATE INDEX IF NOT EXISTS idx_prompt_templates_user_id ON prompt_templates(user_id);
 CREATE INDEX IF NOT EXISTS idx_prompt_templates_category ON prompt_templates(category);
+
+${MESSAGE_BOOKMARKS_TABLE_SCHEMA_SQL}
+CREATE INDEX IF NOT EXISTS idx_message_bookmarks_user_id ON message_bookmarks(user_id);
+CREATE INDEX IF NOT EXISTS idx_message_bookmarks_session_id ON message_bookmarks(session_id);
 `;

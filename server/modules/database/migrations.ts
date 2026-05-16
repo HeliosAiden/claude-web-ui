@@ -3,6 +3,7 @@ import { Database } from 'better-sqlite3';
 import {
   APP_CONFIG_TABLE_SCHEMA_SQL,
   LAST_SCANNED_AT_SQL,
+  MESSAGE_BOOKMARKS_TABLE_SCHEMA_SQL,
   PROJECTS_TABLE_SCHEMA_SQL,
   PROMPT_TEMPLATES_TABLE_SCHEMA_SQL,
   PUSH_SUBSCRIPTIONS_TABLE_SCHEMA_SQL,
@@ -456,6 +457,10 @@ export const runMigrations = (db: Database) => {
     db.exec(PROMPT_TEMPLATES_TABLE_SCHEMA_SQL);
     db.exec('CREATE INDEX IF NOT EXISTS idx_prompt_templates_user_id ON prompt_templates(user_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_prompt_templates_category ON prompt_templates(category)');
+
+    db.exec(MESSAGE_BOOKMARKS_TABLE_SCHEMA_SQL);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_message_bookmarks_user_id ON message_bookmarks(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_message_bookmarks_session_id ON message_bookmarks(session_id)');
 
     console.log('Database migrations completed successfully');
   } catch (error: any) {

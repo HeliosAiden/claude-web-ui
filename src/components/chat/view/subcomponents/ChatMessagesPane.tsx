@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bookmark, ChevronDown, ChevronUp, X } from 'lucide-react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ChatMessage } from '../../types/types';
 import type { Project, ProjectSession, LLMProvider } from '../../../../types/app';
 import type { ProviderAuthStatusMap } from '../../../provider-auth/types';
 import { getIntrinsicMessageKey } from '../../utils/messageKeys';
+import { authenticatedFetch } from '../../../../utils/api';
 import MessageComponent from './MessageComponent';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
 
@@ -53,6 +55,13 @@ interface ChatMessagesPaneProps {
   showRawParameters?: boolean;
   showThinking?: boolean;
   selectedProject: Project;
+  bookmarkedMessageUuids: Set<string>;
+  pinnedBookmarks: Array<{
+    messageUuid: string;
+    contentSnippet: string;
+    role: string;
+    messageTimestamp: string;
+  }>;
 }
 
 export default function ChatMessagesPane({
@@ -100,6 +109,8 @@ export default function ChatMessagesPane({
   showRawParameters,
   showThinking,
   selectedProject,
+  bookmarkedMessageUuids,
+  pinnedBookmarks,
 }: ChatMessagesPaneProps) {
   const { t } = useTranslation('chat');
   const messageKeyMapRef = useRef<WeakMap<ChatMessage, string>>(new WeakMap());
@@ -129,6 +140,77 @@ export default function ChatMessagesPane({
     messageKeyMapRef.current.set(message, candidateKey);
     return candidateKey;
   }, []);
+
+  const [pinnedExpanded, setPinnedExpanded] = useState(false);
+  const [pinnedCycleIndex, setPinnedCycleIndex] = useState(-1);
+  const prevPinnedLenRef = useRef(0);
+
+  useEffect(() => {
+    const len = pinnedBookmarks.length;
+    if (len !== prevPinnedLenRef.current) {
+      prevPinnedLenRef.current = len;
+      setPinnedCycleIndex(len > 0 ? len - 1 : -1);
+    }
+  }, [pinnedBookmarks.length]);
+
+  const pinnedVisible = pinnedExpanded
+    ? pinnedBookmarks
+    : (pinnedCycleIndex >= 0 && pinnedCycleIndex < pinnedBookmarks.length
+        ? [pinnedBookmarks[pinnedCycleIndex]]
+        : []);
+
+  const scrollToPinned = useCallback(async (uuid: string) => {
+    // Advance cycle to next oldest pinned message (Telegram-style cycling)
+    setPinnedCycleIndex((prev) => {
+      if (pinnedBookmarks.length <= 1) return prev;
+      const next = prev - 1;
+      return next < 0 ? pinnedBookmarks.length - 1 : next;
+    });
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Try to find the message element in the DOM
+    const el = container.querySelector(`[data-message-uuid="${uuid}"]`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.add('search-highlight-flash');
+      setTimeout(() => el.classList.remove('search-highlight-flash'), 3000);
+      return;
+    }
+
+    // Message not loaded yet — load all, then scroll after render
+    if (!allMessagesLoaded) {
+      await loadAllMessages();
+      // Wait for DOM update
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      const el2 = container.querySelector(`[data-message-uuid="${uuid}"]`);
+      if (el2) {
+        el2.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el2.classList.add('search-highlight-flash');
+        setTimeout(() => el2.classList.remove('search-highlight-flash'), 3000);
+      }
+    }
+  }, [scrollContainerRef, allMessagesLoaded, loadAllMessages, pinnedBookmarks.length]);
+
+  const unpinPinned = useCallback(async (uuid: string) => {
+    if (!currentSessionId) return;
+    try {
+      await authenticatedFetch('/api/projects/bookmarks/toggle', {
+        method: 'POST',
+        body: JSON.stringify({
+          messageUuid: uuid,
+          sessionId: currentSessionId,
+          contentSnippet: '',
+          provider: 'claude',
+          role: 'assistant',
+          messageTimestamp: new Date().toISOString(),
+        }),
+      });
+    } catch {
+      // Parent refetches on session change
+    }
+  }, [currentSessionId]);
 
   return (
     <div
@@ -234,6 +316,65 @@ export default function ChatMessagesPane({
               >
                 {t('session.messages.loadAll')}
               </button>
+            </div>
+          )}
+
+          {/* Pinned bookmarked messages */}
+          {pinnedBookmarks.length > 0 && (
+            <div className="sticky top-0 z-10 mx-3 transition-all duration-300 ease-in-out sm:mx-0">
+              <div className="rounded-lg border border-yellow-200/60 bg-yellow-50/80 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300 dark:border-yellow-800/30 dark:bg-yellow-950/40">
+                <div className="flex items-center justify-between px-3 py-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                    <Bookmark className="h-3.5 w-3.5 fill-current" />
+                    <span>Pinned</span>
+                    <span className="text-yellow-500/60">({pinnedBookmarks.length})</span>
+                  </div>
+                  {pinnedBookmarks.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setPinnedExpanded((prev) => !prev)}
+                      className="rounded p-0.5 text-yellow-600 transition-transform duration-200 hover:bg-yellow-100 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
+                    >
+                      {pinnedExpanded ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-px border-t border-yellow-200/40 dark:border-yellow-800/20">
+                  {pinnedVisible.map((bk) => (
+                    <button
+                      key={bk.messageUuid}
+                      type="button"
+                      onClick={() => { void scrollToPinned(bk.messageUuid); }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-yellow-100/60 dark:hover:bg-yellow-900/30"
+                    >
+                      <span className="flex-shrink-0 rounded bg-yellow-200/60 px-1 py-0.5 text-[10px] font-medium text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300">
+                        {bk.role === 'user' ? 'You' : 'Assistant'}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-gray-600 dark:text-gray-400">
+                        {bk.contentSnippet.slice(0, 80)}
+                      </span>
+                      <span className="flex-shrink-0 text-[10px] text-gray-400 dark:text-gray-500">
+                        {new Date(bk.messageTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void unpinPinned(bk.messageUuid);
+                        }}
+                        className="flex-shrink-0 rounded p-0.5 text-yellow-500/50 hover:bg-yellow-200/50 hover:text-yellow-700 dark:hover:bg-yellow-800/50 dark:hover:text-yellow-300"
+                        title="Unpin"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

@@ -3,6 +3,8 @@ export { apiKeysDb } from '@/modules/database/repositories/api-keys.js';
 export { appConfigDb } from '@/modules/database/repositories/app-config.js';
 export { credentialsDb } from '@/modules/database/repositories/credentials.js';
 export { githubTokensDb } from '@/modules/database/repositories/github-tokens.js';
+export { messageBookmarksDb } from '@/modules/database/repositories/message-bookmarks.db.js';
+export type { MessageBookmarkRow } from '@/modules/database/repositories/message-bookmarks.db.js';
 export { notificationPreferencesDb } from '@/modules/database/repositories/notification-preferences.js';
 export { projectsDb } from '@/modules/database/repositories/projects.db.js';
 export { promptTemplatesDb } from '@/modules/database/repositories/prompt-templates.js';

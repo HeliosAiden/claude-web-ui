@@ -14,6 +14,7 @@ import { ToolRenderer, shouldHideToolResult } from '../../tools';
 import { Reasoning, ReasoningTrigger, ReasoningContent } from '../../../../shared/view/ui';
 import { Markdown } from './Markdown';
 import MessageCopyControl from './MessageCopyControl';
+import MessageBookmarkButton from './MessageBookmarkButton';
 import SaveTemplateButton from './SaveTemplateButton';
 
 type DiffLine = {
@@ -115,6 +116,7 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
     <div
       ref={messageRef}
       data-message-timestamp={message.timestamp || undefined}
+      data-message-uuid={message.id || undefined}
       className={`chat-message ${message.type} ${isGrouped ? 'grouped' : ''} ${message.type === 'user' ? 'flex justify-end px-3 sm:px-0' : 'px-3 sm:px-0'}`}
     >
       {message.type === 'user' ? (
@@ -138,9 +140,21 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
               </div>
             )}
             <div className="mt-1 flex items-center justify-end gap-1 text-xs text-blue-100">
+              {message.id && (
+                <MessageBookmarkButton
+                  messageUuid={message.id || ''}
+                  sessionId={message.sessionId || ''}
+                  contentSnippet={String(message.content || '').slice(0, 200)}
+                  provider={String(provider)}
+                  role="user"
+                  messageTimestamp={new Date(message.timestamp).toISOString()}
+                  projectId={selectedProject?.projectId}
+                  isUserMessage
+                />
+              )}
               {shouldShowUserCopyControl && (
                 <>
-                  <SaveTemplateButton content={userCopyContent} />
+                  <SaveTemplateButton content={userCopyContent} isUserMessage />
                   <MessageCopyControl content={userCopyContent} messageType="user" />
                 </>
               )}
@@ -391,7 +405,18 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
                   <Markdown className="prose prose-sm prose-gray max-w-none dark:prose-invert">
                     {message.content}
                   </Markdown>
-                  <div className="mt-3 flex items-center text-[11px]">
+                  <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
+                    {message.id && (
+                      <MessageBookmarkButton
+                        messageUuid={message.id || ''}
+                        sessionId={message.sessionId || ''}
+                        contentSnippet={String(message.content || '').slice(0, 200)}
+                        provider={String(provider)}
+                        role="assistant"
+                        messageTimestamp={new Date(message.timestamp).toISOString()}
+                        projectId={selectedProject?.projectId}
+                      />
+                    )}
                     <MessageCopyControl content={String(message.content || '')} messageType="assistant" />
                   </div>
                 </ReasoningContent>
@@ -459,6 +484,17 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
 
             {(shouldShowAssistantCopyControl || !isGrouped) && (
               <div className="mt-1 flex w-full items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
+                {message.id && !message.isThinking && shouldShowAssistantCopyControl && (
+                  <MessageBookmarkButton
+                    messageUuid={message.id || ''}
+                    sessionId={message.sessionId || ''}
+                    contentSnippet={String(message.content || '').slice(0, 200)}
+                    provider={String(provider)}
+                    role="assistant"
+                    messageTimestamp={new Date(message.timestamp).toISOString()}
+                    projectId={selectedProject?.projectId}
+                  />
+                )}
                 {shouldShowAssistantCopyControl && (
                   <>
                     <SaveTemplateButton content={assistantCopyContent} />

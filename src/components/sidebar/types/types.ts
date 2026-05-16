@@ -1,7 +1,19 @@
 import type { LoadingProgress, Project, ProjectSession, LLMProvider } from '../../../types/app';
 
 export type ProjectSortOrder = 'name' | 'date';
-export type SidebarSearchMode = 'projects' | 'conversations' | 'archived';
+export type SidebarSearchMode = 'projects' | 'conversations' | 'archived' | 'bookmarks';
+
+export type BookmarkedMessage = {
+  id: number;
+  messageUuid: string;
+  sessionId: string;
+  contentSnippet: string;
+  provider: LLMProvider;
+  role: string;
+  messageTimestamp: string;
+  projectId: string | null;
+  createdAt: string;
+};
 export type ArchivedProjectListItem = Project & { isArchived: true };
 
 export type SessionWithProvider = ProjectSession & {

@@ -7,6 +7,7 @@ import { AppError, asyncHandler, createApiSuccessResponse } from '@/shared/utils
 import { getArchivedProjectsWithSessions, getProjectSessionsPage, getProjectsWithSessions } from '@/modules/projects/services/projects-with-sessions-fetch.service.js';
 import { deleteOrArchiveProject, restoreArchivedProject } from '@/modules/projects/services/project-delete.service.js';
 import { applyLegacyStarredProjectIds, toggleProjectStar } from '@/modules/projects/services/project-star.service.js';
+import { toggleMessageBookmark, getBookmarkedMessageUuids, listBookmarks, deleteBookmark } from '@/modules/projects/services/message-bookmark.service.js';
 
 const router = express.Router();
 
@@ -258,6 +259,58 @@ router.delete(
     const force = req.query.force === 'true';
     await deleteOrArchiveProject(projectId, force);
     res.json({ success: true });
+  }),
+);
+
+router.post(
+  '/bookmarks/toggle',
+  asyncHandler(async (req, res) => {
+    const user = (req as any).user;
+    const { messageUuid, sessionId, contentSnippet, provider, role, messageTimestamp, projectId } =
+      req.body as Record<string, unknown>;
+    const result = toggleMessageBookmark(user.id, {
+      messageUuid: String(messageUuid || ''),
+      sessionId: String(sessionId || ''),
+      contentSnippet: String(contentSnippet || ''),
+      provider: String(provider || 'claude'),
+      role: String(role || 'assistant'),
+      messageTimestamp: String(messageTimestamp || new Date().toISOString()),
+      projectId: projectId ? String(projectId) : null,
+    });
+    res.json({ success: true, bookmarked: result.bookmarked });
+  }),
+);
+
+router.post(
+  '/bookmarks/check',
+  asyncHandler(async (req, res) => {
+    const user = (req as any).user;
+    const { messageUuids } = req.body as { messageUuids?: unknown };
+    const ids = Array.isArray(messageUuids) ? messageUuids.map((x) => String(x)) : [];
+    const result = getBookmarkedMessageUuids(user.id, ids);
+    res.json({ success: true, ...result });
+  }),
+);
+
+router.get(
+  '/bookmarks',
+  asyncHandler(async (req, res) => {
+    const user = (req as any).user;
+    const limit = Math.max(1, parseNonNegativeIntQuery(req.query.limit, 'limit', 50));
+    const offset = parseNonNegativeIntQuery(req.query.offset, 'offset', 0);
+    const sessionId = typeof req.query.sessionId === 'string' ? req.query.sessionId : undefined;
+    const result = listBookmarks(user.id, { limit, offset, sessionId });
+    res.json(createApiSuccessResponse(result));
+  }),
+);
+
+router.delete(
+  '/bookmarks/:messageUuid',
+  asyncHandler(async (req, res) => {
+    const user = (req as any).user;
+    const messageUuid = String(req.params.messageUuid);
+    const result = deleteBookmark(user.id, messageUuid);
+    res.json(createApiSuccessResponse(result));
   }),
 );
 
