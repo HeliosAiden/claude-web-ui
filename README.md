@@ -1,6 +1,6 @@
 # Claude Web UI
 
-A desktop and mobile UI for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor CLI](https://docs.cursor.com/en/cli/overview), [Codex](https://developers.openai.com/codex), [Gemini-CLI](https://geminicli.com/), and [Free Claude Code](https://github.com/helioaiden/free-claude-code). Use it locally or remotely to view your active projects and sessions from everywhere.
+A desktop and mobile UI for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor CLI](https://docs.cursor.com/en/cli/overview), [Codex](https://developers.openai.com/codex), [Gemini-CLI](https://geminicli.com/), and [Free Claude Code](https://github.com/Alishahryar1/free-claude-code). Use it locally or remotely to view your active projects and sessions from everywhere.
 
 *A fork of [Claude Code UI](https://github.com/siteboon/claudecodeui) with built-in support for Free Claude Code (FCC) integration.*
 
@@ -19,12 +19,15 @@ A desktop and mobile UI for [Claude Code](https://docs.anthropic.com/en/docs/cla
 - **Plugin System** - Extend Claude Web UI with custom plugins — add new tabs, backend services, and integrations. [Build your own →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
 - **TaskMaster AI Integration** *(Optional)* - Advanced project management with AI-powered task planning, PRD parsing, and workflow automation
 - **Free Claude Code (FCC) Integration** - Built-in support for Free Claude Code. Auto-discovers FCC configuration, falls back to the `fcc-claude` CLI, and uses FCC auth tokens — no manual setup needed
+- **Prompt Templates** - Create, edit, and insert reusable prompt templates from Settings. Save any message as a template with one click. Searchable template picker in the chat composer
+- **Thinking Modes** - Toggle between normal, think-hard, and think-harder modes (Claude provider) directly from the chat composer toolbar
+- **Settings Dashboard** - Manage credentials, prompt templates, plugins, themes, language, and provider configurations from a central Settings page
 - **Model Compatibility** - Works with Claude, GPT, and Gemini model families (see [`shared/modelConstants.js`](shared/modelConstants.js) for the full list of supported models)
 
 
 ## Free Claude Code (FCC) Integration
 
-This fork includes built-in support for [Free Claude Code](https://github.com/helioaiden/free-claude-code), allowing you to use Claude Code without an Anthropic subscription. FCC acts as a local proxy between the Claude SDK and alternative API providers.
+This fork includes built-in support for [Free Claude Code](https://github.com/Alishahryar1/free-claude-code), allowing you to use Claude Code without an Anthropic subscription. FCC acts as a local proxy between the Claude SDK and alternative API providers.
 
 ### How It Works
 
@@ -45,7 +48,7 @@ Once configured, the integration works through several layers:
 
 ### Setup
 
-1. Install and configure [Free Claude Code](https://github.com/helioaiden/free-claude-code) on your machine
+1. Install and configure [Free Claude Code](https://github.com/Alishahryar1/free-claude-code) on your machine
 2. Configure Claude Web UI to use your FCC proxy — choose one of these methods:
 
    **CLI flags** (one-off):
@@ -86,7 +89,7 @@ Try Claude Web UI instantly with **npx** (requires **Node.js** v22+):
 npx @heliosaiden/claude-web-ui
 ```
 
-To use with a local [Free Claude Code](https://github.com/helioaiden/free-claude-code) proxy:
+To use with a local [Free Claude Code](https://github.com/Alishahryar1/free-claude-code) proxy:
 
 ```
 npx @heliosaiden/claude-web-ui --anthropic-base-url http://127.0.0.1:8082
@@ -211,14 +214,14 @@ Here's what that means in practice:
 
 Claude Web UI provides the environment, not the AI. You can bring your own Claude, Cursor, Codex, or Gemini subscription. CloudCLI Cloud starts at $7/month for the hosted environment on top of that.
 
-Alternatively, this fork includes built-in support for [Free Claude Code](https://github.com/helioaiden/free-claude-code), which lets you use Claude Code without an Anthropic subscription by routing through alternative API providers. See the [Free Claude Code (FCC) Integration](#free-claude-code-fcc-integration) section above.
+Alternatively, this fork includes built-in support for [Free Claude Code](https://github.com/Alishahryar1/free-claude-code), which lets you use Claude Code without an Anthropic subscription by routing through alternative API providers. See the [Free Claude Code (FCC) Integration](#free-claude-code-fcc-integration) section above.
 
 </details>
 
 <details>
 <summary>What is Free Claude Code (FCC) and how does this fork support it?</summary>
 
-[Free Claude Code](https://github.com/helioaiden/free-claude-code) is an open-source project that lets you run Claude Code without an Anthropic subscription by routing API calls through alternative providers. This fork includes built-in integration:
+[Free Claude Code](https://github.com/Alishahryar1/free-claude-code) is an open-source project that lets you run Claude Code without an Anthropic subscription by routing API calls through alternative providers. This fork includes built-in integration:
 
 - **Auto-discovery** — FCC environment variables are loaded automatically from `~/.config/free-claude-code/.env`
 - **CLI fallback** — Falls back to the `fcc-claude` binary if `claude` is not found
@@ -268,7 +271,7 @@ Claude Web UI — a fork of [CloudCLI](https://cloudcli.ai) with Free Claude Cod
 - **[Cursor CLI](https://docs.cursor.com/en/cli/overview)** - Cursor's official CLI
 - **[Codex](https://developers.openai.com/codex)** - OpenAI Codex
 - **[Gemini-CLI](https://geminicli.com/)** - Google Gemini CLI
-- **[Free Claude Code](https://github.com/helioaiden/free-claude-code)** - Open-source Claude Code without Anthropic subscription
+- **[Free Claude Code](https://github.com/Alishahryar1/free-claude-code)** - Open-source Claude Code without Anthropic subscription
 - **[React](https://react.dev/)** - User interface library
 - **[Vite](https://vitejs.dev/)** - Fast build tool and dev server
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework

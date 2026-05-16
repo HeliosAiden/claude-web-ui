@@ -11,6 +11,7 @@ import {
   PROVIDERS,
 } from "../../../../../shared/modelConstants";
 import type { LLMProvider } from "../../../../types/app";
+import type { ProviderAuthStatusMap } from "../../../provider-auth/types";
 import {
   Dialog,
   DialogTrigger,
@@ -37,6 +38,7 @@ type ModelSelectorButtonProps = {
   geminiModel: string;
   setGeminiModel: (model: string) => void;
   fccModels: { value: string; label: string }[];
+  providerAuthStatus: ProviderAuthStatusMap;
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
 };
 
@@ -85,6 +87,7 @@ export default function ModelSelectorButton({
   geminiModel,
   setGeminiModel,
   fccModels,
+  providerAuthStatus,
   textareaRef,
 }: ModelSelectorButtonProps) {
   const { isWindowsServer } = useServerPlatform();
@@ -132,6 +135,13 @@ export default function ModelSelectorButton({
     let groups = isWindowsServer
       ? PROVIDER_GROUPS.filter((p) => p.id !== "cursor")
       : [...PROVIDER_GROUPS];
+    // Filter out providers whose CLI is not configured (always keep Claude)
+    groups = groups.filter(group => {
+      if (group.id === 'claude') return true;
+      const status = providerAuthStatus[group.id];
+      if (!status || status.loading) return true; // keep while loading to avoid layout flash
+      return status.authenticated;
+    });
     if (fccModels.length > 0) {
       groups = groups.map(group => {
         if (group.id !== 'claude') return group;
@@ -144,7 +154,7 @@ export default function ModelSelectorButton({
       });
     }
     return groups;
-  }, [isWindowsServer, fccModels]);
+  }, [isWindowsServer, fccModels, providerAuthStatus]);
 
   const currentModel = getCurrentModel(provider, claudeModel, cursorModel, codexModel, geminiModel);
   const currentModelLabel = useMemo(() => {

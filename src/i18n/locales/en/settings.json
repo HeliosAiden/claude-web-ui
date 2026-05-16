@@ -96,6 +96,7 @@
     "tasks": "Tasks",
     "notifications": "Notifications",
     "plugins": "Plugins",
+    "templates": "Templates",
     "about": "About"
   },
   "notifications": {
@@ -498,5 +499,22 @@
     "installAriaLabel": "Plugin git repository URL",
     "tab": "tab",
     "runningStatus": "running"
+  },
+  "templates": {
+    "title": "Prompt Templates",
+    "description": "Create and manage reusable prompt templates",
+    "newTemplate": "New Template",
+    "editTemplate": "Edit Template",
+    "deleteTemplate": "Delete Template",
+    "name": "Name",
+    "description": "Description",
+    "content": "Content",
+    "category": "Category",
+    "placeholderHint": "Use {{name}} for variables that will be filled when inserting the template",
+    "empty": "No templates yet",
+    "saveAsTemplate": "Save as template",
+    "insertTemplate": "Insert Template",
+    "fillVariables": "Fill template variables",
+    "noTemplates": "No templates yet"
   }
 }

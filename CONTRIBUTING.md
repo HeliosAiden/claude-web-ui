@@ -40,19 +40,27 @@ Thanks for your interest in contributing to Claude Web UI! Before you start, ple
 claude-web-ui/
 ├── src/              # React frontend (Vite + Tailwind)
 │   ├── components/   # UI components
+│   │   ├── chat/     # Chat interface, composer, message rendering
+│   │   ├── settings/ # Settings dashboard, tabs (credentials, templates, etc.)
+│   │   └── shared/   # Reusable UI primitives (Dialog, Command, etc.)
 │   ├── contexts/     # React context providers
 │   ├── hooks/        # Custom React hooks
 │   ├── i18n/         # Internationalization and translations
 │   ├── lib/          # Shared frontend libraries
 │   ├── types/        # TypeScript type definitions
-│   └── utils/        # Frontend utilities
+│   └── utils/        # Frontend utilities (API client, auth)
 ├── server/           # Express backend
-│   ├── routes/       # API route handlers
-│   ├── middleware/    # Express middleware
-│   ├── database/     # SQLite database layer
-│   └── tools/        # CLI tool integrations
+│   ├── routes/       # API route handlers (REST endpoints)
+│   ├── middleware/    # Express middleware (auth, validation)
+│   ├── modules/      # Modular backend services
+│   │   ├── database/ # SQLite schema, migrations, repositories
+│   │   ├── websocket/# WebSocket gateway (chat, shell, plugins)
+│   │   └── providers/# Provider session management
+│   └── utils/        # Backend utilities
 ├── shared/           # Code shared between client and server
-└── public/           # Static assets, icons, PWA manifest
+│   ├── modelConstants.js   # Centralized model definitions
+│   └── ...
+└── public/           # Static assets, icons, PWA manifest, screenshots
 ```
 
 ## Development Workflow

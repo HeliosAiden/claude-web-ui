@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Brain, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { thinkingModes } from '../../constants/thinkingModes';
+import { PromptInputButton } from '../../../../shared/view/ui';
 
 type ThinkingModeSelectorProps = {
   selectedMode: string;
@@ -134,27 +135,21 @@ function ThinkingModeSelector({ selectedMode, onModeChange, onClose, className =
 
   return (
     <div className={`relative ${className}`} ref={containerRef}>
-      <button
+      <PromptInputButton
         ref={triggerRef}
-        type="button"
+        tooltip={{ content: t('thinkingMode.buttonTitle', { mode: currentMode.name }) }}
         onClick={() => {
           if (isOpen) {
             closeDropdown();
             return;
           }
-
           setIsOpen(true);
         }}
-        className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 sm:h-10 sm:w-10 ${selectedMode === 'none'
-            ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600'
-            : 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800'
-          }`}
-        title={t('thinkingMode.buttonTitle', { mode: currentMode.name })}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
       >
-        <IconComponent className={`h-5 w-5 ${currentMode.color}`} />
-      </button>
+        <IconComponent className={currentMode.color} />
+      </PromptInputButton>
 
       {isOpen && typeof document !== 'undefined' && createPortal(
         <div

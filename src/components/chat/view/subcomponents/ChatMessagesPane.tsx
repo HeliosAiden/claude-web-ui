@@ -3,6 +3,7 @@ import { useCallback, useRef } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ChatMessage } from '../../types/types';
 import type { Project, ProjectSession, LLMProvider } from '../../../../types/app';
+import type { ProviderAuthStatusMap } from '../../../provider-auth/types';
 import { getIntrinsicMessageKey } from '../../utils/messageKeys';
 import MessageComponent from './MessageComponent';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
@@ -27,6 +28,7 @@ interface ChatMessagesPaneProps {
   geminiModel: string;
   setGeminiModel: (model: string) => void;
   fccModels: { value: string; label: string }[];
+  providerAuthStatus: ProviderAuthStatusMap;
   tasksEnabled: boolean;
   isTaskMasterInstalled: boolean | null;
   onShowAllTasks?: (() => void) | null;
@@ -73,6 +75,7 @@ export default function ChatMessagesPane({
   geminiModel,
   setGeminiModel,
   fccModels,
+  providerAuthStatus,
   tasksEnabled,
   isTaskMasterInstalled,
   onShowAllTasks,
@@ -157,6 +160,7 @@ export default function ChatMessagesPane({
           geminiModel={geminiModel}
           setGeminiModel={setGeminiModel}
           fccModels={fccModels}
+          providerAuthStatus={providerAuthStatus}
           tasksEnabled={tasksEnabled}
           isTaskMasterInstalled={isTaskMasterInstalled}
           onShowAllTasks={onShowAllTasks}

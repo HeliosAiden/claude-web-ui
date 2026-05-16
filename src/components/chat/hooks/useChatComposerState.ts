@@ -935,6 +935,17 @@ export function useChatComposerState({
     [onInputFocusChange],
   );
 
+  const handleInsertTemplate = useCallback(
+    (content: string) => {
+      setInput(content);
+      // Focus the textarea after inserting
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+    },
+    [textareaRef],
+  );
+
   return {
     input,
     setInput,
@@ -978,5 +989,6 @@ export function useChatComposerState({
     handleGrantToolPermission,
     handleInputFocusChange,
     isInputFocused,
+    handleInsertTemplate,
   };
 }

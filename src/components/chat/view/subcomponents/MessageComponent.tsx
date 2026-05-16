@@ -14,6 +14,7 @@ import { ToolRenderer, shouldHideToolResult } from '../../tools';
 import { Reasoning, ReasoningTrigger, ReasoningContent } from '../../../../shared/view/ui';
 import { Markdown } from './Markdown';
 import MessageCopyControl from './MessageCopyControl';
+import SaveTemplateButton from './SaveTemplateButton';
 
 type DiffLine = {
   type: string;
@@ -138,7 +139,10 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
             )}
             <div className="mt-1 flex items-center justify-end gap-1 text-xs text-blue-100">
               {shouldShowUserCopyControl && (
-                <MessageCopyControl content={userCopyContent} messageType="user" />
+                <>
+                  <SaveTemplateButton content={userCopyContent} />
+                  <MessageCopyControl content={userCopyContent} messageType="user" />
+                </>
               )}
               <span>{formattedTime}</span>
             </div>
@@ -456,7 +460,10 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
             {(shouldShowAssistantCopyControl || !isGrouped) && (
               <div className="mt-1 flex w-full items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
                 {shouldShowAssistantCopyControl && (
-                  <MessageCopyControl content={assistantCopyContent} messageType="assistant" />
+                  <>
+                    <SaveTemplateButton content={assistantCopyContent} />
+                    <MessageCopyControl content={assistantCopyContent} messageType="assistant" />
+                  </>
                 )}
                 {!isGrouped && <span>{formattedTime}</span>}
               </div>

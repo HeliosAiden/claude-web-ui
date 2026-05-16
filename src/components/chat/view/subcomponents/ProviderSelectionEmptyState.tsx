@@ -13,6 +13,7 @@ import {
   PROVIDERS,
 } from "../../../../../shared/modelConstants";
 import type { ProjectSession, LLMProvider } from "../../../../types/app";
+import type { ProviderAuthStatusMap } from "../../../provider-auth/types";
 import { NextTaskBanner } from "../../../task-master";
 import {
   Dialog,
@@ -47,6 +48,7 @@ type ProviderSelectionEmptyStateProps = {
   geminiModel: string;
   setGeminiModel: (model: string) => void;
   fccModels: { value: string; label: string }[];
+  providerAuthStatus: ProviderAuthStatusMap;
   tasksEnabled: boolean;
   isTaskMasterInstalled: boolean | null;
   onShowAllTasks?: (() => void) | null;
@@ -107,6 +109,7 @@ export default function ProviderSelectionEmptyState({
   geminiModel,
   setGeminiModel,
   fccModels,
+  providerAuthStatus,
   tasksEnabled,
   isTaskMasterInstalled,
   onShowAllTasks,
@@ -153,6 +156,13 @@ export default function ProviderSelectionEmptyState({
       let groups = isWindowsServer
         ? PROVIDER_GROUPS.filter((p) => p.id !== "cursor")
         : [...PROVIDER_GROUPS];
+      // Filter out providers whose CLI is not configured (always keep Claude)
+      groups = groups.filter(group => {
+        if (group.id === 'claude') return true;
+        const status = providerAuthStatus[group.id];
+        if (!status || status.loading) return true; // keep while loading to avoid layout flash
+        return status.authenticated;
+      });
       // Inject FCC-discovered models into the Claude group
       if (fccModels.length > 0) {
         groups = groups.map(group => {
@@ -168,7 +178,7 @@ export default function ProviderSelectionEmptyState({
       }
       return groups;
     },
-    [isWindowsServer, fccModels],
+    [isWindowsServer, fccModels, providerAuthStatus],
   );
 
   useEffect(() => {

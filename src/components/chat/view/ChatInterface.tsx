@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useProviderAuthStatus } from '../../provider-auth/hooks/useProviderAuthStatus';
 import { useTasksSettings } from '../../../contexts/TasksSettingsContext';
 import PermissionContext from '../../../contexts/PermissionContext';
 import { QuickSettingsPanel } from '../../quick-settings-panel';
@@ -81,6 +82,15 @@ function ChatInterface({
   } = useChatProviderState({
     selectedSession,
   });
+
+  const {
+    providerAuthStatus,
+    refreshProviderAuthStatuses,
+  } = useProviderAuthStatus();
+
+  useEffect(() => {
+    refreshProviderAuthStatuses();
+  }, [refreshProviderAuthStatuses]);
 
   const {
     chatMessages,
@@ -173,6 +183,7 @@ function ChatInterface({
     handleGrantToolPermission,
     handleInputFocusChange,
     isInputFocused,
+    handleInsertTemplate,
   } = useChatComposerState({
     selectedProject,
     selectedSession,
@@ -335,6 +346,7 @@ function ChatInterface({
           geminiModel={geminiModel}
           setGeminiModel={setGeminiModel}
           fccModels={fccModels}
+          providerAuthStatus={providerAuthStatus}
           tasksEnabled={tasksEnabled}
           isTaskMasterInstalled={isTaskMasterInstalled}
           onShowAllTasks={onShowAllTasks}
@@ -379,6 +391,7 @@ function ChatInterface({
           geminiModel={geminiModel}
           setGeminiModel={setGeminiModel}
           fccModels={fccModels}
+          providerAuthStatus={providerAuthStatus}
           permissionMode={permissionMode}
           onModeSwitch={cyclePermissionMode}
           thinkingMode={thinkingMode}
@@ -437,6 +450,7 @@ function ChatInterface({
           })}
           isTextareaExpanded={isTextareaExpanded}
           sendByCtrlEnter={sendByCtrlEnter}
+          onInsertTemplate={handleInsertTemplate}
         />
       </div>
 

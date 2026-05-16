@@ -123,6 +123,21 @@ CREATE TABLE IF NOT EXISTS app_config (
 );
 `;
 
+export const PROMPT_TEMPLATES_TABLE_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS prompt_templates (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    content TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    category TEXT DEFAULT 'general',
+    sort_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`;
+
 export const INIT_SCHEMA_SQL = `
 -- Initialize authentication database
 PRAGMA foreign_keys = ON;
@@ -165,4 +180,8 @@ CREATE INDEX IF NOT EXISTS idx_session_ids_lookup ON sessions(session_id);
 ${LAST_SCANNED_AT_SQL}
 
 ${APP_CONFIG_TABLE_SCHEMA_SQL}
+
+${PROMPT_TEMPLATES_TABLE_SCHEMA_SQL}
+CREATE INDEX IF NOT EXISTS idx_prompt_templates_user_id ON prompt_templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_prompt_templates_category ON prompt_templates(category);
 `;

@@ -11,6 +11,18 @@
     "copyAsMarkdown": "Copy as markdown",
     "copyAsText": "Copy as text"
   },
+  "templates": {
+    "insertTemplate": "Insert Template",
+    "noTemplates": "No templates yet",
+    "saveAsTemplate": "Save as template",
+    "saved": "Template saved",
+    "selectTemplate": "Select a template...",
+    "searchTemplates": "Search templates...",
+    "fillVariables": "Fill variables",
+    "insert": "Insert",
+    "cancel": "Cancel",
+    "createInSettings": "Create templates in Settings → Templates"
+  },
   "messageTypes": {
     "user": "U",
     "error": "Error",

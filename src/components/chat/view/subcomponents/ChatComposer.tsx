@@ -14,6 +14,7 @@ import type {
 import { ImageIcon, MessageSquareIcon, XIcon, ArrowDownIcon } from 'lucide-react';
 import type { PendingPermissionRequest, PermissionMode, Provider } from '../../types/types';
 import type { LLMProvider } from '../../../../types/app';
+import type { ProviderAuthStatusMap } from '../../../provider-auth/types';
 import CommandMenu from './CommandMenu';
 import ClaudeStatus from './ClaudeStatus';
 import ImageAttachment from './ImageAttachment';
@@ -21,6 +22,7 @@ import PermissionRequestsBanner from './PermissionRequestsBanner';
 import ThinkingModeSelector from './ThinkingModeSelector';
 import TokenUsagePie from './TokenUsagePie';
 import ModelSelectorButton from './ModelSelectorButton';
+import TemplatePickerPopover from './TemplatePickerPopover';
 import {
   PromptInput,
   PromptInputHeader,
@@ -68,6 +70,7 @@ interface ChatComposerProps {
   geminiModel: string;
   setGeminiModel: Dispatch<SetStateAction<string>>;
   fccModels: { value: string; label: string }[];
+  providerAuthStatus: ProviderAuthStatusMap;
   permissionMode: PermissionMode | string;
   onModeSwitch: () => void;
   thinkingMode: string;
@@ -113,6 +116,7 @@ interface ChatComposerProps {
   placeholder: string;
   isTextareaExpanded: boolean;
   sendByCtrlEnter?: boolean;
+  onInsertTemplate?: (content: string) => void;
 }
 
 export default function ChatComposer({
@@ -133,6 +137,7 @@ export default function ChatComposer({
   geminiModel,
   setGeminiModel,
   fccModels,
+  providerAuthStatus,
   permissionMode,
   onModeSwitch,
   thinkingMode,
@@ -178,6 +183,7 @@ export default function ChatComposer({
   placeholder,
   isTextareaExpanded,
   sendByCtrlEnter,
+  onInsertTemplate,
 }: ChatComposerProps) {
   const { t } = useTranslation('chat');
   const textareaRect = textareaRef.current?.getBoundingClientRect();
@@ -303,6 +309,7 @@ export default function ChatComposer({
                 geminiModel={geminiModel}
                 setGeminiModel={setGeminiModel}
                 fccModels={fccModels}
+                providerAuthStatus={providerAuthStatus}
               />
 
               <button
@@ -344,10 +351,6 @@ export default function ChatComposer({
                   </span>
                 </div>
               </button>
-
-              {provider === 'claude' && (
-                <ThinkingModeSelector selectedMode={thinkingMode} onModeChange={setThinkingMode} onClose={() => {}} className="" />
-              )}
 
               <div className="ml-auto">
                 <TokenUsagePie used={tokenBudget?.used || 0} total={tokenBudget?.total || parseInt(import.meta.env.VITE_CONTEXT_WINDOW) || 160000} />
@@ -418,6 +421,14 @@ export default function ChatComposer({
                 </span>
               )}
             </PromptInputButton>
+
+            {provider === 'claude' && (
+              <ThinkingModeSelector selectedMode={thinkingMode} onModeChange={setThinkingMode} onClose={() => {}} className="" />
+            )}
+
+            {onInsertTemplate && (
+              <TemplatePickerPopover onInsertTemplate={onInsertTemplate} />
+            )}
 
             {hasInput && (
               <PromptInputButton
