@@ -18,10 +18,10 @@ Command.displayName = CommandPrimitive.displayName;
 
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b px-3">
-    <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> & { showIcon?: boolean }
+>(({ className, showIcon = true, ...props }, ref) => (
+  <div className={cn('flex items-center border-b px-3', !showIcon && 'hidden')}>
+    {showIcon && <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}
     <CommandPrimitive.Input
       ref={ref}
       className={cn(

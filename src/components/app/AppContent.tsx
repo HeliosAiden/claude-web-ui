@@ -5,7 +5,6 @@ import { Folder } from 'lucide-react';
 
 import Sidebar from '../sidebar/view/Sidebar';
 import MainContent from '../main-content/view/MainContent';
-import CommandPalette from '../command-palette/CommandPalette';
 import ActivityBar from '../activity-bar/ActivityBar';
 import ProjectsFlyout from '../projects-flyout/ProjectsFlyout';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -62,14 +61,12 @@ function AppContentInner() {
     activeTab,
     activeActivity,
     flyoutOpen,
-    flyoutPinned,
     isLoadingProjects,
     externalMessageUpdate,
     newSessionTrigger,
     setActiveTab,
     setActiveActivity,
     setFlyoutOpen,
-    setFlyoutPinned,
     setIsInputFocused,
     setShowSettings,
     openSettings,
@@ -77,7 +74,6 @@ function AppContentInner() {
     sidebarSharedProps,
     activeSidebarPanel,
     handleActivitySelect,
-    handleToggleFlyout,
     handleNewSession,
   } = useProjectsState({
     sessionId,
@@ -169,7 +165,7 @@ function AppContentInner() {
     const ACTIVITY_SHORTCUTS: Record<string, ActivityId> = {
       'e': 'explorer',
       'b': 'bookmarks',
-      'q': 'search',
+      'k': 'search',
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -277,36 +273,31 @@ function AppContentInner() {
           activeActivity={activeActivity}
           onActivitySelect={handleActivitySelect}
           isMobile={false}
-          flyoutOpen={flyoutOpen}
-          onToggleFlyout={handleToggleFlyout}
           onShowSettings={handleShowSettings}
           pluginActivities={pluginActivities}
         />
       )}
 
-      {/* Pinned flyout (desktop only, in document flow) */}
-      {!isMobile && flyoutPinned && (
+      {/* Desktop sidebar (always in document flow) */}
+      {!isMobile && (
         <ProjectsFlyout
-          mode="pinned"
+          mode="sidebar"
           isOpen={flyoutOpen}
-          onClose={() => setFlyoutOpen(false)}
-          onTogglePin={() => setFlyoutPinned(false)}
-          isPinned={flyoutPinned}
         >
           <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} />
         </ProjectsFlyout>
       )}
 
-      {/* Overlay flyout (desktop unpinned or mobile) */}
-      <ProjectsFlyout
-        mode="overlay"
-        isOpen={flyoutOpen && !flyoutPinned}
-        onClose={() => setFlyoutOpen(false)}
-        onTogglePin={() => setFlyoutPinned(true)}
-        isPinned={false}
-      >
-        <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} />
-      </ProjectsFlyout>
+      {/* Mobile overlay flyout */}
+      {isMobile && (
+        <ProjectsFlyout
+          mode="overlay"
+          isOpen={flyoutOpen}
+          onClose={() => setFlyoutOpen(false)}
+        >
+          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} />
+        </ProjectsFlyout>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <MainContent
@@ -336,7 +327,6 @@ function AppContentInner() {
           onSessionErrorClear={clearSessionError}
           onCloseTab={handleCloseTab}
           activeActivity={activeActivity}
-          flyoutPinned={flyoutPinned}
           projects={projects}
           onProjectSelect={sidebarSharedProps.onProjectSelect}
           onNewSession={handleNewSession}
@@ -349,19 +339,11 @@ function AppContentInner() {
           activeActivity={activeActivity}
           onActivitySelect={handleActivitySelect}
           isMobile={true}
-          flyoutOpen={flyoutOpen}
-          onToggleFlyout={handleToggleFlyout}
           onShowSettings={handleShowSettings}
           pluginActivities={pluginActivities}
         />
       )}
 
-      <CommandPalette
-        selectedProject={selectedProject}
-        onStartNewChat={handleNewSession}
-        onOpenSettings={() => openSettings()}
-        onShowTab={setActiveTab}
-      />
     </div>
   );
 }

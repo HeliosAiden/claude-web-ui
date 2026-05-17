@@ -74,7 +74,9 @@
 - **Git Explorer** - View, stage and commit your changes. You can also switch branches
 - **Session Management** - Resume conversations, manage multiple sessions, and track history
 - **Plugin System** - Extend CloudCLI with custom plugins — add new tabs, backend services, and integrations. [Build your own →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
-- **TaskMaster AI Integration** *(Optional)* - Advanced project management with AI-powered task planning, PRD parsing, and workflow automation
+- **Activity Bar Navigation** — VSCode-style vertical activity bar for switching between Explorer, Bookmarks, Search, Git, and Settings views
+- **Session Tabs** — Tmux-like horizontal tab bar for open chat/shell sessions with provider logos, status dots, and close buttons
+- **Chat Find (Ctrl+F)** — Search text across all messages in the current conversation with match navigation and highlighting
 - **Model Compatibility** - Works with Claude, GPT, and Gemini model families (see [`shared/modelConstants.js`](https://github.com/siteboon/claudecodeui/blob/main/shared/modelConstants.js) for the full list of supported models)
 
 
@@ -236,7 +238,7 @@ CloudCLI UI  - (https://cloudcli.ai).
 - **[Vite](https://vitejs.dev/)** - Fast build tool and dev server
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[CodeMirror](https://codemirror.net/)** - Advanced code editor
-- **[TaskMaster AI](https://github.com/eyaltoledano/claude-task-master)** *(Optional)* - AI-powered project management and task planning
+- **[CodeMirror](https://codemirror.net/)** - Advanced code editor
 
 
 ### Sponsors

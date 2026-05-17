@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   Bookmark,
   Folder,
-  GitBranch,
   Search,
   Settings,
 } from 'lucide-react';
@@ -12,18 +11,15 @@ import ActivityBarItem from './ActivityBarItem';
 import type { ActivityBarItemDef, ActivityBarProps } from './types';
 
 const BUILT_IN_ITEMS: Omit<ActivityBarItemDef, 'id'>[] = [
-  { icon: Folder, label: 'Explorer' },
-  { icon: Bookmark, label: 'Bookmarks' },
-  { icon: Search, label: 'Search' },
-  { icon: GitBranch, label: 'Source Control' },
+  { icon: Folder, label: 'Explorer', shortcut: 'Ctrl+E' },
+  { icon: Bookmark, label: 'Bookmarks', shortcut: 'Ctrl+B' },
+  { icon: Search, label: 'Search', shortcut: 'Ctrl+K' },
 ];
 
 function ActivityBar({
   activeActivity,
   onActivitySelect,
   isMobile,
-  flyoutOpen,
-  onToggleFlyout,
   updateAvailable,
   onShowSettings,
   pluginActivities,
@@ -33,7 +29,6 @@ function ActivityBar({
       { ...BUILT_IN_ITEMS[0], id: 'explorer' as ActivityId },
       { ...BUILT_IN_ITEMS[1], id: 'bookmarks' as ActivityId },
       { ...BUILT_IN_ITEMS[2], id: 'search' as ActivityId },
-      { ...BUILT_IN_ITEMS[3], id: 'git' as ActivityId },
       ...pluginActivities,
     ];
     return list;
@@ -82,8 +77,6 @@ function ActivityBar({
           isActive={activeActivity === item.id}
           onClick={() => handleItemClick(item)}
           isMobile={isMobile}
-          hasFlyoutIndicator={activeActivity === item.id}
-          flyoutOpen={flyoutOpen}
         />
       ))}
 

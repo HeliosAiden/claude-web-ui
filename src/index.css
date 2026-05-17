@@ -934,6 +934,21 @@
     }
   }
 
+  /* Chat find: background match highlight */
+  .chat-find-match {
+    background-color: hsl(var(--primary) / 0.06);
+  }
+
+  /* Chat find: current match highlight */
+  .chat-find-current {
+    background-color: hsl(var(--primary) / 0.15);
+    outline: 2px solid hsl(var(--primary) / 0.5);
+    outline-offset: 2px;
+    border-radius: 8px;
+    scroll-margin-top: 60px;
+    scroll-margin-bottom: 20px;
+  }
+
   /* ActivityBar active indicator */
   .activity-item-active {
     position: relative;

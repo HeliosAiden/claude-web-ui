@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react';
 
 export type ProjectsFlyoutProps = {
-  mode: 'overlay' | 'pinned';
+  mode: 'overlay' | 'sidebar';
   children: ReactNode;
   isOpen: boolean;
-  onClose: () => void;
-  onTogglePin: () => void;
-  isPinned: boolean;
+  onClose?: () => void;
 };

@@ -8,8 +8,6 @@ function ActivityBarItem({
   isActive,
   onClick,
   isMobile,
-  hasFlyoutIndicator,
-  flyoutOpen,
 }: ActivityBarItemProps) {
   const Icon = item.icon;
 
@@ -76,10 +74,6 @@ function ActivityBarItem({
         </span>
       )}
 
-      {/* Flyout connector indicator for Projects icon */}
-      {hasFlyoutIndicator && flyoutOpen && !isMobile && (
-        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-8 bg-primary/40 rounded-l-sm" />
-      )}
     </button>
   );
 
@@ -88,7 +82,7 @@ function ActivityBarItem({
   }
 
   return (
-    <Tooltip content={item.label} position="right" delay={400}>
+    <Tooltip content={item.shortcut ? `${item.label} (${item.shortcut})` : item.label} position="right" delay={400}>
       {button}
     </Tooltip>
   );

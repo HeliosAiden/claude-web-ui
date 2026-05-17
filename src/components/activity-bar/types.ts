@@ -8,14 +8,13 @@ export type ActivityBarItemDef = {
   label: string;
   badge?: number | string;
   customIcon?: ReactNode;
+  shortcut?: string;
 };
 
 export type ActivityBarProps = {
   activeActivity: ActivityId;
   onActivitySelect: (id: ActivityId) => void;
   isMobile: boolean;
-  flyoutOpen: boolean;
-  onToggleFlyout: () => void;
   updateAvailable?: boolean;
   onShowSettings: () => void;
   pluginActivities: ActivityBarItemDef[];
@@ -26,6 +25,4 @@ export type ActivityBarItemProps = {
   isActive: boolean;
   onClick: () => void;
   isMobile: boolean;
-  hasFlyoutIndicator?: boolean;
-  flyoutOpen?: boolean;
 };

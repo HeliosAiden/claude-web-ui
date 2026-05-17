@@ -33,7 +33,6 @@ export type MainContentProps = {
   onSessionErrorClear: SessionLifecycleHandler;
   onCloseTab: (sessionId: string) => void;
   activeActivity?: ActivityId;
-  flyoutPinned?: boolean;
   projects?: Project[];
   onProjectSelect?: (project: Project) => void;
   onNewSession?: (project: Project) => void;

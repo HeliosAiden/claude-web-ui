@@ -6,7 +6,6 @@ type UiPreferences = {
   showThinking: boolean;
   autoScrollToBottom: boolean;
   sendByCtrlEnter: boolean;
-  flyoutPinned: boolean;
 };
 
 type UiPreferenceKey = keyof UiPreferences;
@@ -38,7 +37,6 @@ const DEFAULTS: UiPreferences = {
   showThinking: true,
   autoScrollToBottom: true,
   sendByCtrlEnter: false,
-  flyoutPinned: false,
 };
 
 const PREFERENCE_KEYS = Object.keys(DEFAULTS) as UiPreferenceKey[];
@@ -94,14 +92,6 @@ const readInitialPreferences = (storageKey: string): UiPreferences => {
           acc[key] = parseBoolean(parsedRecord[key], DEFAULTS[key]);
           return acc;
         }, { ...DEFAULTS });
-
-        // Migrate from old sidebarVisible key if flyoutPinned not explicitly set
-        if (!('flyoutPinned' in parsedRecord)) {
-          const old = localStorage.getItem('sidebarVisible');
-          if (old !== null) {
-            prefs.flyoutPinned = old === 'true';
-          }
-        }
 
         return prefs;
       }

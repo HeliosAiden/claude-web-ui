@@ -59,7 +59,9 @@
 - **Git 탐색기** - 변경 사항 보기, 스테이징 및 커밋. 브랜치 전환 기능 포함
 - **세션 관리** - 대화를 재개하고, 여러 세션을 관리하며 기록을 추적
 - **플러그인 시스템** - 커스텀 탭, 백엔드 서비스, 통합을 추가하여 CloudCLI 확장. [직접 빌드 →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
-- **TaskMaster AI 통합** *(선택사항)* - AI 중심의 작업 계획, PRD 파싱, 워크플로 자동화를 통한 고급 프로젝트 관리
+- **Activity Bar Navigation** — VSCode-style vertical activity bar for switching between Explorer, Bookmarks, Search, Git, and Settings views
+- **Session Tabs** — Tmux-like horizontal tab bar for open chat/shell sessions with provider logos, status dots, and close buttons
+- **Chat Find (Ctrl+F)** — Search text across all messages in the current conversation with match navigation and highlighting
 - **모델 호환성** - Claude, GPT, Gemini 모델 계열에서 작동 (`shared/modelConstants.js`에서 전체 지원 모델 확인)
 
 ## 빠른 시작
@@ -231,7 +233,7 @@ GNU General Public License v3.0 - 자세한 내용은 [LICENSE](LICENSE) 파일 
 - **[Vite](https://vitejs.dev/)** - 빠른 빌드 도구 및 개발 서버
 - **[Tailwind CSS](https://tailwindcss.com/)** - 유틸리티 우선 CSS 프레임워크
 - **[CodeMirror](https://codemirror.net/)** - 고급 코드 에디터
-- **[TaskMaster AI](https://github.com/eyaltoledano/claude-task-master)** *(선택사항)* - AI 기반 프로젝트 관리 및 작업 계획
+- **[CodeMirror](https://codemirror.net/)** - 고급 코드 편집기
 
 ### 스폰서
 - [Siteboon - AI powered website builder](https://siteboon.ai)

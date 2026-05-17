@@ -59,7 +59,9 @@
 - **Git 浏览器** - 查看、暂存并提交更改，还可切换分支
 - **会话管理** - 恢复对话、管理多个会话并跟踪历史记录
 - **插件系统** - 通过自定义选项卡、后端服务与集成扩展 CloudCLI。 [开始构建 →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
-- **TaskMaster AI 集成** *(可选)* - 结合 AI 任务规划、PRD 分析与工作流自动化，实现高级项目管理
+- **Activity Bar Navigation** — VSCode-style vertical activity bar for switching between Explorer, Bookmarks, Search, Git, and Settings views
+- **Session Tabs** — Tmux-like horizontal tab bar for open chat/shell sessions with provider logos, status dots, and close buttons
+- **Chat Find (Ctrl+F)** — Search text across all messages in the current conversation with match navigation and highlighting
 - **模型兼容性** - 支持 Claude、GPT、Gemini 模型家族（完整支持列表见 [`shared/modelConstants.js`](shared/modelConstants.js)）
 
 ## 快速开始
@@ -231,7 +233,7 @@ GNU 通用公共许可证 v3.0 - 详见 [LICENSE](LICENSE) 文件。
 - **[Vite](https://vitejs.dev/)** - 快速构建工具与开发服务器
 - **[Tailwind CSS](https://tailwindcss.com/)** - 实用先行 CSS 框架
 - **[CodeMirror](https://codemirror.net/)** - 高级代码编辑器
-- **[TaskMaster AI](https://github.com/eyaltoledano/claude-task-master)** *(可选)* - AI 驱动的项目管理与任务规划
+- **[CodeMirror](https://codemirror.net/)** - 高级代码编辑器
 
 ### 赞助商
 - [Siteboon - AI powered website builder](https://siteboon.ai)

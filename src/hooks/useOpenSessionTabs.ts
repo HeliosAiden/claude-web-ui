@@ -55,8 +55,6 @@ export function useOpenSessionTabs() {
         if (existing >= 0) {
           const updated = [...prev];
           updated[existing] = { id, title: resolvedTitle, provider: resolvedProvider };
-          // Move to end
-          updated.push(updated.splice(existing, 1)[0]);
           return updated;
         }
 

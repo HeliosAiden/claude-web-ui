@@ -7,15 +7,13 @@ function ProjectsFlyout({
   children,
   isOpen,
   onClose,
-  onTogglePin,
-  isPinned,
 }: ProjectsFlyoutProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape' && mode === 'overlay' && isOpen) {
-        onClose();
+        onClose?.();
       }
     },
     [mode, isOpen, onClose],
@@ -26,25 +24,23 @@ function ProjectsFlyout({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const pinProps = { onTogglePin, isPinned };
-
-  // Pinned mode: in-flow panel
-  if (mode === 'pinned') {
+  // Sidebar mode: in-flow flex child
+  if (mode === 'sidebar') {
     return (
       <div
         ref={panelRef}
         className={cn(
-          'h-full w-72 flex-shrink-0 border-r border-border/50 bg-card',
+          'h-full flex-shrink-0 border-r border-border/50 bg-card',
           'transition-all duration-250',
-          isOpen ? 'ml-0' : '-ml-72',
+          isOpen ? 'w-72' : 'w-0 overflow-hidden border-r-0',
         )}
       >
-        {React.cloneElement(children as React.ReactElement<{ onTogglePin?: () => void; isPinned?: boolean }>, pinProps)}
+        {children}
       </div>
     );
   }
 
-  // Overlay mode
+  // Overlay mode (mobile)
   return (
     <div
       className={cn(
@@ -61,7 +57,7 @@ function ProjectsFlyout({
         onClick={onClose}
         onTouchStart={(e) => {
           e.preventDefault();
-          onClose();
+          onClose?.();
         }}
         aria-label="Close sidebar"
       />
@@ -77,7 +73,7 @@ function ProjectsFlyout({
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >
-        {React.cloneElement(children as React.ReactElement<{ onTogglePin?: () => void; isPinned?: boolean }>, pinProps)}
+        {children}
       </div>
     </div>
   );

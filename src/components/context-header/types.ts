@@ -1,10 +1,10 @@
-import type { ActivityId, AppTab, Project, ProjectSession } from '../../types/app';
+import type { AppTab, Project, ProjectSession } from '../../types/app';
 
 export type ContextHeaderProps = {
   selectedProject: Project | null;
   selectedSession: ProjectSession | null;
-  activeActivity: ActivityId;
-  activeTab?: AppTab;
+  activeTab: AppTab;
+  onTabSelect: (tab: AppTab) => void;
   projects: Project[];
   isMobile: boolean;
   onProjectSelect: (project: Project) => void;

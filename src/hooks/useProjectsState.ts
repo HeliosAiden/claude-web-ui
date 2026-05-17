@@ -271,27 +271,6 @@ export function useProjectsState({
   }, [activeActivity]);
 
   const [flyoutOpen, setFlyoutOpen] = useState(false);
-  const [flyoutPinned, setFlyoutPinned] = useState(() => {
-    try {
-      const stored = localStorage.getItem('flyoutPinned');
-      if (stored !== null) return stored === 'true';
-      // Migrate from old sidebarVisible key
-      const old = localStorage.getItem('sidebarVisible');
-      if (old !== null) return old === 'true';
-    } catch {
-      // localStorage unavailable
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('flyoutPinned', String(flyoutPinned));
-    } catch {
-      // Silently ignore storage errors
-    }
-  }, [flyoutPinned]);
-
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
@@ -647,26 +626,21 @@ export function useProjectsState({
 
   const handleActivitySelect = useCallback(
     (activity: ActivityId) => {
-      setActiveActivity(activity);
-
-      if (activity === 'settings') return;
-
-      // Open flyout to show the sidebar panel
-      if (!flyoutOpen) {
-        setFlyoutOpen(true);
+      if (activity === activeActivity) {
+        setFlyoutOpen((prev) => !prev);
+        return;
       }
+
+      setActiveActivity(activity);
+      setFlyoutOpen(true);
     },
-    [flyoutOpen],
+    [activeActivity],
   );
 
   const activeSidebarPanel = useMemo(
     () => sidebarPanelFromActivity(activeActivity),
     [activeActivity],
   );
-
-  const handleToggleFlyout = useCallback(() => {
-    setFlyoutOpen((prev) => !prev);
-  }, []);
 
   const handleSessionDelete = useCallback(
     (sessionIdToDelete: string) => {
@@ -840,7 +814,10 @@ export function useProjectsState({
       isLoading: isLoadingProjects,
       loadingProgress,
       onRefresh: handleSidebarRefresh,
-      onShowSettings: () => setShowSettings(true),
+      onShowSettings: (tab?: string) => {
+        if (tab) setSettingsInitialTab(tab);
+        setShowSettings(true);
+      },
       showSettings,
       settingsInitialTab,
       onCloseSettings: () => setShowSettings(false),
@@ -872,7 +849,6 @@ export function useProjectsState({
     activeTab,
     activeActivity,
     flyoutOpen,
-    flyoutPinned,
     sidebarOpen,
     isLoadingProjects,
     loadingProgress,
@@ -884,7 +860,6 @@ export function useProjectsState({
     setActiveTab,
     setActiveActivity,
     setFlyoutOpen,
-    setFlyoutPinned,
     setSidebarOpen,
     setIsInputFocused,
     setShowSettings,
@@ -894,7 +869,6 @@ export function useProjectsState({
     sidebarSharedProps,
     activeSidebarPanel,
     handleActivitySelect,
-    handleToggleFlyout,
     handleProjectSelect,
     handleSessionSelect,
     handleNewSession,

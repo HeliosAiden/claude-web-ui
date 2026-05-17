@@ -31,8 +31,6 @@ function Sidebar({
   settingsInitialTab,
   onCloseSettings,
   isMobile,
-  onTogglePin,
-  isPinned,
   activePanel,
   onNavigateToTab,
 }: SidebarProps) {
@@ -57,10 +55,6 @@ function Sidebar({
     editingSessionName,
     searchFilter,
     searchMode,
-    conversationResults,
-    isSearching,
-    searchProgress,
-    clearConversationResults,
     deletingProjects,
     deleteConfirmation,
     sessionDeleteConfirmation,
@@ -217,9 +211,6 @@ function Sidebar({
           onClearSearchFilter={() => setSearchFilter('')}
           searchMode={searchMode}
           onNavigateToTab={onNavigateToTab}
-          conversationResults={conversationResults}
-          isSearching={isSearching}
-          searchProgress={searchProgress}
           onRestoreArchivedProject={restoreArchivedProject}
           onArchivedSessionClick={openArchivedSession}
           onRestoreArchivedSession={restoreArchivedSession}
@@ -231,29 +222,6 @@ function Sidebar({
               session.provider,
               { isArchived: true },
             );
-          }}
-          onConversationResultClick={(projectId: string | null, sessionId: string, provider: string, messageTimestamp?: string | null, messageSnippet?: string | null) => {
-            const resolvedProvider = (provider || 'claude') as LLMProvider;
-            const project = projectId ? projects.find(p => p.projectId === projectId) : null;
-            const searchTarget = { __searchTargetTimestamp: messageTimestamp || null, __searchTargetSnippet: messageSnippet || null };
-            const sessionObj = {
-              id: sessionId,
-              __provider: resolvedProvider,
-              __projectId: projectId ?? undefined,
-              ...searchTarget,
-            };
-            if (project) {
-              handleProjectSelect(project);
-              const sessions = getProjectSessions(project);
-              const existing = sessions.find(s => s.id === sessionId);
-              if (existing) {
-                handleSessionClick({ ...existing, ...searchTarget }, project.projectId);
-              } else {
-                handleSessionClick(sessionObj, project.projectId);
-              }
-            } else {
-              handleSessionClick(sessionObj, projectId ?? '');
-            }
           }}
           onRefresh={() => {
             void refreshProjects();
@@ -271,8 +239,6 @@ function Sidebar({
           isBookmarksLoading={isBookmarksLoading}
           onBookmarkClick={handleBookmarkClick}
           onDeleteBookmark={handleDeleteBookmark}
-          onTogglePin={onTogglePin}
-          isPinned={isPinned}
           t={t}
         />
 

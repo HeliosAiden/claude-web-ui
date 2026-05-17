@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bookmark, ChevronDown, ChevronUp, X } from 'lucide-react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ChatMessage } from '../../types/types';
@@ -8,7 +8,17 @@ import type { ProviderAuthStatusMap } from '../../../provider-auth/types';
 import { getIntrinsicMessageKey } from '../../utils/messageKeys';
 import { authenticatedFetch } from '../../../../utils/api';
 import MessageComponent from './MessageComponent';
+import ChatFindWidget from './ChatFindWidget';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
+
+function getMessageSearchText(message: ChatMessage): string {
+  return [
+    message.content || '',
+    message.displayText || '',
+    message.reasoning || '',
+    message.toolName || '',
+  ].join(' ');
+}
 
 interface ChatMessagesPaneProps {
   scrollContainerRef: RefObject<HTMLDivElement>;
@@ -139,6 +149,13 @@ export default function ChatMessagesPane({
   const [pinnedCycleIndex, setPinnedCycleIndex] = useState(-1);
   const prevPinnedLenRef = useRef(0);
 
+  // Find widget state
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findMatches, setFindMatches] = useState<string[]>([]);
+  const [findCurrentIndex, setFindCurrentIndex] = useState(0);
+  const findMatchMessageUuidsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     const len = pinnedBookmarks.length;
     if (len !== prevPinnedLenRef.current) {
@@ -146,6 +163,110 @@ export default function ChatMessagesPane({
       setPinnedCycleIndex(len > 0 ? len - 1 : -1);
     }
   }, [pinnedBookmarks.length]);
+
+  // Search through chatMessages when findQuery changes
+  useEffect(() => {
+    if (!findOpen || !findQuery.trim()) {
+      setFindMatches([]);
+      setFindCurrentIndex(0);
+      findMatchMessageUuidsRef.current = new Set();
+      return;
+    }
+
+    const query = findQuery.toLowerCase();
+    const matchedUuids: string[] = [];
+
+    for (const message of chatMessages) {
+      const searchText = getMessageSearchText(message);
+      if (searchText.toLowerCase().includes(query)) {
+        const uuid = message.id;
+        if (uuid) {
+          matchedUuids.push(uuid);
+        }
+      }
+    }
+
+    setFindMatches(matchedUuids);
+    setFindCurrentIndex(0);
+    findMatchMessageUuidsRef.current = new Set(matchedUuids);
+  }, [findOpen, findQuery, chatMessages]);
+
+  // Ctrl+F handler to open find widget
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === 'f') {
+        // Don't open find if the user is typing in the textarea
+        const activeEl = document.activeElement;
+        if (activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement) {
+          return;
+        }
+        e.preventDefault();
+        setFindOpen(true);
+        setFindQuery('');
+        setFindMatches([]);
+        setFindCurrentIndex(0);
+      }
+      if (e.key === 'Escape' && findOpen) {
+        e.preventDefault();
+        setFindOpen(false);
+        setFindQuery('');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [findOpen]);
+
+  // Scroll to current find match
+  const scrollToFindMatch = useCallback(async (uuid: string) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const el = container.querySelector(`[data-message-uuid="${uuid}"]`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
+
+    // Message not rendered — load all, then scroll
+    if (!allMessagesLoaded) {
+      await loadAllMessages();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      const el2 = container.querySelector(`[data-message-uuid="${uuid}"]`);
+      if (el2) {
+        el2.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+  }, [scrollContainerRef, allMessagesLoaded, loadAllMessages]);
+
+  const handleFindNext = useCallback(() => {
+    if (findMatches.length === 0) return;
+    const nextIndex = (findCurrentIndex + 1) % findMatches.length;
+    setFindCurrentIndex(nextIndex);
+    scrollToFindMatch(findMatches[nextIndex]);
+  }, [findMatches, findCurrentIndex, scrollToFindMatch]);
+
+  const handleFindPrev = useCallback(() => {
+    if (findMatches.length === 0) return;
+    const prevIndex = (findCurrentIndex - 1 + findMatches.length) % findMatches.length;
+    setFindCurrentIndex(prevIndex);
+    scrollToFindMatch(findMatches[prevIndex]);
+  }, [findMatches, findCurrentIndex, scrollToFindMatch]);
+
+  const handleFindClose = useCallback(() => {
+    setFindOpen(false);
+    setFindQuery('');
+  }, []);
+
+  // Derive sets for MessageComponent highlights
+  const findMatchSet = useMemo(
+    () => (findOpen && findQuery.trim() ? new Set(findMatches) : new Set<string>()),
+    [findOpen, findQuery, findMatches],
+  );
+  const findCurrentUuid = findOpen && findQuery.trim() && findMatches.length > 0
+    ? findMatches[findCurrentIndex] ?? null
+    : null;
 
   const pinnedVisible = pinnedExpanded
     ? pinnedBookmarks
@@ -369,8 +490,24 @@ export default function ChatMessagesPane({
             </div>
           )}
 
+          {/* Find widget */}
+          {findOpen && (
+            <div className="sticky top-2 z-30">
+              <ChatFindWidget
+                query={findQuery}
+                onQueryChange={setFindQuery}
+                matchCount={findMatches.length}
+                currentMatch={findMatches.length > 0 ? findCurrentIndex : 0}
+                onNext={handleFindNext}
+                onPrev={handleFindPrev}
+                onClose={handleFindClose}
+              />
+            </div>
+          )}
+
           {visibleMessages.map((message, index) => {
             const prevMessage = index > 0 ? visibleMessages[index - 1] : null;
+            const msgUuid = message.id ?? null;
             return (
               <MessageComponent
                 key={getMessageKey(message)}
@@ -385,6 +522,8 @@ export default function ChatMessagesPane({
                 showThinking={showThinking}
                 selectedProject={selectedProject}
                 provider={provider}
+                isFindMatch={msgUuid !== null && findMatchSet.has(msgUuid)}
+                isFindCurrent={msgUuid !== null && msgUuid === findCurrentUuid}
               />
             );
           })}

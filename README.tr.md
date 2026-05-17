@@ -61,7 +61,9 @@
 - **Git Gezgini** — Değişikliklerini görüntüle, staging'e ekle ve commit'le. Dallar arası geçiş de yapabilirsin
 - **Oturum Yönetimi** — Konuşmalara devam et, birden fazla oturumu yönet ve geçmişi takip et
 - **Eklenti Sistemi** — CloudCLI'ı özel eklentilerle genişlet: yeni sekmeler, arka uç servisleri ve entegrasyonlar ekle. [Kendi eklentini yaz →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
-- **TaskMaster AI Entegrasyonu** *(İsteğe Bağlı)* — AI destekli görev planlama, PRD ayrıştırma ve iş akışı otomasyonu ile gelişmiş proje yönetimi
+- **Activity Bar Navigation** — VSCode-style vertical activity bar for switching between Explorer, Bookmarks, Search, Git, and Settings views
+- **Session Tabs** — Tmux-like horizontal tab bar for open chat/shell sessions with provider logos, status dots, and close buttons
+- **Chat Find (Ctrl+F)** — Search text across all messages in the current conversation with match navigation and highlighting
 - **Model Uyumluluğu** — Claude, GPT ve Gemini model aileleriyle çalışır (desteklenen tüm modeller için [`shared/modelConstants.js`](shared/modelConstants.js) dosyasına bak)
 
 
@@ -240,7 +242,7 @@ CloudCLI UI — (https://cloudcli.ai).
 - **[Vite](https://vitejs.dev/)** — Hızlı derleme aracı ve geliştirme sunucusu
 - **[Tailwind CSS](https://tailwindcss.com/)** — Utility-first CSS framework
 - **[CodeMirror](https://codemirror.net/)** — Gelişmiş kod editörü
-- **[TaskMaster AI](https://github.com/eyaltoledano/claude-task-master)** *(İsteğe Bağlı)* — AI destekli proje yönetimi ve görev planlama
+- **[CodeMirror](https://codemirror.net/)** — Gelişmiş kod editörü
 
 
 ### Sponsorlar

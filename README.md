@@ -17,7 +17,9 @@ A desktop and mobile UI for [Claude Code](https://docs.anthropic.com/en/docs/cla
 - **Git Explorer** - View, stage and commit your changes. You can also switch branches 
 - **Session Management** - Resume conversations, manage multiple sessions, and track history
 - **Plugin System** - Extend Claude Web UI with custom plugins — add new tabs, backend services, and integrations. [Build your own →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)
-- **TaskMaster AI Integration** *(Optional)* - Advanced project management with AI-powered task planning, PRD parsing, and workflow automation
+- **Activity Bar Navigation** — VSCode-style vertical activity bar for switching between Explorer, Bookmarks, Search, Git, and Settings views
+- **Session Tabs** — Tmux-like horizontal tab bar for open chat/shell sessions with provider logos, status dots, and close buttons
+- **Chat Find (Ctrl+F)** — Search text across all messages in the current conversation with match navigation and highlighting
 - **Free Claude Code (FCC) Integration** - Built-in support for Free Claude Code. Auto-discovers FCC configuration, falls back to the `fcc-claude` CLI, and uses FCC auth tokens — no manual setup needed
 - **Prompt Templates** - Create, edit, and insert reusable prompt templates from Settings. Save any message as a template with one click. Searchable template picker in the chat composer
 - **Thinking Modes** - Toggle between normal, think-hard, and think-harder modes (Claude provider) directly from the chat composer toolbar
@@ -276,7 +278,6 @@ Claude Web UI — a fork of [CloudCLI](https://cloudcli.ai) with Free Claude Cod
 - **[Vite](https://vitejs.dev/)** - Fast build tool and dev server
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[CodeMirror](https://codemirror.net/)** - Advanced code editor
-- **[TaskMaster AI](https://github.com/eyaltoledano/claude-task-master)** *(Optional)* - AI-powered project management and task planning
 
 
 ### Sponsors

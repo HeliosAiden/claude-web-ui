@@ -1,4 +1,4 @@
-import { FolderPlus, Pin, PinOff, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { FolderPlus, Plus, RefreshCw, Search, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { Button, Input, Tooltip } from '../../../../shared/view/ui';
 import { IS_PLATFORM } from '../../../../constants/config';
@@ -22,8 +22,6 @@ type SidebarHeaderProps = {
   onRefresh: () => void;
   isRefreshing: boolean;
   onCreateProject: () => void;
-  onTogglePin?: () => void;
-  isPinned?: boolean;
   t: TFunction;
 };
 
@@ -41,13 +39,11 @@ export default function SidebarHeader({
   onRefresh,
   isRefreshing,
   onCreateProject,
-  onTogglePin,
-  isPinned,
   t,
 }: SidebarHeaderProps) {
   const showSearchTools = (projectsCount > 0 || archivedSessionsCount > 0 || isArchivedSessionsLoading) && !isLoading;
   const searchPlaceholder = activePanel === 'search'
-    ? t('search.globalPlaceholder', 'Search across all conversations...')
+    ? t('search.globalPlaceholder', 'Type to search anything…')
     : activePanel === 'bookmarks'
       ? t('bookmarks.searchPlaceholder', 'Search bookmarks...')
       : t('projects.filterPlaceholder', 'Filter...');
@@ -98,17 +94,6 @@ export default function SidebarHeader({
                 }`}
               />
             </Button>
-            {onTogglePin && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 rounded-lg p-0 text-muted-foreground hover:bg-accent/80 hover:text-foreground"
-                onClick={onTogglePin}
-                title={isPinned ? t('tooltips.unpinSidebar', 'Unpin sidebar') : t('tooltips.pinSidebar', 'Pin sidebar')}
-              >
-                {isPinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="sm"

@@ -13,7 +13,7 @@ import EditorSidebar from '../../code-editor/view/EditorSidebar';
 
 import ContextHeader from '../../context-header/ContextHeader';
 import MainContentStateView from './subcomponents/MainContentStateView';
-import MainContentTabSwitcher from './subcomponents/MainContentTabSwitcher';
+
 import SessionTabs from '../../session-tabs/SessionTabs';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -44,7 +44,6 @@ function MainContent({
   onSessionErrorClear,
   onCloseTab,
   activeActivity,
-  flyoutPinned,
   projects = [],
   onProjectSelect,
   onNewSession,
@@ -87,8 +86,8 @@ function MainContent({
       <ContextHeader
         selectedProject={selectedProject}
         selectedSession={selectedSession}
-        activeActivity={activeActivity ?? 'explorer'}
         activeTab={activeTab}
+        onTabSelect={setActiveTab}
         projects={projects}
         isMobile={isMobile}
         onProjectSelect={onProjectSelect ?? (() => {})}
@@ -96,10 +95,6 @@ function MainContent({
         onNewSession={onNewSession ?? (() => {})}
         onMenuClick={onMenuClick}
       />
-
-      {selectedProject && (
-        <MainContentTabSwitcher activeTab={activeTab} onTabSelect={setActiveTab} />
-      )}
 
       {(activeTab === 'chat' || activeTab === 'shell') && (
         <SessionTabs

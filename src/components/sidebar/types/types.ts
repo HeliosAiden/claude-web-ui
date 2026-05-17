@@ -1,7 +1,7 @@
 import type { AppTab, LoadingProgress, Project, ProjectSession, LLMProvider } from '../../../types/app';
 
 export type ProjectSortOrder = 'name' | 'date';
-export type SidebarSearchMode = 'projects' | 'conversations' | 'archived' | 'bookmarks' | 'git';
+export type SidebarSearchMode = 'projects' | 'search' | 'archived' | 'bookmarks' | 'git';
 
 export type SidebarPanel = 'explorer' | 'bookmarks' | 'search' | 'git';
 
@@ -65,13 +65,11 @@ export type SidebarProps = {
   isLoading: boolean;
   loadingProgress: LoadingProgress | null;
   onRefresh: () => Promise<void> | void;
-  onShowSettings: () => void;
+  onShowSettings: (tab?: string) => void;
   showSettings: boolean;
   settingsInitialTab: string;
   onCloseSettings: () => void;
   isMobile: boolean;
-  onTogglePin?: () => void;
-  isPinned?: boolean;
   activePanel?: SidebarPanel | null;
   onNavigateToTab?: (tab: AppTab) => void;
 };
