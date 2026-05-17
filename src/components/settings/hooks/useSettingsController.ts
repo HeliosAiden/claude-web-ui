@@ -53,7 +53,7 @@ type NotificationPreferencesResponse = {
 
 type ActiveLoginProvider = AgentProvider | '';
 
-const KNOWN_MAIN_TABS: SettingsMainTab[] = ['agents', 'appearance', 'git', 'api', 'tasks', 'notifications', 'plugins', 'templates'];
+const KNOWN_MAIN_TABS: SettingsMainTab[] = ['agents', 'appearance', 'git', 'api', 'notifications', 'plugins', 'templates'];
 
 const normalizeMainTab = (tab: string): SettingsMainTab => {
   // Keep backwards compatibility with older callers that still pass "tools".
@@ -281,8 +281,19 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
         throw new Error('Failed to save notification preferences');
       }
 
-      // Save Telegram config (only if user has entered a token)
-      if (telegramConfig.botToken) {
+      // Save Telegram config
+      if (telegramConfig.configured) {
+        // Already configured — use toggle endpoint to update enabled state
+        // (full botToken is not available after loading from backend)
+        const telegramResponse = await authenticatedFetch('/api/settings/telegram-config/toggle', {
+          method: 'PATCH',
+          body: JSON.stringify({ enabled: telegramConfig.enabled }),
+        });
+        if (!telegramResponse.ok) {
+          throw new Error('Failed to save Telegram config');
+        }
+      } else if (telegramConfig.botToken) {
+        // New setup — use PUT with the full token
         const telegramResponse = await authenticatedFetch('/api/settings/telegram-config', {
           method: 'PUT',
           body: JSON.stringify({

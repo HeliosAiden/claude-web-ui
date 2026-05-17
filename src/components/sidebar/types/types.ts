@@ -1,7 +1,9 @@
-import type { LoadingProgress, Project, ProjectSession, LLMProvider } from '../../../types/app';
+import type { AppTab, LoadingProgress, Project, ProjectSession, LLMProvider } from '../../../types/app';
 
 export type ProjectSortOrder = 'name' | 'date';
-export type SidebarSearchMode = 'projects' | 'conversations' | 'archived' | 'bookmarks';
+export type SidebarSearchMode = 'projects' | 'conversations' | 'archived' | 'bookmarks' | 'git';
+
+export type SidebarPanel = 'explorer' | 'bookmarks' | 'search' | 'git';
 
 export type BookmarkedMessage = {
   id: number;
@@ -68,6 +70,10 @@ export type SidebarProps = {
   settingsInitialTab: string;
   onCloseSettings: () => void;
   isMobile: boolean;
+  onTogglePin?: () => void;
+  isPinned?: boolean;
+  activePanel?: SidebarPanel | null;
+  onNavigateToTab?: (tab: AppTab) => void;
 };
 
 export type SessionViewModel = {
@@ -80,10 +86,6 @@ export type SessionViewModel = {
   messageCount: number;
 };
 
-export type MCPServerStatus = {
-  hasMCPServer?: boolean;
-  isConfigured?: boolean;
-} | null;
 
 // Retained as `name` for backwards compatibility with existing settings
 // consumers; the value is populated from `projectId` by normalizeProjectForSettings.

@@ -266,12 +266,48 @@ export default function Shell({
         disableRestart={isRestarting || isConnected}
       />
 
-      <div className="relative flex-1 overflow-hidden p-2">
-        <div
-          ref={terminalContainerRef}
-          className="h-full w-full focus:outline-none"
-          style={{ outline: 'none' }}
-        />
+      <div className="relative flex-1 overflow-hidden">
+        <div className="flex h-full flex-col p-2">
+          <div
+            ref={terminalContainerRef}
+            className="min-h-0 flex-1 w-full focus:outline-none"
+            style={{ outline: 'none' }}
+          />
+
+          {cliPromptOptions && isConnected && (
+            <div
+              className="flex-shrink-0 mt-2 border-t border-gray-700/80 bg-gray-800/95 px-3 py-2 backdrop-blur-sm"
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                {cliPromptOptions.map((opt) => (
+                  <button
+                    type="button"
+                    key={opt.number}
+                    onClick={() => {
+                      sendInput(opt.number);
+                      setCliPromptOptions(null);
+                    }}
+                    className="max-w-36 truncate rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                    title={`${opt.number}. ${opt.label}`}
+                  >
+                    {opt.number}. {opt.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    sendInput('\x1b');
+                    setCliPromptOptions(null);
+                  }}
+                  className="rounded bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 transition-colors hover:bg-gray-600"
+                >
+                  Esc
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {overlayMode && (
           <ShellConnectionOverlay
@@ -283,40 +319,6 @@ export default function Shell({
             connectingLabel={t('shell.connecting')}
             onConnect={connectToShell}
           />
-        )}
-
-        {cliPromptOptions && isConnected && (
-          <div
-            className="absolute inset-x-0 bottom-0 z-10 border-t border-gray-700/80 bg-gray-800/95 px-3 py-2 backdrop-blur-sm"
-            onMouseDown={(e) => e.preventDefault()}
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              {cliPromptOptions.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.number}
-                  onClick={() => {
-                    sendInput(opt.number);
-                    setCliPromptOptions(null);
-                  }}
-                  className="max-w-36 truncate rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
-                  title={`${opt.number}. ${opt.label}`}
-                >
-                  {opt.number}. {opt.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  sendInput('\x1b');
-                  setCliPromptOptions(null);
-                }}
-                className="rounded bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 transition-colors hover:bg-gray-600"
-              >
-                Esc
-              </button>
-            </div>
-          </div>
         )}
       </div>
 

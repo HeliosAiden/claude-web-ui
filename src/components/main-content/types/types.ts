@@ -1,39 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
 
-import type { AppTab, Project, ProjectSession } from '../../../types/app';
+import type { ActivityId, AppTab, Project, ProjectSession } from '../../../types/app';
 import type { SessionNavigationOptions } from '../../chat/types/types';
 import type { OpenSessionInfo } from '../../../hooks/useOpenSessionTabs';
 
 export type SessionLifecycleHandler = (sessionId?: string | null) => void;
-
-export type TaskMasterTask = {
-  id: string | number;
-  title?: string;
-  description?: string;
-  status?: string;
-  priority?: string;
-  details?: string;
-  testStrategy?: string;
-  parentId?: string | number;
-  dependencies?: Array<string | number>;
-  subtasks?: TaskMasterTask[];
-  [key: string]: unknown;
-};
-
-export type TaskReference = {
-  id: string | number;
-  title?: string;
-  [key: string]: unknown;
-};
-
-export type TaskSelection = TaskMasterTask | TaskReference;
-
-export type PrdFile = {
-  name: string;
-  content?: string;
-  isExisting?: boolean;
-  [key: string]: unknown;
-};
 
 export type MainContentProps = {
   selectedProject: Project | null;
@@ -61,29 +32,17 @@ export type MainContentProps = {
   onSessionError: SessionLifecycleHandler;
   onSessionErrorClear: SessionLifecycleHandler;
   onCloseTab: (sessionId: string) => void;
-};
-
-export type MainContentHeaderProps = {
-  activeTab: AppTab;
-  setActiveTab: Dispatch<SetStateAction<AppTab>>;
-  selectedProject: Project;
-  selectedSession: ProjectSession | null;
-  shouldShowTasksTab: boolean;
-  isMobile: boolean;
-  onMenuClick: () => void;
+  activeActivity?: ActivityId;
+  flyoutPinned?: boolean;
+  projects?: Project[];
+  onProjectSelect?: (project: Project) => void;
+  onNewSession?: (project: Project) => void;
 };
 
 export type MainContentStateViewProps = {
   mode: 'loading' | 'empty';
   isMobile: boolean;
   onMenuClick: () => void;
+  activeActivity?: import('../../../types/app').ActivityId;
 };
 
-export type MobileMenuButtonProps = {
-  onMenuClick: () => void;
-  compact?: boolean;
-};
-
-export type TaskMasterPanelProps = {
-  isVisible: boolean;
-};

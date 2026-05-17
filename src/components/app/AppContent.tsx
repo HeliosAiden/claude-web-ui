@@ -1,16 +1,23 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Folder } from 'lucide-react';
 
 import Sidebar from '../sidebar/view/Sidebar';
 import MainContent from '../main-content/view/MainContent';
 import CommandPalette from '../command-palette/CommandPalette';
+import ActivityBar from '../activity-bar/ActivityBar';
+import ProjectsFlyout from '../projects-flyout/ProjectsFlyout';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { PaletteOpsProvider, usePaletteOpsRegister } from '../../contexts/PaletteOpsContext';
 import { useDeviceSettings } from '../../hooks/useDeviceSettings';
 import { useSessionProtection } from '../../hooks/useSessionProtection';
 import { useProjectsState } from '../../hooks/useProjectsState';
 import { useOpenSessionTabs } from '../../hooks/useOpenSessionTabs';
+import { usePlugins } from '../../contexts/PluginsContext';
+import PluginIcon from '../plugins/view/PluginIcon';
+import type { ActivityBarItemDef } from '../activity-bar/types';
+import type { ActivityId } from '../../types/app';
 
 export default function AppContent() {
   return (
@@ -27,6 +34,7 @@ function AppContentInner() {
   const { isMobile } = useDeviceSettings({ trackPWA: false });
   const { ws, sendMessage, latestMessage, isConnected } = useWebSocket();
   const wasConnectedRef = useRef(false);
+  const { plugins } = usePlugins();
 
   const {
     activeSessions,
@@ -52,17 +60,24 @@ function AppContentInner() {
     selectedProject,
     selectedSession,
     activeTab,
-    sidebarOpen,
+    activeActivity,
+    flyoutOpen,
+    flyoutPinned,
     isLoadingProjects,
     externalMessageUpdate,
     newSessionTrigger,
     setActiveTab,
-    setSidebarOpen,
+    setActiveActivity,
+    setFlyoutOpen,
+    setFlyoutPinned,
     setIsInputFocused,
     setShowSettings,
     openSettings,
     refreshProjectsSilently,
     sidebarSharedProps,
+    activeSidebarPanel,
+    handleActivitySelect,
+    handleToggleFlyout,
     handleNewSession,
   } = useProjectsState({
     sessionId,
@@ -77,6 +92,23 @@ function AppContentInner() {
     openSettings,
     refreshProjects: refreshProjectsSilently,
   });
+
+  const pluginActivities = useMemo<ActivityBarItemDef[]>(() => {
+    return plugins
+      .filter((p) => p.enabled)
+      .map((p) => ({
+        id: `plugin:${p.name}` as ActivityId,
+        icon: Folder,
+        label: p.displayName,
+        customIcon: (
+          <PluginIcon
+            pluginName={p.name}
+            iconFile={p.icon}
+            className="flex h-full w-full items-center justify-center [&>svg]:h-full [&>svg]:w-full"
+          />
+        ),
+      }));
+  }, [plugins]);
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
@@ -94,7 +126,9 @@ function AppContentInner() {
       }
 
       setActiveTab('chat');
-      setSidebarOpen(false);
+      setActiveActivity('explorer');
+      setFlyoutOpen(false);
+
       void refreshProjectsSilently();
 
       if (typeof message.sessionId === 'string' && message.sessionId) {
@@ -110,7 +144,7 @@ function AppContentInner() {
     return () => {
       navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
     };
-  }, [navigate, refreshProjectsSilently, setActiveTab, setSidebarOpen]);
+  }, [navigate, refreshProjectsSilently, setActiveTab, setActiveActivity, setFlyoutOpen]);
 
   // Permission recovery: query pending permissions on WebSocket reconnect or session change
   useEffect(() => {
@@ -130,19 +164,39 @@ function AppContentInner() {
     }
   }, [isConnected, selectedSession?.id, sendMessage]);
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const ACTIVITY_SHORTCUTS: Record<string, ActivityId> = {
+      'e': 'explorer',
+      'b': 'bookmarks',
+      'q': 'search',
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
+      }
+
+      const activity = ACTIVITY_SHORTCUTS[e.key.toLowerCase()];
+      if (activity) {
+        e.preventDefault();
+        handleActivitySelect(activity);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleActivitySelect]);
+
   // Adjust the app container to stay above the virtual keyboard on iOS Safari.
-  // On Chrome for Android the layout viewport already shrinks when the keyboard opens,
-  // so inset-0 adjusts automatically. On iOS the layout viewport stays full-height and
-  // the keyboard overlays it — we use the Visual Viewport API to track keyboard height
-  // and apply it as a CSS variable that shifts the container's bottom edge up.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
-      // Only resize matters — keyboard open/close changes vv.height.
-      // Do NOT listen to scroll: on iOS Safari, scrolling content changes
-      // vv.offsetTop which would make --keyboard-height fluctuate during
-      // normal scrolling, causing the container to bounce up and down.
       const kb = Math.max(0, window.innerHeight - vv.height);
       document.documentElement.style.setProperty('--keyboard-height', `${kb}px`);
     };
@@ -211,40 +265,48 @@ function AppContentInner() {
     [removeOpenSession, selectedSession?.id, openSessions, navigate],
   );
 
+  const handleShowSettings = useCallback(() => {
+    setShowSettings(true);
+  }, [setShowSettings]);
+
   return (
     <div className="fixed inset-0 flex bg-background" style={{ bottom: 'var(--keyboard-height, 0px)' }}>
-      {!isMobile ? (
-        <div className="h-full flex-shrink-0 border-r border-border/50">
-          <Sidebar {...sidebarSharedProps} />
-        </div>
-      ) : (
-        <div
-          className={`fixed inset-0 z-50 flex transition-all duration-150 ease-out ${sidebarOpen ? 'visible opacity-100' : 'invisible opacity-0'
-            }`}
-        >
-          <button
-            className="fixed inset-0 bg-background/60 backdrop-blur-sm transition-opacity duration-150 ease-out"
-            onClick={(event) => {
-              event.stopPropagation();
-              setSidebarOpen(false);
-            }}
-            onTouchStart={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              setSidebarOpen(false);
-            }}
-            aria-label={t('versionUpdate.ariaLabels.closeSidebar')}
-          />
-          <div
-            className={`relative h-full w-[85vw] max-w-sm transform border-r border-border/40 bg-card transition-transform duration-150 ease-out sm:w-80 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-              }`}
-            onClick={(event) => event.stopPropagation()}
-            onTouchStart={(event) => event.stopPropagation()}
-          >
-            <Sidebar {...sidebarSharedProps} />
-          </div>
-        </div>
+      {/* Desktop Activity Bar (left rail) */}
+      {!isMobile && (
+        <ActivityBar
+          activeActivity={activeActivity}
+          onActivitySelect={handleActivitySelect}
+          isMobile={false}
+          flyoutOpen={flyoutOpen}
+          onToggleFlyout={handleToggleFlyout}
+          onShowSettings={handleShowSettings}
+          pluginActivities={pluginActivities}
+        />
       )}
+
+      {/* Pinned flyout (desktop only, in document flow) */}
+      {!isMobile && flyoutPinned && (
+        <ProjectsFlyout
+          mode="pinned"
+          isOpen={flyoutOpen}
+          onClose={() => setFlyoutOpen(false)}
+          onTogglePin={() => setFlyoutPinned(false)}
+          isPinned={flyoutPinned}
+        >
+          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} />
+        </ProjectsFlyout>
+      )}
+
+      {/* Overlay flyout (desktop unpinned or mobile) */}
+      <ProjectsFlyout
+        mode="overlay"
+        isOpen={flyoutOpen && !flyoutPinned}
+        onClose={() => setFlyoutOpen(false)}
+        onTogglePin={() => setFlyoutPinned(true)}
+        isPinned={false}
+      >
+        <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} />
+      </ProjectsFlyout>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <MainContent
@@ -256,7 +318,7 @@ function AppContentInner() {
           sendMessage={sendMessage}
           latestMessage={latestMessage}
           isMobile={isMobile}
-          onMenuClick={() => setSidebarOpen(true)}
+          onMenuClick={() => setFlyoutOpen(true)}
           isLoading={isLoadingProjects}
           onInputFocusChange={setIsInputFocused}
           onSessionActive={markSessionAsActive}
@@ -273,8 +335,26 @@ function AppContentInner() {
           onSessionError={markSessionError}
           onSessionErrorClear={clearSessionError}
           onCloseTab={handleCloseTab}
+          activeActivity={activeActivity}
+          flyoutPinned={flyoutPinned}
+          projects={projects}
+          onProjectSelect={sidebarSharedProps.onProjectSelect}
+          onNewSession={handleNewSession}
         />
       </div>
+
+      {/* Mobile bottom ActivityBar */}
+      {isMobile && (
+        <ActivityBar
+          activeActivity={activeActivity}
+          onActivitySelect={handleActivitySelect}
+          isMobile={true}
+          flyoutOpen={flyoutOpen}
+          onToggleFlyout={handleToggleFlyout}
+          onShowSettings={handleShowSettings}
+          pluginActivities={pluginActivities}
+        />
+      )}
 
       <CommandPalette
         selectedProject={selectedProject}

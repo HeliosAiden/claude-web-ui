@@ -6,30 +6,16 @@ import StandaloneShell from '../../standalone-shell/view/StandaloneShell';
 import GitPanel from '../../git-panel/view/GitPanel';
 import PluginTabContent from '../../plugins/view/PluginTabContent';
 import type { MainContentProps } from '../types/types';
-import { useTaskMaster } from '../../../contexts/TaskMasterContext';
 import { usePaletteOpsRegister } from '../../../contexts/PaletteOpsContext';
-import { useTasksSettings } from '../../../contexts/TasksSettingsContext';
 import { useUiPreferences } from '../../../hooks/useUiPreferences';
 import { useEditorSidebar } from '../../code-editor/hooks/useEditorSidebar';
 import EditorSidebar from '../../code-editor/view/EditorSidebar';
-import type { Project } from '../../../types/app';
-import { TaskMasterPanel } from '../../task-master';
 
-import MainContentHeader from './subcomponents/MainContentHeader';
+import ContextHeader from '../../context-header/ContextHeader';
 import MainContentStateView from './subcomponents/MainContentStateView';
-import SessionTabBar from './subcomponents/SessionTabBar';
+import MainContentTabSwitcher from './subcomponents/MainContentTabSwitcher';
+import SessionTabs from '../../session-tabs/SessionTabs';
 import ErrorBoundary from './ErrorBoundary';
-
-type TaskMasterContextValue = {
-  currentProject?: Project | null;
-  setCurrentProject?: ((project: Project) => void) | null;
-};
-
-type TasksSettingsContextValue = {
-  tasksEnabled: boolean;
-  isTaskMasterInstalled: boolean | null;
-  isTaskMasterReady: boolean | null;
-};
 
 function MainContent({
   selectedProject,
@@ -57,14 +43,14 @@ function MainContent({
   onSessionError,
   onSessionErrorClear,
   onCloseTab,
+  activeActivity,
+  flyoutPinned,
+  projects = [],
+  onProjectSelect,
+  onNewSession,
 }: MainContentProps) {
   const { preferences } = useUiPreferences();
   const { autoExpandTools, showRawParameters, showThinking, autoScrollToBottom, sendByCtrlEnter } = preferences;
-
-  const { currentProject, setCurrentProject } = useTaskMaster() as TaskMasterContextValue;
-  const { tasksEnabled, isTaskMasterInstalled } = useTasksSettings() as TasksSettingsContextValue;
-
-  const shouldShowTasksTab = Boolean(tasksEnabled && isTaskMasterInstalled);
 
   const {
     editingFile,
@@ -81,23 +67,6 @@ function MainContent({
     isMobile,
   });
 
-  useEffect(() => {
-    // Identify projects by DB `projectId`; the TaskMaster context uses the
-    // same identifier to key its internal maps.
-    const selectedProjectId = selectedProject?.projectId;
-    const currentProjectId = currentProject?.projectId;
-
-    if (selectedProject && selectedProjectId !== currentProjectId) {
-      setCurrentProject?.(selectedProject);
-    }
-  }, [selectedProject, currentProject?.projectId, setCurrentProject]);
-
-  useEffect(() => {
-    if (!shouldShowTasksTab && activeTab === 'tasks') {
-      setActiveTab('chat');
-    }
-  }, [shouldShowTasksTab, activeTab, setActiveTab]);
-
   usePaletteOpsRegister({
     openFile: (filePath: string) => {
       setActiveTab('files');
@@ -106,33 +75,41 @@ function MainContent({
   });
 
   if (isLoading) {
-    return <MainContentStateView mode="loading" isMobile={isMobile} onMenuClick={onMenuClick} />;
+    return <MainContentStateView mode="loading" isMobile={isMobile} onMenuClick={onMenuClick} activeActivity={activeActivity} />;
   }
 
   if (!selectedProject) {
-    return <MainContentStateView mode="empty" isMobile={isMobile} onMenuClick={onMenuClick} />;
+    return <MainContentStateView mode="empty" isMobile={isMobile} onMenuClick={onMenuClick} activeActivity={activeActivity} />;
   }
 
   return (
     <div className="flex h-full flex-col">
-      <MainContentHeader
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+      <ContextHeader
         selectedProject={selectedProject}
         selectedSession={selectedSession}
-        shouldShowTasksTab={shouldShowTasksTab}
+        activeActivity={activeActivity ?? 'explorer'}
+        activeTab={activeTab}
+        projects={projects}
         isMobile={isMobile}
+        onProjectSelect={onProjectSelect ?? (() => {})}
+        onSessionSelect={(session) => onNavigateToSession(session.id)}
+        onNewSession={onNewSession ?? (() => {})}
         onMenuClick={onMenuClick}
       />
 
+      {selectedProject && (
+        <MainContentTabSwitcher activeTab={activeTab} onTabSelect={setActiveTab} />
+      )}
+
       {(activeTab === 'chat' || activeTab === 'shell') && (
-        <SessionTabBar
+        <SessionTabs
           openSessions={openSessions}
           selectedSessionId={selectedSession?.id ?? null}
           processingSessions={processingSessions}
           errorSessions={errorSessions}
           onSelectTab={(sessionId) => onNavigateToSession(sessionId)}
           onCloseTab={onCloseTab}
+          onNewSession={selectedProject && onNewSession ? () => onNewSession(selectedProject!) : undefined}
         />
       )}
 
@@ -163,8 +140,7 @@ function MainContent({
                 sendByCtrlEnter={sendByCtrlEnter}
                 externalMessageUpdate={externalMessageUpdate}
                 newSessionTrigger={newSessionTrigger}
-                onShowAllTasks={tasksEnabled ? () => setActiveTab('tasks') : null}
-              />
+                />
             </ErrorBoundary>
           </div>
 
@@ -190,8 +166,6 @@ function MainContent({
               <GitPanel selectedProject={selectedProject} isMobile={isMobile} onFileOpen={handleFileOpen} />
             </div>
           )}
-
-          {shouldShowTasksTab && <TaskMasterPanel isVisible={activeTab === 'tasks'} />}
 
           <div className={`h-full overflow-hidden ${activeTab === 'preview' ? 'block' : 'hidden'}`} />
 

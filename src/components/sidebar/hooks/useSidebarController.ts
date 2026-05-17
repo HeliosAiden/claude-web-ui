@@ -10,6 +10,7 @@ import type {
   BookmarkedMessage,
   DeleteProjectConfirmation,
   ProjectSortOrder,
+  SidebarPanel,
   SidebarSearchMode,
   SessionDeleteConfirmation,
   SessionWithProvider,
@@ -92,9 +93,7 @@ type UseSidebarControllerArgs = {
   onLoadMoreSessions?: (projectId: string) => Promise<void> | void;
   // `projectId` is the DB-assigned identifier; callbacks use that post-migration.
   onProjectDelete?: (projectId: string) => void;
-  setCurrentProject: (project: Project) => void;
-  setSidebarVisible: (visible: boolean) => void;
-  sidebarVisible: boolean;
+  activePanel?: SidebarPanel | null;
 };
 
 export function useSidebarController({
@@ -110,9 +109,7 @@ export function useSidebarController({
   onSessionDelete,
   onLoadMoreSessions,
   onProjectDelete,
-  setCurrentProject,
-  setSidebarVisible,
-  sidebarVisible,
+  activePanel,
 }: UseSidebarControllerArgs) {
   const paletteOps = usePaletteOps();
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
@@ -130,7 +127,15 @@ export function useSidebarController({
   const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteProjectConfirmation | null>(null);
   const [sessionDeleteConfirmation, setSessionDeleteConfirmation] = useState<SessionDeleteConfirmation | null>(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
-  const [searchMode, setSearchMode] = useState<SidebarSearchMode>('projects');
+  const searchMode = useMemo<SidebarSearchMode>(() => {
+    switch (activePanel) {
+      case 'explorer': return 'projects';
+      case 'bookmarks': return 'bookmarks';
+      case 'search': return 'conversations';
+      case 'git': return 'git';
+      default: return 'projects';
+    }
+  }, [activePanel]);
   const [conversationResults, setConversationResults] = useState<ConversationSearchResults | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchProgress, setSearchProgress] = useState<SearchProgress | null>(null);
@@ -147,8 +152,6 @@ export function useSidebarController({
   const starToggleSequenceByProjectRef = useRef<Map<string, number>>(new Map());
   const migrationStartedRef = useRef(false);
   const onRefreshRef = useRef(onRefresh);
-
-  const isSidebarCollapsed = !isMobile && !sidebarVisible;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -800,9 +803,8 @@ export function useSidebarController({
   const handleProjectSelect = useCallback(
     (project: Project) => {
       onProjectSelect(project);
-      setCurrentProject(project);
     },
-    [onProjectSelect, setCurrentProject],
+    [onProjectSelect],
   );
 
   const handleBookmarkClick = useCallback((bookmark: BookmarkedMessage) => {
@@ -944,16 +946,7 @@ export function useSidebarController({
     [onRefresh, t],
   );
 
-  const collapseSidebar = useCallback(() => {
-    setSidebarVisible(false);
-  }, [setSidebarVisible]);
-
-  const expandSidebar = useCallback(() => {
-    setSidebarVisible(true);
-  }, [setSidebarVisible]);
-
   return {
-    isSidebarCollapsed,
     expandedProjects,
     editingProject,
     showNewProject,
@@ -994,14 +987,11 @@ export function useSidebarController({
     restoreArchivedSession,
     refreshProjects,
     updateSessionSummary,
-    collapseSidebar,
-    expandSidebar,
     setShowNewProject,
     setEditingName,
     setEditingSession,
     setEditingSessionName,
     searchMode,
-    setSearchMode,
     conversationResults,
     isSearching,
     searchProgress,

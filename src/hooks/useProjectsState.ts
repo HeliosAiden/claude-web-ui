@@ -3,6 +3,7 @@ import type { NavigateFunction } from 'react-router-dom';
 
 import { api } from '../utils/api';
 import type {
+  ActivityId,
   AppSocketMessage,
   AppTab,
   LLMProvider,
@@ -49,7 +50,7 @@ const projectsHaveChanges = (
       Boolean(nextProject.isStarred) !== Boolean(prevProject.isStarred) ||
       serialize(nextProject.sessionMeta) !== serialize(prevProject.sessionMeta) ||
       serialize(nextProject.sessions) !== serialize(prevProject.sessions) ||
-      serialize(nextProject.taskmaster) !== serialize(prevProject.taskmaster);
+      false;
 
     if (baseChanged) {
       return true;
@@ -64,32 +65,6 @@ const projectsHaveChanges = (
       serialize(nextProject.codexSessions) !== serialize(prevProject.codexSessions) ||
       serialize(nextProject.geminiSessions) !== serialize(prevProject.geminiSessions)
     );
-  });
-};
-
-const mergeTaskMasterCache = (nextProjects: Project[], previousProjects: Project[]): Project[] => {
-  if (previousProjects.length === 0) {
-    return nextProjects;
-  }
-
-  // Keyed by `projectId` (the DB primary key) so caches stay correct across
-  // renames and other mutations that might have changed the display name.
-  const previousTaskMasterByProject = new Map(
-    previousProjects
-      .filter((project) => Boolean(project.taskmaster))
-      .map((project) => [project.projectId, project.taskmaster]),
-  );
-
-  return nextProjects.map((project) => {
-    const cachedTaskMasterInfo = previousTaskMasterByProject.get(project.projectId);
-    if (!cachedTaskMasterInfo) {
-      return project;
-    }
-
-    return {
-      ...project,
-      taskmaster: cachedTaskMasterInfo,
-    };
   });
 };
 
@@ -218,7 +193,7 @@ const isUpdateAdditive = (
   );
 };
 
-const VALID_TABS: Set<string> = new Set(['chat', 'files', 'shell', 'git', 'tasks', 'preview']);
+const VALID_TABS: Set<string> = new Set(['chat', 'files', 'shell', 'git', 'preview']);
 
 const isValidTab = (tab: string): tab is AppTab => {
   return VALID_TABS.has(tab) || tab.startsWith('plugin:');
@@ -234,6 +209,34 @@ const readPersistedTab = (): AppTab => {
     // localStorage unavailable
   }
   return 'chat';
+};
+
+const VALID_ACTIVITIES: Set<string> = new Set(['explorer', 'bookmarks', 'search', 'git', 'settings']);
+
+const isValidActivity = (activity: string): activity is ActivityId => {
+  return VALID_ACTIVITIES.has(activity) || activity.startsWith('plugin:');
+};
+
+const readPersistedActivity = (): ActivityId => {
+  try {
+    const stored = localStorage.getItem('activeActivity');
+    if (stored && isValidActivity(stored)) {
+      return stored as ActivityId;
+    }
+  } catch {
+    // localStorage unavailable
+  }
+  return 'explorer';
+};
+
+const sidebarPanelFromActivity = (activity: ActivityId): 'explorer' | 'bookmarks' | 'search' | 'git' | null => {
+  switch (activity) {
+    case 'explorer': return 'explorer';
+    case 'bookmarks': return 'bookmarks';
+    case 'search': return 'search';
+    case 'git': return 'git';
+    default: return null;
+  }
 };
 
 export function useProjectsState({
@@ -256,6 +259,39 @@ export function useProjectsState({
       // Silently ignore storage errors
     }
   }, [activeTab]);
+
+  const [activeActivity, setActiveActivity] = useState<ActivityId>(readPersistedActivity);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('activeActivity', activeActivity);
+    } catch {
+      // Silently ignore storage errors
+    }
+  }, [activeActivity]);
+
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
+  const [flyoutPinned, setFlyoutPinned] = useState(() => {
+    try {
+      const stored = localStorage.getItem('flyoutPinned');
+      if (stored !== null) return stored === 'true';
+      // Migrate from old sidebarVisible key
+      const old = localStorage.getItem('sidebarVisible');
+      if (old !== null) return old === 'true';
+    } catch {
+      // localStorage unavailable
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('flyoutPinned', String(flyoutPinned));
+    } catch {
+      // Silently ignore storage errors
+    }
+  }, [flyoutPinned]);
+
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
@@ -298,8 +334,7 @@ export function useProjectsState({
       const projectData = (await response.json()) as Project[];
 
       setProjects((prevProjects) => {
-        const projectsWithTaskMaster = mergeTaskMasterCache(projectData, prevProjects);
-        const mergedProjects = mergeExpandedSessionPages(prevProjects, projectsWithTaskMaster);
+        const mergedProjects = mergeExpandedSessionPages(prevProjects, projectData);
 
         if (prevProjects.length === 0) {
           return mergedProjects;
@@ -323,48 +358,6 @@ export function useProjectsState({
     await fetchProjects({ showLoadingState: false });
   }, [fetchProjects]);
 
-  // Hydrates TaskMaster details for the given `projectId`. The project
-  // identifier comes directly from the DB-driven /api/projects response.
-  const hydrateProjectTaskMaster = useCallback(async (projectId: string) => {
-    if (!projectId) {
-      return;
-    }
-
-    try {
-      const response = await api.projectTaskmaster(projectId);
-      if (!response.ok) {
-        return;
-      }
-
-      const data = (await response.json()) as { taskmaster?: Project['taskmaster'] };
-      const taskMasterInfo = data.taskmaster;
-      if (!taskMasterInfo) {
-        return;
-      }
-
-      setProjects((previousProjects) =>
-        previousProjects.map((project) =>
-          project.projectId === projectId
-            ? { ...project, taskmaster: taskMasterInfo }
-            : project,
-        ),
-      );
-
-      setSelectedProject((previousProject) => {
-        if (!previousProject || previousProject.projectId !== projectId) {
-          return previousProject;
-        }
-
-        return {
-          ...previousProject,
-          taskmaster: taskMasterInfo,
-        };
-      });
-    } catch (error) {
-      console.error(`Error fetching TaskMaster info for project ${projectId}:`, error);
-    }
-  }, []);
-
   const openSettings = useCallback((tab = 'tools') => {
     setSettingsInitialTab(tab);
     setShowSettings(true);
@@ -373,14 +366,6 @@ export function useProjectsState({
   useEffect(() => {
     void fetchProjects();
   }, [fetchProjects]);
-
-  useEffect(() => {
-    if (!selectedProject?.projectId) {
-      return;
-    }
-
-    void hydrateProjectTaskMaster(selectedProject.projectId);
-  }, [hydrateProjectTaskMaster, selectedProject?.projectId]);
 
   // Auto-select the project when there is only one, so the user lands on the new session page
   useEffect(() => {
@@ -439,8 +424,7 @@ export function useProjectsState({
 
     const hasActiveSession = Boolean(selectedSession && activeSessions.has(selectedSession.id));
 
-    const updatedProjectsWithTaskMaster = mergeTaskMasterCache(projectsMessage.projects, projects);
-    const updatedProjects = mergeExpandedSessionPages(projects, updatedProjectsWithTaskMaster);
+    const updatedProjects = mergeExpandedSessionPages(projects, projectsMessage.projects);
 
     if (
       hasActiveSession &&
@@ -612,7 +596,7 @@ export function useProjectsState({
     (session: ProjectSession) => {
       setSelectedSession(session);
 
-      if (activeTab === 'tasks' || activeTab === 'preview') {
+      if (activeTab === 'preview') {
         setActiveTab('chat');
       }
 
@@ -660,6 +644,29 @@ export function useProjectsState({
     },
     [isMobile, navigate],
   );
+
+  const handleActivitySelect = useCallback(
+    (activity: ActivityId) => {
+      setActiveActivity(activity);
+
+      if (activity === 'settings') return;
+
+      // Open flyout to show the sidebar panel
+      if (!flyoutOpen) {
+        setFlyoutOpen(true);
+      }
+    },
+    [flyoutOpen],
+  );
+
+  const activeSidebarPanel = useMemo(
+    () => sidebarPanelFromActivity(activeActivity),
+    [activeActivity],
+  );
+
+  const handleToggleFlyout = useCallback(() => {
+    setFlyoutOpen((prev) => !prev);
+  }, []);
 
   const handleSessionDelete = useCallback(
     (sessionIdToDelete: string) => {
@@ -712,8 +719,7 @@ export function useProjectsState({
     try {
       const response = await api.projects();
       const freshProjects = (await response.json()) as Project[];
-      const projectsWithTaskMaster = mergeTaskMasterCache(freshProjects, projects);
-      const mergedProjects = mergeExpandedSessionPages(projects, projectsWithTaskMaster);
+      const mergedProjects = mergeExpandedSessionPages(projects, freshProjects);
 
       setProjects((prevProjects) =>
         projectsHaveChanges(prevProjects, mergedProjects, true) ? mergedProjects : prevProjects,
@@ -864,6 +870,9 @@ export function useProjectsState({
     selectedProject,
     selectedSession,
     activeTab,
+    activeActivity,
+    flyoutOpen,
+    flyoutPinned,
     sidebarOpen,
     isLoadingProjects,
     loadingProgress,
@@ -873,6 +882,9 @@ export function useProjectsState({
     externalMessageUpdate,
     newSessionTrigger,
     setActiveTab,
+    setActiveActivity,
+    setFlyoutOpen,
+    setFlyoutPinned,
     setSidebarOpen,
     setIsInputFocused,
     setShowSettings,
@@ -880,6 +892,9 @@ export function useProjectsState({
     fetchProjects,
     refreshProjectsSilently,
     sidebarSharedProps,
+    activeSidebarPanel,
+    handleActivitySelect,
+    handleToggleFlyout,
     handleProjectSelect,
     handleSessionSelect,
     handleNewSession,

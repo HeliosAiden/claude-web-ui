@@ -31,9 +31,6 @@ interface ChatMessagesPaneProps {
   setGeminiModel: (model: string) => void;
   fccModels: { value: string; label: string }[];
   providerAuthStatus: ProviderAuthStatusMap;
-  tasksEnabled: boolean;
-  isTaskMasterInstalled: boolean | null;
-  onShowAllTasks?: (() => void) | null;
   setInput: Dispatch<SetStateAction<string>>;
   isLoadingMoreMessages: boolean;
   hasMoreMessages: boolean;
@@ -85,9 +82,6 @@ export default function ChatMessagesPane({
   setGeminiModel,
   fccModels,
   providerAuthStatus,
-  tasksEnabled,
-  isTaskMasterInstalled,
-  onShowAllTasks,
   setInput,
   isLoadingMoreMessages,
   hasMoreMessages,
@@ -243,9 +237,6 @@ export default function ChatMessagesPane({
           setGeminiModel={setGeminiModel}
           fccModels={fccModels}
           providerAuthStatus={providerAuthStatus}
-          tasksEnabled={tasksEnabled}
-          isTaskMasterInstalled={isTaskMasterInstalled}
-          onShowAllTasks={onShowAllTasks}
           setInput={setInput}
         />
       ) : (

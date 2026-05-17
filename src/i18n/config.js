@@ -22,8 +22,6 @@ import enSidebar from './locales/en/sidebar.json';
 import enChat from './locales/en/chat.json';
 import enCodeEditor from './locales/en/codeEditor.json';
 // eslint-disable-next-line import-x/order
-import enTasks from './locales/en/tasks.json';
-
 import koCommon from './locales/ko/common.json';
 import koSettings from './locales/ko/settings.json';
 import koAuth from './locales/ko/auth.json';
@@ -46,8 +44,6 @@ import jaAuth from './locales/ja/auth.json';
 import jaSidebar from './locales/ja/sidebar.json';
 import jaChat from './locales/ja/chat.json';
 import jaCodeEditor from './locales/ja/codeEditor.json';
-// eslint-disable-next-line import-x/order
-import jaTasks from './locales/ja/tasks.json';
 
 import ruCommon from './locales/ru/common.json';
 import ruSettings from './locales/ru/settings.json';
@@ -55,8 +51,6 @@ import ruAuth from './locales/ru/auth.json';
 import ruSidebar from './locales/ru/sidebar.json';
 import ruChat from './locales/ru/chat.json';
 import ruCodeEditor from './locales/ru/codeEditor.json';
-// eslint-disable-next-line import-x/order
-import ruTasks from './locales/ru/tasks.json';
 
 import deCommon from './locales/de/common.json';
 import deSettings from './locales/de/settings.json';
@@ -64,8 +58,6 @@ import deAuth from './locales/de/auth.json';
 import deSidebar from './locales/de/sidebar.json';
 import deChat from './locales/de/chat.json';
 import deCodeEditor from './locales/de/codeEditor.json';
-// eslint-disable-next-line import-x/order
-import deTasks from './locales/de/tasks.json';
 
 import trCommon from './locales/tr/common.json';
 import trSettings from './locales/tr/settings.json';
@@ -73,16 +65,12 @@ import trAuth from './locales/tr/auth.json';
 import trSidebar from './locales/tr/sidebar.json';
 import trChat from './locales/tr/chat.json';
 import trCodeEditor from './locales/tr/codeEditor.json';
-// eslint-disable-next-line import-x/order
-import trTasks from './locales/tr/tasks.json';
 import itCommon from './locales/it/common.json';
 import itSettings from './locales/it/settings.json';
 import itAuth from './locales/it/auth.json';
 import itSidebar from './locales/it/sidebar.json';
 import itChat from './locales/it/chat.json';
 import itCodeEditor from './locales/it/codeEditor.json';
-// eslint-disable-next-line import-x/order
-import itTasks from './locales/it/tasks.json';
 import enBookmarks from './locales/en/bookmarks.json';
 import koBookmarks from './locales/ko/bookmarks.json';
 import zhBookmarks from './locales/zh-CN/bookmarks.json';
@@ -123,7 +111,6 @@ i18n
         sidebar: enSidebar,
         chat: enChat,
         codeEditor: enCodeEditor,
-        tasks: enTasks,
         bookmarks: enBookmarks,
       },
       ko: {
@@ -151,7 +138,6 @@ i18n
         sidebar: jaSidebar,
         chat: jaChat,
         codeEditor: jaCodeEditor,
-        tasks: jaTasks,
         bookmarks: jaBookmarks,
       },
       ru: {
@@ -161,7 +147,6 @@ i18n
         sidebar: ruSidebar,
         chat: ruChat,
         codeEditor: ruCodeEditor,
-        tasks: ruTasks,
         bookmarks: ruBookmarks,
       },
       de: {
@@ -171,7 +156,6 @@ i18n
         sidebar: deSidebar,
         chat: deChat,
         codeEditor: deCodeEditor,
-        tasks: deTasks,
         bookmarks: deBookmarks,
       },
       tr: {
@@ -181,7 +165,6 @@ i18n
         sidebar: trSidebar,
         chat: trChat,
         codeEditor: trCodeEditor,
-        tasks: trTasks,
         bookmarks: trBookmarks,
       },
       it: {
@@ -191,7 +174,6 @@ i18n
         sidebar: itSidebar,
         chat: itChat,
         codeEditor: itCodeEditor,
-        tasks: itTasks,
         bookmarks: itBookmarks,
       },
     },
@@ -206,7 +188,7 @@ i18n
     debug: false,
 
     // Namespaces - load only what's needed
-    ns: ['common', 'settings', 'auth', 'sidebar', 'chat', 'codeEditor', 'tasks', 'bookmarks'],
+    ns: ['common', 'settings', 'auth', 'sidebar', 'chat', 'codeEditor', 'bookmarks'],
     defaultNS: 'common',
 
     // Key separator for nested keys (default: '.')

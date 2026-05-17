@@ -1,18 +1,32 @@
-import { Folder } from 'lucide-react';
+import { Folder, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MainContentStateViewProps } from '../../types/types';
-import MobileMenuButton from './MobileMenuButton';
 
-export default function MainContentStateView({ mode, isMobile, onMenuClick }: MainContentStateViewProps) {
+export default function MainContentStateView({ mode, isMobile, onMenuClick, activeActivity }: MainContentStateViewProps) {
   const { t } = useTranslation();
 
   const isLoading = mode === 'loading';
 
+  const activityLabel = activeActivity
+    ? activeActivity.charAt(0).toUpperCase() + activeActivity.slice(1)
+    : '';
+
   return (
     <div className="flex h-full flex-col">
+      {/* Minimal context header for empty/loading states */}
       {isMobile && (
-        <div className="pwa-header-safe flex-shrink-0 border-b border-border/50 bg-background/80 p-2 backdrop-blur-sm sm:p-3">
-          <MobileMenuButton onMenuClick={onMenuClick} compact />
+        <div className="flex items-center gap-2 h-10 px-3 border-b border-border/40 bg-card/50 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent/50 transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+          {activityLabel && (
+            <span className="text-xs text-muted-foreground font-medium">{activityLabel}</span>
+          )}
         </div>
       )}
 

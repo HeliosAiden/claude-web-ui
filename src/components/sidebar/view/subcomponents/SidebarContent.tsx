@@ -2,12 +2,13 @@ import { type ReactNode, useMemo } from 'react';
 import { Archive, Bookmark, Folder, MessageSquare, RotateCcw, Search, Trash2, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { ScrollArea } from '../../../../shared/view/ui';
-import type { Project } from '../../../../types/app';
+import type { AppTab, Project } from '../../../../types/app';
 import type { ReleaseInfo } from '../../../../types/sharedTypes';
 import type { ConversationSearchResults, SearchProgress } from '../../hooks/useSidebarController';
 import type { ArchivedProjectListItem, ArchivedSessionListItem, BookmarkedMessage, SidebarSearchMode } from '../../types/types';
 import SessionProviderLogo from '../../../llm-logo-provider/SessionProviderLogo';
 import SidebarFooter from './SidebarFooter';
+import SidebarGitPanel from './SidebarGitPanel';
 import SidebarHeader from './SidebarHeader';
 import SidebarProjectList, { type SidebarProjectListProps } from './SidebarProjectList';
 import { getAllSessions } from '../../utils/utils';
@@ -122,7 +123,7 @@ type SidebarContentProps = {
   onSearchFilterChange: (value: string) => void;
   onClearSearchFilter: () => void;
   searchMode: SidebarSearchMode;
-  onSearchModeChange: (mode: SidebarSearchMode) => void;
+  onNavigateToTab?: (tab: AppTab) => void;
   conversationResults: ConversationSearchResults | null;
   isSearching: boolean;
   searchProgress: SearchProgress | null;
@@ -136,7 +137,6 @@ type SidebarContentProps = {
   onRefresh: () => void;
   isRefreshing: boolean;
   onCreateProject: () => void;
-  onCollapseSidebar: () => void;
   updateAvailable: boolean;
   releaseInfo: ReleaseInfo | null;
   latestVersion: string | null;
@@ -144,6 +144,8 @@ type SidebarContentProps = {
   onShowVersionModal: () => void;
   onShowSettings: () => void;
   projectListProps: SidebarProjectListProps;
+  onTogglePin?: () => void;
+  isPinned?: boolean;
   bookmarkedMessages?: BookmarkedMessage[];
   isBookmarksLoading?: boolean;
   onBookmarkClick?: (bookmark: BookmarkedMessage) => void;
@@ -179,7 +181,7 @@ export default function SidebarContent({
   onSearchFilterChange,
   onClearSearchFilter,
   searchMode,
-  onSearchModeChange,
+  onNavigateToTab,
   conversationResults,
   isSearching,
   searchProgress,
@@ -191,7 +193,6 @@ export default function SidebarContent({
   onRefresh,
   isRefreshing,
   onCreateProject,
-  onCollapseSidebar,
   updateAvailable,
   releaseInfo,
   latestVersion,
@@ -199,6 +200,8 @@ export default function SidebarContent({
   onShowVersionModal,
   onShowSettings,
   projectListProps,
+  onTogglePin,
+  isPinned,
   bookmarkedMessages = [],
   isBookmarksLoading = false,
   onBookmarkClick,
@@ -235,12 +238,18 @@ export default function SidebarContent({
         searchFilter={searchFilter}
         onSearchFilterChange={onSearchFilterChange}
         onClearSearchFilter={onClearSearchFilter}
-        searchMode={searchMode}
-        onSearchModeChange={onSearchModeChange}
+        activePanel={
+          searchMode === 'projects' ? 'explorer' :
+          searchMode === 'bookmarks' ? 'bookmarks' :
+          searchMode === 'conversations' ? 'search' :
+          searchMode === 'git' ? 'git' :
+          'explorer'
+        }
         onRefresh={onRefresh}
         isRefreshing={isRefreshing}
         onCreateProject={onCreateProject}
-        onCollapseSidebar={onCollapseSidebar}
+        onTogglePin={onTogglePin}
+        isPinned={isPinned}
         t={t}
       />
 
@@ -403,6 +412,11 @@ export default function SidebarContent({
               )}
             </div>
           )
+        ) : searchMode === 'git' ? (
+          <SidebarGitPanel
+            selectedProject={projectListProps.selectedProject}
+            onNavigateToTab={onNavigateToTab}
+          />
         ) : searchMode === 'archived' ? (
           isArchivedSessionsLoading ? (
             <div className="px-4 py-12 text-center md:py-8">

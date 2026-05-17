@@ -14,7 +14,6 @@ import {
 } from "../../../../../shared/modelConstants";
 import type { ProjectSession, LLMProvider } from "../../../../types/app";
 import type { ProviderAuthStatusMap } from "../../../provider-auth/types";
-import { NextTaskBanner } from "../../../task-master";
 import {
   Dialog,
   DialogTrigger,
@@ -49,9 +48,6 @@ type ProviderSelectionEmptyStateProps = {
   setGeminiModel: (model: string) => void;
   fccModels: { value: string; label: string }[];
   providerAuthStatus: ProviderAuthStatusMap;
-  tasksEnabled: boolean;
-  isTaskMasterInstalled: boolean | null;
-  onShowAllTasks?: (() => void) | null;
   setInput: React.Dispatch<React.SetStateAction<string>>;
 };
 
@@ -110,9 +106,6 @@ export default function ProviderSelectionEmptyState({
   setGeminiModel,
   fccModels,
   providerAuthStatus,
-  tasksEnabled,
-  isTaskMasterInstalled,
-  onShowAllTasks,
   setInput,
 }: ProviderSelectionEmptyStateProps) {
   const { t } = useTranslation("chat");
@@ -187,10 +180,6 @@ export default function ProviderSelectionEmptyState({
       localStorage.setItem("selected-provider", "claude");
     }
   }, [isWindowsServer, provider, setProvider]);
-
-  const nextTaskPrompt = t("tasks.nextTaskPrompt", {
-    defaultValue: "Start the next task",
-  });
 
   const currentModel = getCurrentModel(
     provider,
@@ -399,15 +388,6 @@ export default function ProviderSelectionEmptyState({
             />
           </p>
 
-          {provider && tasksEnabled && isTaskMasterInstalled && (
-            <div className="mt-5">
-              <NextTaskBanner
-                onStartTask={() => setInput(nextTaskPrompt)}
-                onShowAllTasks={onShowAllTasks}
-              />
-            </div>
-          )}
-
           {/* Model test toast */}
           {toast && (
             <div
@@ -439,14 +419,6 @@ export default function ProviderSelectionEmptyState({
             {t("session.continue.description")}
           </p>
 
-          {tasksEnabled && isTaskMasterInstalled && (
-            <div className="mt-5">
-              <NextTaskBanner
-                onStartTask={() => setInput(nextTaskPrompt)}
-                onShowAllTasks={onShowAllTasks}
-              />
-            </div>
-          )}
         </div>
       </div>
     );

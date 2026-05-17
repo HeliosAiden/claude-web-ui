@@ -5,21 +5,13 @@ import { useDeviceSettings } from '../../../hooks/useDeviceSettings';
 import { useVersionCheck } from '../../../hooks/useVersionCheck';
 import { useUiPreferences } from '../../../hooks/useUiPreferences';
 import { useSidebarController } from '../hooks/useSidebarController';
-import { useTaskMaster } from '../../../contexts/TaskMasterContext';
 import { usePaletteOps } from '../../../contexts/PaletteOpsContext';
-import { useTasksSettings } from '../../../contexts/TasksSettingsContext';
 import type { Project, LLMProvider } from '../../../types/app';
-import type { MCPServerStatus, SidebarProps } from '../types/types';
+import type { SidebarProps } from '../types/types';
 
-import SidebarCollapsed from './subcomponents/SidebarCollapsed';
 import SidebarContent from './subcomponents/SidebarContent';
 import SidebarModals from './subcomponents/SidebarModals';
 import type { SidebarProjectListProps } from './subcomponents/SidebarProjectList';
-
-type TaskMasterSidebarContext = {
-  setCurrentProject: (project: Project) => void;
-  mcpServerStatus: MCPServerStatus;
-};
 
 function Sidebar({
   projects,
@@ -39,6 +31,10 @@ function Sidebar({
   settingsInitialTab,
   onCloseSettings,
   isMobile,
+  onTogglePin,
+  isPinned,
+  activePanel,
+  onNavigateToTab,
 }: SidebarProps) {
   const { t } = useTranslation(['sidebar', 'common']);
   const { isPWA } = useDeviceSettings({ trackMobile: false });
@@ -46,14 +42,10 @@ function Sidebar({
     'siteboon',
     'claudecodeui',
   );
-  const { preferences, setPreference } = useUiPreferences();
-  const { sidebarVisible } = preferences;
-  const { setCurrentProject, mcpServerStatus } = useTaskMaster() as TaskMasterSidebarContext;
-  const { tasksEnabled } = useTasksSettings();
+  const { preferences } = useUiPreferences();
   const paletteOps = usePaletteOps();
 
   const {
-    isSidebarCollapsed,
     expandedProjects,
     editingProject,
     showNewProject,
@@ -65,7 +57,6 @@ function Sidebar({
     editingSessionName,
     searchFilter,
     searchMode,
-    setSearchMode,
     conversationResults,
     isSearching,
     searchProgress,
@@ -99,8 +90,6 @@ function Sidebar({
     restoreArchivedSession,
     refreshProjects,
     updateSessionSummary,
-    collapseSidebar: handleCollapseSidebar,
-    expandSidebar: handleExpandSidebar,
     setShowNewProject,
     setEditingName,
     setEditingSession,
@@ -126,9 +115,7 @@ function Sidebar({
     onSessionDelete,
     onLoadMoreSessions,
     onProjectDelete,
-    setCurrentProject,
-    setSidebarVisible: (visible) => setPreference('sidebarVisible', visible),
-    sidebarVisible,
+    activePanel,
   });
 
   useEffect(() => {
@@ -159,8 +146,6 @@ function Sidebar({
     editingSession,
     editingSessionName,
     deletingProjects,
-    tasksEnabled,
-    mcpServerStatus,
     getProjectSessions,
     loadingMoreProjects,
     isProjectStarred,
@@ -218,96 +203,78 @@ function Sidebar({
         t={t}
       />
 
-      {isSidebarCollapsed ? (
-        <SidebarCollapsed
-          onExpand={handleExpandSidebar}
-          onShowSettings={onShowSettings}
+      <SidebarContent
+          isPWA={isPWA}
+          isMobile={isMobile}
+          isLoading={isLoading}
+          projects={projects}
+          archivedProjects={archivedProjects}
+          archivedSessions={archivedSessions}
+          archivedSessionsCount={archivedSessionsCount}
+          isArchivedSessionsLoading={isArchivedSessionsLoading}
+          searchFilter={searchFilter}
+          onSearchFilterChange={setSearchFilter}
+          onClearSearchFilter={() => setSearchFilter('')}
+          searchMode={searchMode}
+          onNavigateToTab={onNavigateToTab}
+          conversationResults={conversationResults}
+          isSearching={isSearching}
+          searchProgress={searchProgress}
+          onRestoreArchivedProject={restoreArchivedProject}
+          onArchivedSessionClick={openArchivedSession}
+          onRestoreArchivedSession={restoreArchivedSession}
+          onDeleteArchivedSession={(session) => {
+            showDeleteSessionConfirmation(
+              session.projectId,
+              session.sessionId,
+              session.sessionTitle,
+              session.provider,
+              { isArchived: true },
+            );
+          }}
+          onConversationResultClick={(projectId: string | null, sessionId: string, provider: string, messageTimestamp?: string | null, messageSnippet?: string | null) => {
+            const resolvedProvider = (provider || 'claude') as LLMProvider;
+            const project = projectId ? projects.find(p => p.projectId === projectId) : null;
+            const searchTarget = { __searchTargetTimestamp: messageTimestamp || null, __searchTargetSnippet: messageSnippet || null };
+            const sessionObj = {
+              id: sessionId,
+              __provider: resolvedProvider,
+              __projectId: projectId ?? undefined,
+              ...searchTarget,
+            };
+            if (project) {
+              handleProjectSelect(project);
+              const sessions = getProjectSessions(project);
+              const existing = sessions.find(s => s.id === sessionId);
+              if (existing) {
+                handleSessionClick({ ...existing, ...searchTarget }, project.projectId);
+              } else {
+                handleSessionClick(sessionObj, project.projectId);
+              }
+            } else {
+              handleSessionClick(sessionObj, projectId ?? '');
+            }
+          }}
+          onRefresh={() => {
+            void refreshProjects();
+          }}
+          isRefreshing={isRefreshing}
+          onCreateProject={() => setShowNewProject(true)}
           updateAvailable={updateAvailable}
+          releaseInfo={releaseInfo}
+          latestVersion={latestVersion}
+          currentVersion={currentVersion}
           onShowVersionModal={() => setShowVersionModal(true)}
+          onShowSettings={onShowSettings}
+          projectListProps={projectListProps}
+          bookmarkedMessages={bookmarkedMessages}
+          isBookmarksLoading={isBookmarksLoading}
+          onBookmarkClick={handleBookmarkClick}
+          onDeleteBookmark={handleDeleteBookmark}
+          onTogglePin={onTogglePin}
+          isPinned={isPinned}
           t={t}
         />
-      ) : (
-        <>
-        <SidebarContent
-            isPWA={isPWA}
-            isMobile={isMobile}
-            isLoading={isLoading}
-            projects={projects}
-            archivedProjects={archivedProjects}
-            archivedSessions={archivedSessions}
-            archivedSessionsCount={archivedSessionsCount}
-            isArchivedSessionsLoading={isArchivedSessionsLoading}
-            searchFilter={searchFilter}
-            onSearchFilterChange={setSearchFilter}
-            onClearSearchFilter={() => setSearchFilter('')}
-            searchMode={searchMode}
-            onSearchModeChange={(mode) => {
-              setSearchMode(mode);
-              if (mode === 'projects') clearConversationResults();
-            }}
-            conversationResults={conversationResults}
-            isSearching={isSearching}
-            searchProgress={searchProgress}
-            onRestoreArchivedProject={restoreArchivedProject}
-            onArchivedSessionClick={openArchivedSession}
-            onRestoreArchivedSession={restoreArchivedSession}
-            onDeleteArchivedSession={(session) => {
-              showDeleteSessionConfirmation(
-                session.projectId,
-                session.sessionId,
-                session.sessionTitle,
-                session.provider,
-                { isArchived: true },
-              );
-            }}
-            onConversationResultClick={(projectId: string | null, sessionId: string, provider: string, messageTimestamp?: string | null, messageSnippet?: string | null) => {
-              // `projectId` (DB key) is the canonical identifier post-migration.
-              // The server emits null when it can't resolve a project row for
-              // the search hit; treat that as "no project" and still navigate
-              // to the session so the user can open it from the URL.
-              const resolvedProvider = (provider || 'claude') as LLMProvider;
-              const project = projectId ? projects.find(p => p.projectId === projectId) : null;
-              const searchTarget = { __searchTargetTimestamp: messageTimestamp || null, __searchTargetSnippet: messageSnippet || null };
-              const sessionObj = {
-                id: sessionId,
-                __provider: resolvedProvider,
-                __projectId: projectId ?? undefined,
-                ...searchTarget,
-              };
-              if (project) {
-                handleProjectSelect(project);
-                const sessions = getProjectSessions(project);
-                const existing = sessions.find(s => s.id === sessionId);
-                if (existing) {
-                  handleSessionClick({ ...existing, ...searchTarget }, project.projectId);
-                } else {
-                  handleSessionClick(sessionObj, project.projectId);
-                }
-              } else {
-                handleSessionClick(sessionObj, projectId ?? '');
-              }
-            }}
-            onRefresh={() => {
-              void refreshProjects();
-            }}
-            isRefreshing={isRefreshing}
-            onCreateProject={() => setShowNewProject(true)}
-            onCollapseSidebar={handleCollapseSidebar}
-            updateAvailable={updateAvailable}
-            releaseInfo={releaseInfo}
-            latestVersion={latestVersion}
-            currentVersion={currentVersion}
-            onShowVersionModal={() => setShowVersionModal(true)}
-            onShowSettings={onShowSettings}
-            projectListProps={projectListProps}
-            bookmarkedMessages={bookmarkedMessages}
-            isBookmarksLoading={isBookmarksLoading}
-            onBookmarkClick={handleBookmarkClick}
-            onDeleteBookmark={handleDeleteBookmark}
-            t={t}
-          />
-        </>
-      )}
 
     </>
   );
