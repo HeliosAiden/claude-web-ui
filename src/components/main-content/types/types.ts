@@ -1,9 +1,8 @@
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, MutableRefObject, MouseEvent, SetStateAction } from 'react';
 
 import type { ActivityId, AppTab, Project, ProjectSession } from '../../../types/app';
+import type { CodeEditorDiffInfo, CodeEditorFile } from '../../code-editor/types/types';
 import type { SessionNavigationOptions } from '../../chat/types/types';
-import type { OpenSessionInfo } from '../../../hooks/useOpenSessionTabs';
-
 export type SessionLifecycleHandler = (sessionId?: string | null) => void;
 
 export type MainContentProps = {
@@ -27,15 +26,23 @@ export type MainContentProps = {
   onShowSettings: () => void;
   externalMessageUpdate: number;
   newSessionTrigger: number;
-  openSessions: OpenSessionInfo[];
-  errorSessions: Set<string>;
   onSessionError: SessionLifecycleHandler;
-  onSessionErrorClear: SessionLifecycleHandler;
-  onCloseTab: (sessionId: string) => void;
   activeActivity?: ActivityId;
   projects?: Project[];
   onProjectSelect?: (project: Project) => void;
   onNewSession?: (project: Project) => void;
+  // Editor sidebar (lifted from useEditorSidebar)
+  editingFile: CodeEditorFile | null;
+  gitPanelOpen: boolean;
+  editorWidth: number;
+  editorExpanded: boolean;
+  hasManualWidth: boolean;
+  resizeHandleRef: MutableRefObject<HTMLDivElement | null>;
+  onFileOpen: (filePath: string, diffInfo?: CodeEditorDiffInfo | null) => void;
+  onCloseEditor: () => void;
+  onCloseGitPanel: () => void;
+  onToggleEditorExpand: () => void;
+  onResizeStart: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
 export type MainContentStateViewProps = {

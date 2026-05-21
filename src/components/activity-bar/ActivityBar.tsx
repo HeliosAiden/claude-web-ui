@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import {
   Bookmark,
+  File,
   Folder,
+  GitBranch,
   Search,
   Settings,
 } from 'lucide-react';
@@ -11,9 +13,11 @@ import ActivityBarItem from './ActivityBarItem';
 import type { ActivityBarItemDef, ActivityBarProps } from './types';
 
 const BUILT_IN_ITEMS: Omit<ActivityBarItemDef, 'id'>[] = [
-  { icon: Folder, label: 'Explorer', shortcut: 'Ctrl+E' },
+  { icon: Folder, label: 'Projects & sessions', shortcut: 'Ctrl+E' },
   { icon: Bookmark, label: 'Bookmarks', shortcut: 'Ctrl+B' },
-  { icon: Search, label: 'Search', shortcut: 'Ctrl+K' },
+  { icon: Search, label: 'Search' },
+  { icon: File, label: 'Files', shortcut: 'Ctrl+F' },
+  { icon: GitBranch, label: 'Source Control', shortcut: 'Ctrl+G' },
 ];
 
 function ActivityBar({
@@ -29,6 +33,8 @@ function ActivityBar({
       { ...BUILT_IN_ITEMS[0], id: 'explorer' as ActivityId },
       { ...BUILT_IN_ITEMS[1], id: 'bookmarks' as ActivityId },
       { ...BUILT_IN_ITEMS[2], id: 'search' as ActivityId },
+      { ...BUILT_IN_ITEMS[3], id: 'files' as ActivityId },
+      { ...BUILT_IN_ITEMS[4], id: 'git' as ActivityId },
       ...pluginActivities,
     ];
     return list;

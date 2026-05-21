@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { Project } from '../../../types/app';
-import type { CodeEditorDiffInfo, CodeEditorFile } from '../types/types';
+import type { CodeEditorDiffInfo, CodeEditorFile, EditorSidebarContent } from '../types/types';
 
 type UseEditorSidebarOptions = {
   selectedProject: Project | null;
@@ -14,32 +14,47 @@ export const useEditorSidebar = ({
   isMobile,
   initialWidth = 600,
 }: UseEditorSidebarOptions) => {
-  const [editingFile, setEditingFile] = useState<CodeEditorFile | null>(null);
+  const [sidebarContent, setSidebarContent] = useState<EditorSidebarContent>({ mode: 'none' });
   const [editorWidth, setEditorWidth] = useState(initialWidth);
   const [editorExpanded, setEditorExpanded] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [hasManualWidth, setHasManualWidth] = useState(false);
   const resizeHandleRef = useRef<HTMLDivElement | null>(null);
 
+  const editingFile: CodeEditorFile | null =
+    sidebarContent.mode === 'codeEditor' ? sidebarContent.file : null;
+
+  const gitPanelOpen = sidebarContent.mode === 'gitPanel';
+
   const handleFileOpen = useCallback(
     (filePath: string, diffInfo: CodeEditorDiffInfo | null = null) => {
       const normalizedPath = filePath.replace(/\\/g, '/');
       const fileName = normalizedPath.split('/').pop() || filePath;
 
-      setEditingFile({
-        name: fileName,
-        path: filePath,
-        // DB projectId is forwarded to the editor so it can read/save files
-        // via `/api/projects/:projectId/file` endpoints.
-        projectId: selectedProject?.projectId,
-        diffInfo,
+      setSidebarContent({
+        mode: 'codeEditor',
+        file: {
+          name: fileName,
+          path: filePath,
+          projectId: selectedProject?.projectId,
+          diffInfo,
+        },
       });
     },
     [selectedProject?.projectId],
   );
 
+  const handleOpenGitPanel = useCallback(() => {
+    setSidebarContent({ mode: 'gitPanel' });
+  }, []);
+
   const handleCloseEditor = useCallback(() => {
-    setEditingFile(null);
+    setSidebarContent({ mode: 'none' });
+    setEditorExpanded(false);
+  }, []);
+
+  const handleCloseGitPanel = useCallback(() => {
+    setSidebarContent({ mode: 'none' });
     setEditorExpanded(false);
   }, []);
 
@@ -107,12 +122,15 @@ export const useEditorSidebar = ({
 
   return {
     editingFile,
+    gitPanelOpen,
     editorWidth,
     editorExpanded,
     hasManualWidth,
     resizeHandleRef,
     handleFileOpen,
+    handleOpenGitPanel,
     handleCloseEditor,
+    handleCloseGitPanel,
     handleToggleEditorExpand,
     handleResizeStart,
   };

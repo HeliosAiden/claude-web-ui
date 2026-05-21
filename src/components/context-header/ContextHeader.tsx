@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Menu, MessageSquare, Terminal, FolderOpen, GitBranch } from 'lucide-react';
+import { Menu, MessageSquare, Terminal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { Project, ProjectSession, AppTab } from '../../types/app';
 import ProjectSelector from './ProjectSelector';
@@ -18,8 +18,6 @@ function getProjectSessions(project: Project): ProjectSession[] {
 const TABS: { id: AppTab; icon: typeof MessageSquare; label: string }[] = [
   { id: 'chat', icon: MessageSquare, label: 'Chat' },
   { id: 'shell', icon: Terminal, label: 'Shell' },
-  { id: 'files', icon: FolderOpen, label: 'Files' },
-  { id: 'git', icon: GitBranch, label: 'Source Control' },
 ];
 
 function ContextHeader({

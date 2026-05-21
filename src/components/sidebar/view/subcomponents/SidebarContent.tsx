@@ -7,6 +7,7 @@ import type { ReleaseInfo } from '../../../../types/sharedTypes';
 import type { ArchivedProjectListItem, ArchivedSessionListItem, BookmarkedMessage, SidebarSearchMode } from '../../types/types';
 import SessionProviderLogo from '../../../llm-logo-provider/SessionProviderLogo';
 import SidebarFooter from './SidebarFooter';
+import SidebarFilePanel from './SidebarFilePanel';
 import SidebarGitPanel from './SidebarGitPanel';
 import SidebarHeader from './SidebarHeader';
 import SidebarProjectList, { type SidebarProjectListProps } from './SidebarProjectList';
@@ -118,6 +119,8 @@ type SidebarContentProps = {
   isBookmarksLoading?: boolean;
   onBookmarkClick?: (bookmark: BookmarkedMessage) => void;
   onDeleteBookmark?: (messageUuid: string) => void;
+  onFileOpen?: (filePath: string) => void;
+  onOpenGitPanel?: () => void;
   t: TFunction;
 };
 
@@ -168,6 +171,8 @@ export default function SidebarContent({
   isBookmarksLoading = false,
   onBookmarkClick,
   onDeleteBookmark,
+  onFileOpen,
+  onOpenGitPanel,
   t,
 }: SidebarContentProps) {
   const groupedArchivedSessions = groupArchivedSessionsByProject(archivedSessions);
@@ -202,6 +207,7 @@ export default function SidebarContent({
           searchMode === 'projects' ? 'explorer' :
           searchMode === 'bookmarks' ? 'bookmarks' :
           searchMode === 'search' ? 'search' :
+          searchMode === 'files' ? 'files' :
           searchMode === 'git' ? 'git' :
           'explorer'
         }
@@ -282,10 +288,17 @@ export default function SidebarContent({
               )}
             </div>
           )
+        ) : searchMode === 'files' ? (
+          <SidebarFilePanel
+            selectedProject={projectListProps.selectedProject}
+            onNavigateToTab={onNavigateToTab}
+            onFileOpen={onFileOpen}
+          />
         ) : searchMode === 'git' ? (
           <SidebarGitPanel
             selectedProject={projectListProps.selectedProject}
-            onNavigateToTab={onNavigateToTab}
+            onOpenGitPanel={onOpenGitPanel}
+            onFileOpen={onFileOpen}
           />
         ) : searchMode === 'archived' ? (
           isArchivedSessionsLoading ? (

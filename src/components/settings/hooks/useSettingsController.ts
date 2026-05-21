@@ -144,6 +144,8 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
   const [codexPermissionMode, setCodexPermissionMode] = useState<CodexPermissionMode>('default');
   const [geminiPermissionMode, setGeminiPermissionMode] = useState<GeminiPermissionMode>('default');
 
+  const [workspaceRoot, setWorkspaceRoot] = useState('');
+
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginProvider, setLoginProvider] = useState<ActiveLoginProvider>('');
   const {
@@ -217,6 +219,17 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
         }
       } catch {
         // Telegram config fetch failed silently
+      }
+
+      // Load workspace root from server
+      try {
+        const wsRootResponse = await authenticatedFetch('/api/settings/workspace-root');
+        if (wsRootResponse.ok) {
+          const wsRootData = await wsRootResponse.json();
+          setWorkspaceRoot(wsRootData.root || '');
+        }
+      } catch {
+        // Workspace root fetch failed silently
       }
 
     } catch (error) {
@@ -307,6 +320,17 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
         }
       }
 
+      // Save workspace root to server
+      if (workspaceRoot) {
+        const wsRootResponse = await authenticatedFetch('/api/settings/workspace-root', {
+          method: 'PUT',
+          body: JSON.stringify({ root: workspaceRoot }),
+        });
+        if (!wsRootResponse.ok) {
+          throw new Error('Failed to save workspace root');
+        }
+      }
+
       setSaveStatus('success');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -324,6 +348,7 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
     telegramConfig,
     geminiPermissionMode,
     projectSortOrder,
+    workspaceRoot,
   ]);
 
   const updateCodeEditorSetting = useCallback(
@@ -434,5 +459,7 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
     setShowLoginModal,
     loginProvider,
     handleLoginComplete,
+    workspaceRoot,
+    setWorkspaceRoot,
   };
 }

@@ -140,6 +140,11 @@
       "alphabetical": "Alphabetical",
       "recentActivity": "Recent Activity"
     },
+    "workspaceRoot": {
+      "label": "Workspace Root",
+      "description": "Root directory for project workspaces. Changing this allows creating projects in a different location.",
+      "placeholder": "e.g. /home/user/projects or D:\\Projects"
+    },
     "codeEditor": {
       "title": "Code Editor",
       "theme": {

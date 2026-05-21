@@ -211,7 +211,7 @@ const readPersistedTab = (): AppTab => {
   return 'chat';
 };
 
-const VALID_ACTIVITIES: Set<string> = new Set(['explorer', 'bookmarks', 'search', 'git', 'settings']);
+const VALID_ACTIVITIES: Set<string> = new Set(['explorer', 'bookmarks', 'search', 'files', 'git', 'settings']);
 
 const isValidActivity = (activity: string): activity is ActivityId => {
   return VALID_ACTIVITIES.has(activity) || activity.startsWith('plugin:');
@@ -229,11 +229,12 @@ const readPersistedActivity = (): ActivityId => {
   return 'explorer';
 };
 
-const sidebarPanelFromActivity = (activity: ActivityId): 'explorer' | 'bookmarks' | 'search' | 'git' | null => {
+const sidebarPanelFromActivity = (activity: ActivityId): 'explorer' | 'bookmarks' | 'search' | 'files' | 'git' | null => {
   switch (activity) {
     case 'explorer': return 'explorer';
     case 'bookmarks': return 'bookmarks';
     case 'search': return 'search';
+    case 'files': return 'files';
     case 'git': return 'git';
     default: return null;
   }

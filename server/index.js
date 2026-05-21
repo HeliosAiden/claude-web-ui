@@ -11,7 +11,7 @@ import express from 'express';
 import cors from 'cors';
 import mime from 'mime-types';
 
-import { AppError, WORKSPACES_ROOT, validateWorkspacePath } from '@/shared/utils.js';
+import { AppError, setWorkspaceRoot, WORKSPACES_ROOT, validateWorkspacePath } from '@/shared/utils.js';
 import { closeSessionsWatcher, initializeSessionsWatcher } from '@/modules/providers/index.js';
 import { createWebSocketServer } from '@/modules/websocket/index.js';
 
@@ -72,7 +72,7 @@ import fccRoutes from './routes/fcc.js';
 import modelTestRoutes from './routes/models.js';
 import promptTemplatesRoutes from './routes/prompt-templates.js';
 import { startEnabledPluginServers, stopAllPlugins, getPluginPort } from './utils/plugin-process-manager.js';
-import { initializeDatabase, projectsDb } from './modules/database/index.js';
+import { appConfigDb, initializeDatabase, projectsDb } from './modules/database/index.js';
 import { configureWebPush } from './services/vapid-keys.js';
 import { initializeTelegramBots, shutdownTelegramBots } from './services/telegram-bot.js';
 import { validateApiKey, authenticateToken, authenticateWebSocket } from './middleware/auth.js';
@@ -1463,6 +1463,13 @@ async function startServer() {
     try {
         // Initialize authentication database
         await initializeDatabase();
+
+        // Prime workspace root from DB (fallback: env → os.homedir())
+        const dbWorkspaceRoot = appConfigDb.get('workspace_root');
+        if (dbWorkspaceRoot) {
+          setWorkspaceRoot(dbWorkspaceRoot);
+          console.log('[INIT] Workspace root loaded from DB:', dbWorkspaceRoot);
+        }
 
         // Configure Web Push (VAPID keys)
         configureWebPush();

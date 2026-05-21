@@ -16,6 +16,8 @@ type AppearanceSettingsTabProps = {
   onCodeEditorShowMinimapChange: (value: boolean) => void;
   onCodeEditorLineNumbersChange: (value: boolean) => void;
   onCodeEditorFontSizeChange: (value: string) => void;
+  workspaceRoot: string;
+  onWorkspaceRootChange: (value: string) => void;
 };
 
 export default function AppearanceSettingsTab({
@@ -27,6 +29,8 @@ export default function AppearanceSettingsTab({
   onCodeEditorShowMinimapChange,
   onCodeEditorLineNumbersChange,
   onCodeEditorFontSizeChange,
+  workspaceRoot,
+  onWorkspaceRootChange,
 }: AppearanceSettingsTabProps) {
   const { t } = useTranslation('settings');
 
@@ -63,6 +67,24 @@ export default function AppearanceSettingsTab({
               <option value="name">{t('appearanceSettings.projectSorting.alphabetical')}</option>
               <option value="date">{t('appearanceSettings.projectSorting.recentActivity')}</option>
             </select>
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+
+      <SettingsSection title={t('appearanceSettings.workspaceRoot.label')}>
+        <SettingsCard>
+          <SettingsRow
+            label={t('appearanceSettings.workspaceRoot.label')}
+            description={t('appearanceSettings.workspaceRoot.description')}
+          >
+            <input
+              type="text"
+              value={workspaceRoot}
+              onChange={(event) => onWorkspaceRootChange(event.target.value)}
+              placeholder={t('appearanceSettings.workspaceRoot.placeholder')}
+              className="w-full rounded-lg border border-input bg-card p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+              spellCheck={false}
+            />
           </SettingsRow>
         </SettingsCard>
       </SettingsSection>

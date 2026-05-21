@@ -1,12 +1,22 @@
-import React, { useEffect } from 'react';
-import { ArrowDownToLine, ExternalLink, GitBranch, RefreshCw } from 'lucide-react';
-import type { Project, AppTab } from '../../../../types/app';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ArrowDownToLine,
+  ChevronRight,
+  ExternalLink,
+  GitBranch,
+  GitCommit,
+  RefreshCw,
+} from 'lucide-react';
+import type { Project } from '../../../../types/app';
 import { useGitPanelController } from '../../../git-panel/hooks/useGitPanelController';
+import { parseCommitFiles } from '../../../git-panel/utils/gitPanelUtils';
+import type { GitCommitSummary } from '../../../git-panel/types/types';
 import { cn } from '../../../../lib/utils';
 
 type SidebarGitPanelProps = {
   selectedProject: Project | null;
-  onNavigateToTab?: (tab: AppTab) => void;
+  onOpenGitPanel?: () => void;
+  onFileOpen?: (filePath: string) => void;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,19 +42,116 @@ function buildChangeList(
   ];
 }
 
-function SidebarGitPanel({ selectedProject, onNavigateToTab }: SidebarGitPanelProps) {
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'now';
+  if (diffMins < 60) return `${diffMins}m`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return `${diffHrs}h`;
+  return `${Math.floor(diffHrs / 24)}d`;
+}
+
+function CommitDetail({
+  commit,
+  commitDiff,
+  onFetchDiff,
+}: {
+  commit: GitCommitSummary;
+  commitDiff: string | undefined;
+  onFetchDiff: (hash: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleToggle = () => {
+    if (!expanded && !commitDiff) {
+      onFetchDiff(commit.hash);
+    }
+    setExpanded((prev) => !prev);
+  };
+
+  const fileSummary = commitDiff ? parseCommitFiles(commitDiff) : null;
+  const shortHash = commit.hash.slice(0, 7);
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="flex w-full items-center gap-1 text-left text-[11px] hover:bg-accent/50 rounded px-0.5 py-0.5 -mx-0.5 transition-colors"
+        onClick={handleToggle}
+      >
+        <ChevronRight
+          className={cn('h-3 w-3 flex-shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-90')}
+        />
+        <span className="font-mono text-[10px] text-muted-foreground/60 flex-shrink-0">{shortHash}</span>
+        <span className="truncate text-muted-foreground flex-1">{commit.message.split('\n')[0]}</span>
+        <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{formatRelativeTime(commit.date)}</span>
+      </button>
+      {expanded && (
+        <div className="ml-5 mt-0.5 mb-1 text-[10px] text-muted-foreground/70 space-y-0.5">
+          <div>
+            <span className="font-medium">{commit.author}</span>
+          </div>
+          {!commitDiff && (
+            <div className="flex items-center gap-1 py-1">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              <span>Loading diff...</span>
+            </div>
+          )}
+          {fileSummary && (
+            <div>
+              <span>{fileSummary.totalFiles} files, +{fileSummary.totalInsertions}/-{fileSummary.totalDeletions}</span>
+              <div className="mt-0.5 space-y-0.5">
+                {fileSummary.files.slice(0, 10).map((f) => (
+                  <div key={f.path} className="flex items-center gap-1 truncate">
+                    <span className={cn('flex-shrink-0 font-mono text-[9px] w-3', STATUS_COLORS[f.status] ?? 'text-muted-foreground')}>
+                      {f.status}
+                    </span>
+                    <span className="truncate">{f.filename}</span>
+                    <span className="flex-shrink-0 text-muted-foreground/50">
+                      +{f.insertions}/-{f.deletions}
+                    </span>
+                  </div>
+                ))}
+                {fileSummary.files.length > 10 && (
+                  <span className="text-muted-foreground/50">+{fileSummary.files.length - 10} more</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: SidebarGitPanelProps) {
   const projectId = selectedProject?.projectId ?? null;
 
   const {
     gitStatus,
     currentBranch,
+    branches,
+    localBranches,
     remoteStatus,
+    recentCommits,
+    commitDiffs,
     isLoading,
     refreshAll,
+    handleFetch,
+    switchBranch,
+    fetchCommitDiff,
   } = useGitPanelController({
     selectedProject,
-    activeView: 'changes',
+    activeView: 'history',
+    onFileOpen: undefined,
   });
+
+  const [showChanges, setShowChanges] = useState(true);
+  const [showCommits, setShowCommits] = useState(false);
+  const [showBranches, setShowBranches] = useState(false);
 
   useEffect(() => {
     if (projectId) {
@@ -65,6 +172,18 @@ function SidebarGitPanel({ selectedProject, onNavigateToTab }: SidebarGitPanelPr
     counts[f.status] = (counts[f.status] ?? 0) + 1;
   }
 
+  const sectionHeader = (label: string, expanded: boolean, onToggle: () => void, count?: number) => (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center gap-1 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <ChevronRight className={cn('h-3 w-3 flex-shrink-0 transition-transform', expanded && 'rotate-90')} />
+      <span className="font-medium uppercase tracking-wide text-[10px]">{label}</span>
+      {count !== undefined && <span className="text-[10px] text-muted-foreground/60">({count})</span>}
+    </button>
+  );
+
   if (!projectId) {
     return (
       <div className="px-3 py-8 text-center">
@@ -74,7 +193,7 @@ function SidebarGitPanel({ selectedProject, onNavigateToTab }: SidebarGitPanelPr
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !gitStatus) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
@@ -97,14 +216,14 @@ function SidebarGitPanel({ selectedProject, onNavigateToTab }: SidebarGitPanelPr
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3 text-xs">
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 text-xs">
         {/* Branch info */}
         {currentBranch && (
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <GitBranch className="h-3 w-3" />
-            <span className="font-mono text-[11px]">{currentBranch}</span>
+            <GitBranch className="h-3 w-3 flex-shrink-0" />
+            <span className="font-mono text-[11px] truncate">{currentBranch}</span>
             {remoteStatus && (
-              <span className="text-[10px] text-muted-foreground/60">
+              <span className="text-[10px] text-muted-foreground/60 flex-shrink-0">
                 {(remoteStatus.ahead ?? 0) > 0 && `↑${remoteStatus.ahead} `}
                 {(remoteStatus.behind ?? 0) > 0 && `↓${remoteStatus.behind}`}
               </span>
@@ -117,45 +236,104 @@ function SidebarGitPanel({ selectedProject, onNavigateToTab }: SidebarGitPanelPr
           <button
             type="button"
             className="flex items-center gap-1 rounded-md bg-accent/40 px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            onClick={() => refreshAll()}
+            onClick={() => handleFetch()}
           >
             <ArrowDownToLine className="h-3 w-3" />
             Fetch
           </button>
         </div>
 
-        {/* Change summary */}
-        {totalChanges > 0 && (
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            {counts.M ? <span className={cn('font-medium', STATUS_COLORS.M)}>{counts.M}M</span> : null}
-            {counts.A ? <span className={cn('font-medium', STATUS_COLORS.A)}>{counts.A}A</span> : null}
-            {counts.D ? <span className={cn('font-medium', STATUS_COLORS.D)}>{counts.D}D</span> : null}
-            {counts.U ? <span className={cn('font-medium', STATUS_COLORS.U)}>{counts.U}U</span> : null}
-            <span>{totalChanges} changed</span>
+        {/* === Changes section === */}
+        {sectionHeader('Changes', showChanges, () => setShowChanges((prev) => !prev), totalChanges)}
+        {showChanges && (
+          <div className="space-y-0.5">
+            {totalChanges > 0 && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground pl-4">
+                {counts.M ? <span className={cn('font-medium', STATUS_COLORS.M)}>{counts.M}M</span> : null}
+                {counts.A ? <span className={cn('font-medium', STATUS_COLORS.A)}>{counts.A}A</span> : null}
+                {counts.D ? <span className={cn('font-medium', STATUS_COLORS.D)}>{counts.D}D</span> : null}
+                {counts.U ? <span className={cn('font-medium', STATUS_COLORS.U)}>{counts.U}U</span> : null}
+              </div>
+            )}
+            {totalChanges === 0 && (
+              <p className="text-[11px] text-muted-foreground/60 pl-4">No changes</p>
+            )}
+            {changedFiles.slice(0, 10).map((file) => (
+              <button
+                key={file.path}
+                type="button"
+                className="flex items-center gap-1.5 truncate text-[11px] w-full text-left hover:bg-accent/50 rounded px-0.5 py-0.5 -mx-0.5 transition-colors pl-4"
+                onClick={() => onFileOpen?.(file.path)}
+              >
+                <span className={cn('flex-shrink-0 font-mono text-[10px] w-3', STATUS_COLORS[file.status] ?? STATUS_COLORS.M)}>
+                  {file.status}
+                </span>
+                <span className="truncate text-muted-foreground">{file.path}</span>
+              </button>
+            ))}
+            {changedFiles.length > 10 && (
+              <p className="text-[10px] text-muted-foreground/50 pl-4">
+                +{changedFiles.length - 10} more files
+              </p>
+            )}
           </div>
         )}
 
-        {totalChanges === 0 && (
-          <p className="text-[11px] text-muted-foreground/60">No changes</p>
+        {/* === Commits section === */}
+        {sectionHeader('Commits', showCommits, () => setShowCommits((prev) => !prev), recentCommits.length)}
+        {showCommits && (
+          <div className="space-y-0.5 pl-4">
+            {recentCommits.length === 0 && (
+              <p className="text-[11px] text-muted-foreground/60">No commits</p>
+            )}
+            {recentCommits.slice(0, 5).map((commit) => (
+              <CommitDetail
+                key={commit.hash}
+                commit={commit}
+                commitDiff={commitDiffs[commit.hash]}
+                onFetchDiff={fetchCommitDiff}
+              />
+            ))}
+            {recentCommits.length > 5 && (
+              <p className="text-[10px] text-muted-foreground/50">
+                +{recentCommits.length - 5} more commits
+              </p>
+            )}
+          </div>
         )}
 
-        {/* Changed files list */}
-        {changedFiles.slice(0, 15).map((file) => (
-          <div
-            key={file.path}
-            className="flex items-center gap-1.5 truncate text-[11px]"
-          >
-            <span className={cn('flex-shrink-0 font-mono text-[10px] w-3', STATUS_COLORS[file.status] ?? STATUS_COLORS.M)}>
-              {file.status}
-            </span>
-            <span className="truncate text-muted-foreground">{file.path}</span>
+        {/* === Branches section === */}
+        {sectionHeader('Branches', showBranches, () => setShowBranches((prev) => !prev), localBranches.length)}
+        {showBranches && (
+          <div className="space-y-0.5 pl-4">
+            {localBranches.length === 0 && (
+              <p className="text-[11px] text-muted-foreground/60">No branches</p>
+            )}
+            {localBranches.slice(0, 5).map((branch) => {
+              const isCurrent = branch === currentBranch;
+              return (
+                <div key={branch} className="flex items-center gap-1.5">
+                  <span className={cn('flex-1 truncate text-[11px] font-mono', isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground')}>
+                    {branch}
+                  </span>
+                  {!isCurrent && (
+                    <button
+                      type="button"
+                      className="text-[10px] text-primary hover:underline flex-shrink-0"
+                      onClick={() => { void switchBranch(branch); }}
+                    >
+                      Switch
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {localBranches.length > 5 && (
+              <p className="text-[10px] text-muted-foreground/50">
+                +{localBranches.length - 5} more branches
+              </p>
+            )}
           </div>
-        ))}
-
-        {changedFiles.length > 15 && (
-          <p className="text-[10px] text-muted-foreground/50">
-            +{changedFiles.length - 15} more files
-          </p>
         )}
       </div>
 
@@ -163,7 +341,7 @@ function SidebarGitPanel({ selectedProject, onNavigateToTab }: SidebarGitPanelPr
       <div className="flex-shrink-0 border-t border-border/40 px-3 py-2">
         <button
           type="button"
-          onClick={() => onNavigateToTab?.('git')}
+          onClick={() => onOpenGitPanel?.()}
           className="flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
         >
           <ExternalLink className="h-3 w-3" />

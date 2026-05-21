@@ -1,5 +1,6 @@
 import express from 'express';
-import { apiKeysDb, credentialsDb, notificationPreferencesDb, pushSubscriptionsDb, telegramConfigDb } from '../modules/database/index.js';
+import { apiKeysDb, appConfigDb, credentialsDb, notificationPreferencesDb, pushSubscriptionsDb, telegramConfigDb } from '../modules/database/index.js';
+import { WORKSPACES_ROOT, setWorkspaceRoot } from '../shared/utils.js';
 import { getPublicKey } from '../services/vapid-keys.js';
 import { createNotificationEvent, notifyUserIfEnabled } from '../services/notification-orchestrator.js';
 import {
@@ -385,6 +386,33 @@ router.get('/server-env', async (req, res) => {
   } catch (error) {
     console.error('Error reading server environment:', error);
     res.status(500).json({ error: 'Failed to read server environment' });
+  }
+});
+
+// Get the current workspace root.
+router.get('/workspace-root', async (req, res) => {
+  try {
+    res.json({ root: WORKSPACES_ROOT });
+  } catch (error) {
+    console.error('Error reading workspace root:', error);
+    res.status(500).json({ error: 'Failed to read workspace root' });
+  }
+});
+
+// Update the workspace root at runtime.
+router.put('/workspace-root', async (req, res) => {
+  try {
+    const { root } = req.body;
+    if (!root || typeof root !== 'string' || !root.trim()) {
+      return res.status(400).json({ error: 'Workspace root must be a non-empty string' });
+    }
+    const trimmed = root.trim();
+    appConfigDb.set('workspace_root', trimmed);
+    setWorkspaceRoot(trimmed);
+    res.json({ root: WORKSPACES_ROOT });
+  } catch (error) {
+    console.error('Error updating workspace root:', error);
+    res.status(500).json({ error: 'Failed to update workspace root' });
   }
 });
 

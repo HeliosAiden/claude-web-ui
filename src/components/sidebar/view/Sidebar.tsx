@@ -33,6 +33,8 @@ function Sidebar({
   isMobile,
   activePanel,
   onNavigateToTab,
+  onFileOpen,
+  onOpenGitPanel,
 }: SidebarProps) {
   const { t } = useTranslation(['sidebar', 'common']);
   const { isPWA } = useDeviceSettings({ trackMobile: false });
@@ -239,6 +241,8 @@ function Sidebar({
           isBookmarksLoading={isBookmarksLoading}
           onBookmarkClick={handleBookmarkClick}
           onDeleteBookmark={handleDeleteBookmark}
+          onFileOpen={onFileOpen}
+          onOpenGitPanel={onOpenGitPanel}
           t={t}
         />
 

@@ -3,18 +3,15 @@ import React, { useEffect } from 'react';
 import ChatInterface from '../../chat/view/ChatInterface';
 import FileTree from '../../file-tree/view/FileTree';
 import StandaloneShell from '../../standalone-shell/view/StandaloneShell';
-import GitPanel from '../../git-panel/view/GitPanel';
 import PluginTabContent from '../../plugins/view/PluginTabContent';
 import type { MainContentProps } from '../types/types';
 import { usePaletteOpsRegister } from '../../../contexts/PaletteOpsContext';
 import { useUiPreferences } from '../../../hooks/useUiPreferences';
-import { useEditorSidebar } from '../../code-editor/hooks/useEditorSidebar';
 import EditorSidebar from '../../code-editor/view/EditorSidebar';
 
 import ContextHeader from '../../context-header/ContextHeader';
 import MainContentStateView from './subcomponents/MainContentStateView';
 
-import SessionTabs from '../../session-tabs/SessionTabs';
 import ErrorBoundary from './ErrorBoundary';
 
 function MainContent({
@@ -38,38 +35,30 @@ function MainContent({
   onShowSettings,
   externalMessageUpdate,
   newSessionTrigger,
-  openSessions,
-  errorSessions,
   onSessionError,
-  onSessionErrorClear,
-  onCloseTab,
   activeActivity,
   projects = [],
   onProjectSelect,
   onNewSession,
+  editingFile,
+  gitPanelOpen,
+  editorWidth,
+  editorExpanded,
+  hasManualWidth,
+  resizeHandleRef,
+  onFileOpen,
+  onCloseEditor,
+  onCloseGitPanel,
+  onToggleEditorExpand,
+  onResizeStart,
 }: MainContentProps) {
   const { preferences } = useUiPreferences();
   const { autoExpandTools, showRawParameters, showThinking, autoScrollToBottom, sendByCtrlEnter } = preferences;
 
-  const {
-    editingFile,
-    editorWidth,
-    editorExpanded,
-    hasManualWidth,
-    resizeHandleRef,
-    handleFileOpen,
-    handleCloseEditor,
-    handleToggleEditorExpand,
-    handleResizeStart,
-  } = useEditorSidebar({
-    selectedProject,
-    isMobile,
-  });
-
   usePaletteOpsRegister({
     openFile: (filePath: string) => {
       setActiveTab('files');
-      handleFileOpen(filePath);
+      onFileOpen(filePath);
     },
   });
 
@@ -96,18 +85,6 @@ function MainContent({
         onMenuClick={onMenuClick}
       />
 
-      {(activeTab === 'chat' || activeTab === 'shell') && (
-        <SessionTabs
-          openSessions={openSessions}
-          selectedSessionId={selectedSession?.id ?? null}
-          processingSessions={processingSessions}
-          errorSessions={errorSessions}
-          onSelectTab={(sessionId) => onNavigateToSession(sessionId)}
-          onCloseTab={onCloseTab}
-          onNewSession={selectedProject && onNewSession ? () => onNewSession(selectedProject!) : undefined}
-        />
-      )}
-
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className={`flex min-h-0 min-w-[200px] flex-col overflow-hidden ${editorExpanded ? 'hidden' : ''} flex-1`}>
           <div className={`h-full ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
@@ -118,7 +95,7 @@ function MainContent({
                 ws={ws}
                 sendMessage={sendMessage}
                 latestMessage={latestMessage}
-                onFileOpen={handleFileOpen}
+                onFileOpen={onFileOpen}
                 onInputFocusChange={onInputFocusChange}
                 onSessionActive={onSessionActive}
                 onSessionInactive={onSessionInactive}
@@ -141,7 +118,7 @@ function MainContent({
 
           {activeTab === 'files' && (
             <div className="h-full overflow-hidden">
-              <FileTree selectedProject={selectedProject} onFileOpen={handleFileOpen} />
+              <FileTree selectedProject={selectedProject} onFileOpen={onFileOpen} />
             </div>
           )}
 
@@ -153,12 +130,6 @@ function MainContent({
                 showHeader={false}
                 isActive={activeTab === 'shell'}
               />
-            </div>
-          )}
-
-          {activeTab === 'git' && (
-            <div className="h-full overflow-hidden">
-              <GitPanel selectedProject={selectedProject} isMobile={isMobile} onFileOpen={handleFileOpen} />
             </div>
           )}
 
@@ -177,14 +148,17 @@ function MainContent({
 
         <EditorSidebar
           editingFile={editingFile}
+          gitPanelOpen={gitPanelOpen}
+          selectedProject={selectedProject}
           isMobile={isMobile}
           editorExpanded={editorExpanded}
           editorWidth={editorWidth}
           hasManualWidth={hasManualWidth}
           resizeHandleRef={resizeHandleRef}
-          onResizeStart={handleResizeStart}
-          onCloseEditor={handleCloseEditor}
-          onToggleEditorExpand={handleToggleEditorExpand}
+          onResizeStart={onResizeStart}
+          onCloseEditor={onCloseEditor}
+          onToggleEditorExpand={onToggleEditorExpand}
+          onFileOpen={onFileOpen}
           projectPath={selectedProject.path}
           fillSpace={activeTab === 'files'}
         />

@@ -100,10 +100,16 @@ export class AppError extends Error {
 /**
  * Root directory that all workspace/project paths must stay under.
  *
- * This is resolved from `WORKSPACES_ROOT` when configured; otherwise it falls
- * back to the current user's home directory.
+ * Initialized from the `WORKSPACES_ROOT` env var, falling back to the current
+ * user's home directory. Can be overridden at runtime via `setWorkspaceRoot()`
+ * (persisted to the `app_config` DB table by the caller).
  */
-export const WORKSPACES_ROOT = process.env.WORKSPACES_ROOT || os.homedir();
+export let WORKSPACES_ROOT = process.env.WORKSPACES_ROOT || os.homedir();
+
+/** Updates the workspace root at runtime. Callers should also persist to DB. */
+export function setWorkspaceRoot(value: string): void {
+  WORKSPACES_ROOT = value;
+}
 
 /**
  * System-critical paths that must never be used as workspace roots.

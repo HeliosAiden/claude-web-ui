@@ -965,21 +965,6 @@
     background-color: hsl(var(--primary));
   }
 
-  /* SessionTab active indicator */
-  .session-tab-active {
-    position: relative;
-  }
-  .session-tab-active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 8px;
-    right: 8px;
-    height: 2px;
-    border-radius: 1px 1px 0 0;
-    background-color: hsl(var(--primary));
-  }
-
   /* Flyout animations */
   .flyout-backdrop {
     animation: flyout-backdrop-in 200ms ease-out;

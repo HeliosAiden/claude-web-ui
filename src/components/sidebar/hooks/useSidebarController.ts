@@ -91,6 +91,7 @@ export function useSidebarController({
       case 'explorer': return 'projects';
       case 'bookmarks': return 'bookmarks';
       case 'search': return 'search';
+      case 'files': return 'files';
       case 'git': return 'git';
       default: return 'projects';
     }

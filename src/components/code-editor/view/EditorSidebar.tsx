@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import type { MouseEvent, MutableRefObject } from 'react';
-import type { CodeEditorFile } from '../types/types';
+import type { Project } from '../../../types/app';
+import type { CodeEditorDiffInfo, CodeEditorFile } from '../types/types';
 import CodeEditor from './CodeEditor';
+import GitEditorPanel from './subcomponents/GitEditorPanel';
 
 type EditorSidebarProps = {
   editingFile: CodeEditorFile | null;
+  gitPanelOpen: boolean;
+  selectedProject: Project | null;
   isMobile: boolean;
   editorExpanded: boolean;
   editorWidth: number;
@@ -13,6 +17,7 @@ type EditorSidebarProps = {
   onResizeStart: (event: MouseEvent<HTMLDivElement>) => void;
   onCloseEditor: () => void;
   onToggleEditorExpand: () => void;
+  onFileOpen: (filePath: string, diffInfo?: CodeEditorDiffInfo | null) => void;
   projectPath?: string;
   fillSpace?: boolean;
 };
@@ -24,6 +29,8 @@ const MIN_EDITOR_WIDTH = 280;
 
 export default function EditorSidebar({
   editingFile,
+  gitPanelOpen,
+  selectedProject,
   isMobile,
   editorExpanded,
   editorWidth,
@@ -32,6 +39,7 @@ export default function EditorSidebar({
   onResizeStart,
   onCloseEditor,
   onToggleEditorExpand,
+  onFileOpen,
   projectPath,
   fillSpace,
 }: EditorSidebarProps) {
@@ -39,9 +47,11 @@ export default function EditorSidebar({
   const containerRef = useRef<HTMLDivElement>(null);
   const [effectiveWidth, setEffectiveWidth] = useState(editorWidth);
 
+  const isOpen = editingFile !== null || gitPanelOpen;
+
   // Adjust editor width when container size changes to ensure buttons are always visible
   useEffect(() => {
-    if (!editingFile || isMobile || poppedOut) return;
+    if (!isOpen || isMobile || poppedOut) return;
 
     const updateWidth = () => {
       if (!containerRef.current) return;
@@ -78,13 +88,33 @@ export default function EditorSidebar({
       window.removeEventListener('resize', updateWidth);
       resizeObserver.disconnect();
     };
-  }, [editingFile, isMobile, poppedOut, editorWidth]);
+  }, [isOpen, isMobile, poppedOut, editorWidth]);
 
-  if (!editingFile) {
+  if (!isOpen) {
     return null;
   }
 
-  if (isMobile || poppedOut) {
+  // Git panel: pops out directly on mobile or when space is too tight
+  if (gitPanelOpen && (isMobile || poppedOut)) {
+    return (
+      <GitEditorPanel
+        selectedProject={selectedProject}
+        isMobile={isMobile}
+        isSidebar={false}
+        isExpanded={false}
+        onClose={() => {
+          setPoppedOut(false);
+          onCloseEditor();
+        }}
+        onToggleExpand={null}
+        onPopOut={null}
+        onFileOpen={onFileOpen}
+      />
+    );
+  }
+
+  // Code editor: pop out on mobile or when space is too tight
+  if (editingFile && (isMobile || poppedOut)) {
     return (
       <CodeEditor
         file={editingFile}
@@ -98,6 +128,43 @@ export default function EditorSidebar({
     );
   }
 
+  // Git panel in sidebar mode
+  if (gitPanelOpen) {
+    const useFlexLayout = editorExpanded || (fillSpace && !hasManualWidth);
+
+    return (
+      <div ref={containerRef} className={`flex h-full min-w-0 flex-shrink-0 ${editorExpanded ? 'flex-1' : ''}`}>
+        {!editorExpanded && (
+          <div
+            ref={resizeHandleRef}
+            onMouseDown={onResizeStart}
+            className="group relative w-1 flex-shrink-0 cursor-col-resize bg-gray-200 transition-colors hover:bg-blue-500 dark:bg-gray-700 dark:hover:bg-blue-600"
+            title="Drag to resize"
+          >
+            <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-blue-500 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-blue-600" />
+          </div>
+        )}
+
+        <div
+          className={`h-full overflow-hidden border-l border-gray-200 dark:border-gray-700 ${useFlexLayout ? 'min-w-0 flex-1' : 'flex-shrink-0'}`}
+          style={useFlexLayout ? undefined : { width: `${effectiveWidth}px`, minWidth: `${MIN_EDITOR_WIDTH}px` }}
+        >
+          <GitEditorPanel
+            selectedProject={selectedProject}
+            isMobile={isMobile}
+            isSidebar
+            isExpanded={editorExpanded}
+            onClose={onCloseEditor}
+            onToggleExpand={onToggleEditorExpand}
+            onPopOut={() => setPoppedOut(true)}
+            onFileOpen={onFileOpen}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Code editor in sidebar mode
   // In files tab, fill the remaining width unless user has dragged manually.
   const useFlexLayout = editorExpanded || (fillSpace && !hasManualWidth);
 
@@ -114,20 +181,22 @@ export default function EditorSidebar({
         </div>
       )}
 
-      <div
-        className={`h-full overflow-hidden border-l border-gray-200 dark:border-gray-700 ${useFlexLayout ? 'min-w-0 flex-1' : `min-w-[ flex-shrink-0${MIN_EDITOR_WIDTH}px]`}`}
-        style={useFlexLayout ? undefined : { width: `${effectiveWidth}px`, minWidth: `${MIN_EDITOR_WIDTH}px` }}
-      >
-        <CodeEditor
-          file={editingFile}
-          onClose={onCloseEditor}
-          projectPath={projectPath}
-          isSidebar
-          isExpanded={editorExpanded}
-          onToggleExpand={onToggleEditorExpand}
-          onPopOut={() => setPoppedOut(true)}
-        />
-      </div>
+      {editingFile && (
+        <div
+          className={`h-full overflow-hidden border-l border-gray-200 dark:border-gray-700 ${useFlexLayout ? 'min-w-0 flex-1' : `min-w-[ flex-shrink-0${MIN_EDITOR_WIDTH}px]`}`}
+          style={useFlexLayout ? undefined : { width: `${effectiveWidth}px`, minWidth: `${MIN_EDITOR_WIDTH}px` }}
+        >
+          <CodeEditor
+            file={editingFile}
+            onClose={onCloseEditor}
+            projectPath={projectPath}
+            isSidebar
+            isExpanded={editorExpanded}
+            onToggleExpand={onToggleEditorExpand}
+            onPopOut={() => setPoppedOut(true)}
+          />
+        </div>
+      )}
     </div>
   );
 }

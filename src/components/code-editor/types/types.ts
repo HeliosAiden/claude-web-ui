@@ -21,3 +21,8 @@ export type CodeEditorSettingsState = {
   showLineNumbers: boolean;
   fontSize: string;
 };
+
+export type EditorSidebarContent =
+  | { mode: 'none' }
+  | { mode: 'codeEditor'; file: CodeEditorFile }
+  | { mode: 'gitPanel' };

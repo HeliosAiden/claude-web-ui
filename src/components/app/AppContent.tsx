@@ -15,6 +15,7 @@ import { useProjectsState } from '../../hooks/useProjectsState';
 import { useOpenSessionTabs } from '../../hooks/useOpenSessionTabs';
 import { usePlugins } from '../../contexts/PluginsContext';
 import PluginIcon from '../plugins/view/PluginIcon';
+import { useEditorSidebar } from '../code-editor/hooks/useEditorSidebar';
 import type { ActivityBarItemDef } from '../activity-bar/types';
 import type { ActivityId } from '../../types/app';
 
@@ -46,12 +47,9 @@ function AppContentInner() {
 
   const {
     openSessions,
-    errorSessions,
     addOpenSession,
-    removeOpenSession,
     updateSessionTitle,
     markSessionError,
-    clearSessionError,
   } = useOpenSessionTabs();
 
   const {
@@ -166,6 +164,8 @@ function AppContentInner() {
       'e': 'explorer',
       'b': 'bookmarks',
       'k': 'search',
+      'f': 'files',
+      'g': 'git',
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -244,26 +244,24 @@ function AppContentInner() {
     [addOpenSession, navigate],
   );
 
-  const handleCloseTab = useCallback(
-    (sessionId: string) => {
-      const remaining = openSessions.filter((s) => s.id !== sessionId);
-      removeOpenSession(sessionId);
-      if (selectedSession?.id === sessionId) {
-        if (remaining.length > 0) {
-          const closedIndex = openSessions.findIndex((s) => s.id === sessionId);
-          const nextSession = remaining[Math.min(closedIndex, remaining.length - 1)];
-          navigate(`/session/${nextSession.id}`, { replace: true });
-        } else {
-          navigate('/', { replace: true });
-        }
-      }
-    },
-    [removeOpenSession, selectedSession?.id, openSessions, navigate],
-  );
-
   const handleShowSettings = useCallback(() => {
     setShowSettings(true);
   }, [setShowSettings]);
+
+  const {
+    editingFile,
+    gitPanelOpen,
+    editorWidth,
+    editorExpanded,
+    hasManualWidth,
+    resizeHandleRef,
+    handleFileOpen,
+    handleOpenGitPanel,
+    handleCloseEditor,
+    handleCloseGitPanel,
+    handleToggleEditorExpand,
+    handleResizeStart,
+  } = useEditorSidebar({ selectedProject, isMobile });
 
   return (
     <div className="fixed inset-0 flex bg-background" style={{ bottom: 'var(--keyboard-height, 0px)' }}>
@@ -284,7 +282,7 @@ function AppContentInner() {
           mode="sidebar"
           isOpen={flyoutOpen}
         >
-          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} />
+          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} onFileOpen={handleFileOpen} onOpenGitPanel={handleOpenGitPanel} />
         </ProjectsFlyout>
       )}
 
@@ -295,7 +293,7 @@ function AppContentInner() {
           isOpen={flyoutOpen}
           onClose={() => setFlyoutOpen(false)}
         >
-          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} />
+          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} onFileOpen={handleFileOpen} onOpenGitPanel={handleOpenGitPanel} />
         </ProjectsFlyout>
       )}
 
@@ -321,19 +319,24 @@ function AppContentInner() {
           onShowSettings={() => setShowSettings(true)}
           externalMessageUpdate={externalMessageUpdate}
           newSessionTrigger={newSessionTrigger}
-          openSessions={openSessions}
-          errorSessions={errorSessions}
           onSessionError={markSessionError}
-          onSessionErrorClear={clearSessionError}
-          onCloseTab={handleCloseTab}
           activeActivity={activeActivity}
           projects={projects}
           onProjectSelect={sidebarSharedProps.onProjectSelect}
           onNewSession={handleNewSession}
+          editingFile={editingFile}
+          gitPanelOpen={gitPanelOpen}
+          editorWidth={editorWidth}
+          editorExpanded={editorExpanded}
+          hasManualWidth={hasManualWidth}
+          resizeHandleRef={resizeHandleRef}
+          onFileOpen={handleFileOpen}
+          onCloseEditor={handleCloseEditor}
+          onCloseGitPanel={handleCloseGitPanel}
+          onToggleEditorExpand={handleToggleEditorExpand}
+          onResizeStart={handleResizeStart}
         />
       </div>
-
-      {/* Mobile bottom ActivityBar */}
       {isMobile && (
         <ActivityBar
           activeActivity={activeActivity}

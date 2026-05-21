@@ -71,6 +71,8 @@ export type SettingsProps = {
   onClose: () => void;
   projects?: SettingsProject[];
   initialTab?: string;
+  workspaceRoot?: string;
+  onWorkspaceRootChange?: (value: string) => void;
 };
 
 export type SetState<T> = Dispatch<SetStateAction<T>>;
