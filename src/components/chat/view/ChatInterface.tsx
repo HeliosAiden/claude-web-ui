@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useProviderAuthStatus } from '../../provider-auth/hooks/useProviderAuthStatus';
@@ -14,6 +14,7 @@ import { useSessionStore } from '../../../stores/useSessionStore';
 
 import ChatMessagesPane from './subcomponents/ChatMessagesPane';
 import ChatComposer from './subcomponents/ChatComposer';
+import TemplatePlaceholderDialog from './subcomponents/TemplatePlaceholderDialog';
 
 
 type PendingViewSession = {
@@ -182,7 +183,6 @@ function ChatInterface({
     handleGrantToolPermission,
     handleInputFocusChange,
     isInputFocused,
-    handleInsertTemplate,
   } = useChatComposerState({
     selectedProject,
     selectedSession,
@@ -215,6 +215,10 @@ function ChatInterface({
     setIsUserScrolledUp,
     setPendingPermissionRequests,
   });
+
+  const [pendingTemplate, setPendingTemplate] = useState<{
+    content: string;
+  } | null>(null);
 
   // On WebSocket reconnect, re-fetch the current session's messages from the server
   // so missed streaming events are shown. Also reset isLoading.
@@ -292,6 +296,22 @@ function ChatInterface({
       resetStreamingState();
     };
   }, [resetStreamingState]);
+
+  const handleInsertTemplateWithPlaceholders = useCallback(
+    (content: string) => {
+      const placeholderRegex = /\{\{(\w+)\}\}/g;
+      if (placeholderRegex.test(content)) {
+        placeholderRegex.lastIndex = 0;
+        setPendingTemplate({ content });
+      } else {
+        setInput(content);
+        requestAnimationFrame(() => {
+          textareaRef.current?.focus();
+        });
+      }
+    },
+    [setInput, textareaRef],
+  );
 
   const permissionContextValue = useMemo(() => ({
     pendingPermissionRequests,
@@ -448,11 +468,26 @@ function ChatInterface({
           })}
           isTextareaExpanded={isTextareaExpanded}
           sendByCtrlEnter={sendByCtrlEnter}
-          onInsertTemplate={handleInsertTemplate}
+          onInsertTemplate={handleInsertTemplateWithPlaceholders}
         />
       </div>
 
       <QuickSettingsPanel />
+
+      <TemplatePlaceholderDialog
+        open={pendingTemplate !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingTemplate(null);
+        }}
+        content={pendingTemplate?.content ?? ''}
+        onConfirm={(substitutedContent) => {
+          setInput(substitutedContent);
+          requestAnimationFrame(() => {
+            textareaRef.current?.focus();
+          });
+          setPendingTemplate(null);
+        }}
+      />
     </PermissionContext.Provider>
   );
 }

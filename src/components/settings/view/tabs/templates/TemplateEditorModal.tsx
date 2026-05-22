@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { PromptTemplate } from '../../../hooks/usePromptTemplatesSettings';
 
 type TemplateEditorModalProps = {
@@ -88,7 +89,7 @@ export default function TemplateEditorModal({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       {/* Overlay */}
       <button
@@ -109,6 +110,8 @@ export default function TemplateEditorModal({
             <label className="text-sm font-medium text-foreground">Name</label>
             <input
               type="text"
+              name="template-name"
+              autoComplete="off"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Code Review"
@@ -121,6 +124,8 @@ export default function TemplateEditorModal({
             <label className="text-sm font-medium text-foreground">Description (optional)</label>
             <input
               type="text"
+              name="template-description"
+              autoComplete="off"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Short description of when to use this template"
@@ -132,6 +137,8 @@ export default function TemplateEditorModal({
             <label className="text-sm font-medium text-foreground">Category (optional)</label>
             <input
               type="text"
+              name="template-category"
+              autoComplete="off"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="e.g. code-review, testing, documentation"
@@ -178,6 +185,8 @@ export default function TemplateEditorModal({
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Content</label>
             <textarea
+              name="template-content"
+              autoComplete="off"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={`Write your template content here...\n\nUse {{placeholder}} for variables that will be filled when inserting the template.`}
@@ -212,6 +221,7 @@ export default function TemplateEditorModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
