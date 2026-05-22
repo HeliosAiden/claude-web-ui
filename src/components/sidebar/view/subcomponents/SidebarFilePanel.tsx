@@ -1,14 +1,26 @@
-import React, { useCallback, useState } from 'react';
-import { ChevronRight, Folder, FolderOpen, RefreshCw, ExternalLink } from 'lucide-react';
-import type { Project, AppTab } from '../../../../types/app';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  RefreshCw,
+  X,
+  Check,
+} from 'lucide-react';
+import type { Project } from '../../../../types/app';
 import type { FileTreeNode } from '../../../file-tree/types/types';
 import { useFileTreeData } from '../../../file-tree/hooks/useFileTreeData';
+import { useExpandedDirectories } from '../../../file-tree/hooks/useExpandedDirectories';
+import { useFileTreeOperations } from '../../../file-tree/hooks/useFileTreeOperations';
 import { getFileIconData, ICON_SIZE_CLASS } from '../../../file-tree/constants/fileIcons';
 import { cn } from '../../../../lib/utils';
+import { Button, Input } from '../../../../shared/view/ui';
 
 type SidebarFilePanelProps = {
   selectedProject: Project | null;
-  onNavigateToTab?: (tab: AppTab) => void;
   onFileOpen?: (filePath: string) => void;
 };
 
@@ -82,23 +94,39 @@ function FileTreeRow({
   );
 }
 
-function SidebarFilePanel({ selectedProject, onNavigateToTab, onFileOpen }: SidebarFilePanelProps) {
+function SidebarFilePanel({ selectedProject, onFileOpen }: SidebarFilePanelProps) {
   const projectId = selectedProject?.projectId ?? null;
   const { files, loading, refreshFiles } = useFileTreeData(selectedProject);
-  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
+  const { expandedDirs, toggleDirectory, collapseAll } = useExpandedDirectories();
   const [searchFilter, setSearchFilter] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const newItemInputRef = useRef<HTMLInputElement>(null);
 
-  const toggleDir = useCallback((path: string) => {
-    setExpandedDirs((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
-      return next;
-    });
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
   }, []);
+
+  // Auto-hide toast
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const operations = useFileTreeOperations({
+    selectedProject,
+    onRefresh: refreshFiles,
+    showToast,
+  });
+
+  // Focus input when creating new item
+  useEffect(() => {
+    if (operations.isCreating && newItemInputRef.current) {
+      newItemInputRef.current.focus();
+      newItemInputRef.current.select();
+    }
+  }, [operations.isCreating]);
 
   const filterTree = useCallback(
     (nodes: FileTreeNode[], query: string): FileTreeNode[] => {
@@ -141,18 +169,56 @@ function SidebarFilePanel({ selectedProject, onNavigateToTab, onFileOpen }: Side
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Header with toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/40">
         <span className="text-xs font-medium text-foreground">Files</span>
         <div className="flex items-center gap-0.5">
-          <button
-            type="button"
+          {operations && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => operations.handleStartCreate('', 'file')}
+                title="New File"
+                aria-label="New File"
+                disabled={operations.operationLoading}
+              >
+                <FileText className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => operations.handleStartCreate('', 'directory')}
+                title="New Folder"
+                aria-label="New Folder"
+                disabled={operations.operationLoading}
+              >
+                <FolderPlus className="h-3 w-3" />
+              </Button>
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
             onClick={() => refreshFiles()}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title="Refresh files"
             aria-label="Refresh files"
           >
-            <RefreshCw className="h-3 w-3" />
-          </button>
+            <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={collapseAll}
+            title="Collapse All"
+            aria-label="Collapse All"
+          >
+            <ChevronDown className="h-3 w-3" />
+          </Button>
         </div>
       </div>
 
@@ -167,6 +233,35 @@ function SidebarFilePanel({ selectedProject, onNavigateToTab, onFileOpen }: Side
         />
       </div>
 
+      {/* Inline creation input */}
+      {operations.isCreating && (
+        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-border/30">
+          {operations.newItemType === 'directory' ? (
+            <Folder className="h-3.5 w-3.5 flex-shrink-0 text-blue-500" />
+          ) : (
+            <FileText className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+          )}
+          <Input
+            ref={newItemInputRef}
+            type="text"
+            value={operations.newItemName}
+            onChange={(e) => operations.setNewItemName(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') operations.handleConfirmCreate();
+              if (e.key === 'Escape') operations.handleCancelCreate();
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                if (operations.isCreating) operations.handleConfirmCreate();
+              }, 100);
+            }}
+            className="h-6 flex-1 text-[11px]"
+            disabled={operations.operationLoading}
+          />
+        </div>
+      )}
+
       {/* File tree */}
       <div className="flex-1 overflow-y-auto px-1 py-1">
         {filteredFiles.length === 0 ? (
@@ -180,24 +275,31 @@ function SidebarFilePanel({ selectedProject, onNavigateToTab, onFileOpen }: Side
               node={node}
               depth={0}
               expandedDirs={expandedDirs}
-              onToggle={toggleDir}
+              onToggle={toggleDirectory}
               onFileOpen={onFileOpen}
             />
           ))
         )}
       </div>
 
-      {/* Open full panel link */}
-      <div className="flex-shrink-0 border-t border-border/40 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => onNavigateToTab?.('files')}
-          className="flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={cn(
+            'mx-3 mb-2 px-3 py-1.5 rounded-md shadow-sm flex items-center gap-2 text-[11px] animate-in slide-in-from-bottom-2',
+            toast.type === 'success'
+              ? 'bg-green-600/90 text-white'
+              : 'bg-red-600/90 text-white'
+          )}
         >
-          <ExternalLink className="h-3 w-3" />
-          Open Full Panel
-        </button>
-      </div>
+          {toast.type === 'success' ? (
+            <Check className="h-3 w-3 flex-shrink-0" />
+          ) : (
+            <X className="h-3 w-3 flex-shrink-0" />
+          )}
+          <span className="truncate">{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 
 import ChatInterface from '../../chat/view/ChatInterface';
-import FileTree from '../../file-tree/view/FileTree';
 import StandaloneShell from '../../standalone-shell/view/StandaloneShell';
 import PluginTabContent from '../../plugins/view/PluginTabContent';
 import type { MainContentProps } from '../types/types';
@@ -57,7 +56,6 @@ function MainContent({
 
   usePaletteOpsRegister({
     openFile: (filePath: string) => {
-      setActiveTab('files');
       onFileOpen(filePath);
     },
   });
@@ -116,12 +114,6 @@ function MainContent({
             </ErrorBoundary>
           </div>
 
-          {activeTab === 'files' && (
-            <div className="h-full overflow-hidden">
-              <FileTree selectedProject={selectedProject} onFileOpen={onFileOpen} />
-            </div>
-          )}
-
           {activeTab === 'shell' && (
             <div className="h-full w-full overflow-hidden">
               <StandaloneShell
@@ -160,7 +152,6 @@ function MainContent({
           onToggleEditorExpand={onToggleEditorExpand}
           onFileOpen={onFileOpen}
           projectPath={selectedProject.path}
-          fillSpace={activeTab === 'files'}
         />
       </div>
     </div>

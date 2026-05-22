@@ -41,7 +41,7 @@ export default function SidebarHeader({
   onCreateProject,
   t,
 }: SidebarHeaderProps) {
-  const showSearchTools = (projectsCount > 0 || archivedSessionsCount > 0 || isArchivedSessionsLoading) && !isLoading;
+  const showSearchTools = (projectsCount > 0 || archivedSessionsCount > 0 || isArchivedSessionsLoading) && !isLoading && activePanel !== 'files';
   const searchPlaceholder = activePanel === 'search'
     ? t('search.globalPlaceholder', 'Type to search anything…')
     : activePanel === 'bookmarks'
