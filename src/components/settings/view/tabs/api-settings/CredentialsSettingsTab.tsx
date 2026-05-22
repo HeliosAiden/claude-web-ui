@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useCredentialsSettings } from '../../../hooks/useCredentialsSettings';
 import ApiKeysSection from './sections/ApiKeysSection';
 import GithubCredentialsSection from './sections/GithubCredentialsSection';
+import GitlabCredentialsSection from './sections/GitlabCredentialsSection';
 import NewApiKeyAlert from './sections/NewApiKeyAlert';
 
 export default function CredentialsSettingsTab() {
@@ -9,6 +10,7 @@ export default function CredentialsSettingsTab() {
   const {
     apiKeys,
     githubCredentials,
+    gitlabCredentials,
     loading,
     showNewKeyForm,
     setShowNewKeyForm,
@@ -22,6 +24,14 @@ export default function CredentialsSettingsTab() {
     setNewGithubToken,
     newGithubDescription,
     setNewGithubDescription,
+    showNewGitlabForm,
+    setShowNewGitlabForm,
+    newGitlabName,
+    setNewGitlabName,
+    newGitlabToken,
+    setNewGitlabToken,
+    newGitlabDescription,
+    setNewGitlabDescription,
     showToken,
     copiedKey,
     newlyCreatedKey,
@@ -31,14 +41,20 @@ export default function CredentialsSettingsTab() {
     createGithubCredential,
     deleteGithubCredential,
     toggleGithubCredential,
+    createGitlabCredential,
+    deleteGitlabCredential,
+    toggleGitlabCredential,
     copyToClipboard,
     dismissNewlyCreatedKey,
     cancelNewApiKeyForm,
     cancelNewGithubForm,
     toggleNewGithubTokenVisibility,
+    cancelNewGitlabForm,
+    toggleNewGitlabTokenVisibility,
   } = useCredentialsSettings({
     confirmDeleteApiKeyText: t('apiKeys.confirmDelete'),
     confirmDeleteGithubCredentialText: t('apiKeys.github.confirmDelete'),
+    confirmDeleteGitlabCredentialText: t('apiKeys.gitlab.confirmDelete'),
   });
 
   if (loading) {
@@ -84,6 +100,24 @@ export default function CredentialsSettingsTab() {
         onCancelCreateGithubCredential={cancelNewGithubForm}
         onToggleGithubCredential={toggleGithubCredential}
         onDeleteGithubCredential={deleteGithubCredential}
+      />
+
+      <GitlabCredentialsSection
+        gitlabCredentials={gitlabCredentials}
+        showNewGitlabForm={showNewGitlabForm}
+        showNewTokenPlainText={Boolean(showToken.newGitlab)}
+        newGitlabName={newGitlabName}
+        newGitlabToken={newGitlabToken}
+        newGitlabDescription={newGitlabDescription}
+        onShowNewGitlabFormChange={setShowNewGitlabForm}
+        onNewGitlabNameChange={setNewGitlabName}
+        onNewGitlabTokenChange={setNewGitlabToken}
+        onNewGitlabDescriptionChange={setNewGitlabDescription}
+        onToggleNewTokenVisibility={toggleNewGitlabTokenVisibility}
+        onCreateGitlabCredential={createGitlabCredential}
+        onCancelCreateGitlabCredential={cancelNewGitlabForm}
+        onToggleGitlabCredential={toggleGitlabCredential}
+        onDeleteGitlabCredential={deleteGitlabCredential}
       />
 
     </div>

@@ -34,3 +34,17 @@ export type GithubCredentialsResponse = {
   success?: boolean;
   error?: string;
 };
+
+export type GitlabCredentialItem = {
+  id: string;
+  credential_name: string;
+  description?: string | null;
+  created_at: string;
+  is_active: boolean;
+};
+
+export type GitlabCredentialsResponse = {
+  credentials?: GitlabCredentialItem[];
+  success?: boolean;
+  error?: string;
+};
