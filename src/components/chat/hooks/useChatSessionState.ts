@@ -139,6 +139,7 @@ export function useChatSessionState({
   const pendingInitialScrollRef = useRef(true);
   const messagesOffsetRef = useRef(0);
   const scrollPositionRef = useRef({ height: 0, top: 0 });
+  const isUserScrolledUpRef = useRef(false);
   const loadAllFinishedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadAllOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLoadedSessionKeyRef = useRef<string | null>(null);
@@ -386,7 +387,9 @@ export function useChatSessionState({
     if (!container) return;
 
     const nearBottom = isNearBottom();
-    setIsUserScrolledUp(!nearBottom);
+    const scrolledUp = !nearBottom;
+    setIsUserScrolledUp(scrolledUp);
+    isUserScrolledUpRef.current = scrolledUp;
 
     if (!allMessagesLoadedRef.current) {
       const scrolledNearTop = container.scrollTop < 100;
@@ -418,6 +421,7 @@ export function useChatSessionState({
     topLoadLockRef.current = false;
     pendingScrollRestoreRef.current = null;
     setIsUserScrolledUp(false);
+    isUserScrolledUpRef.current = false;
   }, [selectedProject?.projectId, selectedSession?.id]);
 
   // Initial scroll to bottom
@@ -690,10 +694,36 @@ export function useChatSessionState({
     return chatMessages.slice(-visibleMessageCount);
   }, [chatMessages, visibleMessageCount]);
 
-  useEffect(() => {
-    if (!autoScrollToBottom && scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      scrollPositionRef.current = { height: container.scrollHeight, top: container.scrollTop };
+  // Track scrollHeight changes on every layout cycle so that in-place content
+  // growth (streaming text inside an already-open Reasoning section, collapsible
+  // animations, etc.) adjusts scroll position immediately — the existing
+  // chatMessages.length-based effect below misses these because streaming
+  // replaces the message in-place without changing array length.
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || chatMessages.length === 0) return;
+    if (isLoadingMoreRef.current || isLoadingMoreMessages || pendingScrollRestoreRef.current) return;
+    if (searchScrollActiveRef.current) return;
+
+    const prevHeight = scrollPositionRef.current.height;
+    const prevTop = scrollPositionRef.current.top;
+    const newHeight = container.scrollHeight;
+    const newTop = container.scrollTop;
+
+    scrollPositionRef.current = { height: newHeight, top: newTop };
+
+    const heightDiff = newHeight - prevHeight;
+    if (heightDiff <= 0) return;
+
+    if (autoScrollToBottom) {
+      // Only auto-scroll when user hasn't intentionally scrolled up
+      if (!isUserScrolledUpRef.current) {
+        container.scrollTop = container.scrollHeight;
+      }
+      // If user scrolled up, growing content below is fine — no adjustment needed
+    } else {
+      // Manual scroll anchoring: keep viewport position stable
+      if (prevTop > 0) container.scrollTop = prevTop + heightDiff;
     }
   });
 

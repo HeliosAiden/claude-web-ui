@@ -567,6 +567,12 @@
       touch-action: pan-y;
       -webkit-overflow-scrolling: touch;
     }
+
+    /* Anchor content in the chat message pane so that new streaming text /
+       collapsible animations don't push the reader's viewport around */
+    .chat-messages-scroll-container {
+      overflow-anchor: auto;
+    }
     
     /* Preserve checkbox visibility */
     input[type="checkbox"] {
