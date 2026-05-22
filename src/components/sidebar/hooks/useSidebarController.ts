@@ -93,6 +93,7 @@ export function useSidebarController({
       case 'search': return 'search';
       case 'files': return 'files';
       case 'git': return 'git';
+      case 'templates': return 'templates';
       default: return 'projects';
     }
   }, [activePanel]);

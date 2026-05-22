@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 
 import { api } from '../utils/api';
@@ -211,7 +211,7 @@ const readPersistedTab = (): AppTab => {
   return 'chat';
 };
 
-const VALID_ACTIVITIES: Set<string> = new Set(['explorer', 'bookmarks', 'search', 'files', 'git', 'settings']);
+const VALID_ACTIVITIES: Set<string> = new Set(['explorer', 'bookmarks', 'search', 'files', 'git', 'templates', 'settings']);
 
 const isValidActivity = (activity: string): activity is ActivityId => {
   return VALID_ACTIVITIES.has(activity) || activity.startsWith('plugin:');
@@ -229,13 +229,14 @@ const readPersistedActivity = (): ActivityId => {
   return 'explorer';
 };
 
-const sidebarPanelFromActivity = (activity: ActivityId): 'explorer' | 'bookmarks' | 'search' | 'files' | 'git' | null => {
+const sidebarPanelFromActivity = (activity: ActivityId): 'explorer' | 'bookmarks' | 'search' | 'files' | 'git' | 'templates' | null => {
   switch (activity) {
     case 'explorer': return 'explorer';
     case 'bookmarks': return 'bookmarks';
     case 'search': return 'search';
     case 'files': return 'files';
     case 'git': return 'git';
+    case 'templates': return 'templates';
     default: return null;
   }
 };
@@ -251,7 +252,18 @@ export function useProjectsState({
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedSession, setSelectedSession] = useState<ProjectSession | null>(null);
-  const [activeTab, setActiveTab] = useState<AppTab>(readPersistedTab);
+  const [activeTab, setActiveTabState] = useState<AppTab>(() => {
+    const tab = readPersistedTab();
+    return tab === 'files' ? 'chat' : tab;
+  });
+
+  // Wrap setActiveTab to redirect 'files' → 'chat' since Files is now a sidebar-only feature
+  const setActiveTab = useCallback((tab: SetStateAction<AppTab>) => {
+    setActiveTabState((prev) => {
+      const next = typeof tab === 'function' ? tab(prev) : tab;
+      return next === 'files' ? 'chat' : next;
+    });
+  }, []);
 
   useEffect(() => {
     try {

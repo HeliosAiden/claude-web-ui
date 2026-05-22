@@ -2,7 +2,7 @@ export type LLMProvider = 'claude' | 'cursor' | 'codex' | 'gemini';
 
 export type AppTab = 'chat' | 'files' | 'shell' | 'git' | 'preview' | `plugin:${string}`;
 
-export type ActivityId = 'explorer' | 'bookmarks' | 'search' | 'files' | 'git' | 'settings' | `plugin:${string}`;
+export type ActivityId = 'explorer' | 'bookmarks' | 'search' | 'files' | 'git' | 'templates' | 'settings' | `plugin:${string}`;
 
 export interface ProjectSession {
   id: string;

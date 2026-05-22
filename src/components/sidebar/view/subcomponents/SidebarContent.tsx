@@ -9,6 +9,7 @@ import SessionProviderLogo from '../../../llm-logo-provider/SessionProviderLogo'
 import SidebarFooter from './SidebarFooter';
 import SidebarFilePanel from './SidebarFilePanel';
 import SidebarGitPanel from './SidebarGitPanel';
+import SidebarTemplatesPanel from './SidebarTemplatesPanel';
 import SidebarHeader from './SidebarHeader';
 import SidebarProjectList, { type SidebarProjectListProps } from './SidebarProjectList';
 import SidebarSearchPanel from './SidebarSearchPanel';
@@ -209,6 +210,7 @@ export default function SidebarContent({
           searchMode === 'search' ? 'search' :
           searchMode === 'files' ? 'files' :
           searchMode === 'git' ? 'git' :
+          searchMode === 'templates' ? 'templates' :
           'explorer'
         }
         onRefresh={onRefresh}
@@ -291,7 +293,6 @@ export default function SidebarContent({
         ) : searchMode === 'files' ? (
           <SidebarFilePanel
             selectedProject={projectListProps.selectedProject}
-            onNavigateToTab={onNavigateToTab}
             onFileOpen={onFileOpen}
           />
         ) : searchMode === 'git' ? (
@@ -300,6 +301,8 @@ export default function SidebarContent({
             onOpenGitPanel={onOpenGitPanel}
             onFileOpen={onFileOpen}
           />
+        ) : searchMode === 'templates' ? (
+          <SidebarTemplatesPanel />
         ) : searchMode === 'archived' ? (
           isArchivedSessionsLoading ? (
             <div className="px-4 py-12 text-center md:py-8">

@@ -1,9 +1,9 @@
 import type { AppTab, LoadingProgress, Project, ProjectSession, LLMProvider } from '../../../types/app';
 
 export type ProjectSortOrder = 'name' | 'date';
-export type SidebarSearchMode = 'projects' | 'search' | 'archived' | 'bookmarks' | 'files' | 'git';
+export type SidebarSearchMode = 'projects' | 'search' | 'archived' | 'bookmarks' | 'files' | 'git' | 'templates';
 
-export type SidebarPanel = 'explorer' | 'bookmarks' | 'search' | 'files' | 'git';
+export type SidebarPanel = 'explorer' | 'bookmarks' | 'search' | 'files' | 'git' | 'templates';
 
 export type BookmarkedMessage = {
   id: number;

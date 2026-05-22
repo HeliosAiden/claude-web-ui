@@ -166,6 +166,7 @@ function AppContentInner() {
       'k': 'search',
       'f': 'files',
       'g': 'git',
+      'p': 'templates',
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {

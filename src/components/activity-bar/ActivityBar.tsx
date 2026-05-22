@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import {
   Bookmark,
   File,
+  FileText,
   Folder,
   GitBranch,
   Search,
@@ -15,9 +16,10 @@ import type { ActivityBarItemDef, ActivityBarProps } from './types';
 const BUILT_IN_ITEMS: Omit<ActivityBarItemDef, 'id'>[] = [
   { icon: Folder, label: 'Projects & sessions', shortcut: 'Ctrl+E' },
   { icon: Bookmark, label: 'Bookmarks', shortcut: 'Ctrl+B' },
-  { icon: Search, label: 'Search' },
+  { icon: Search, label: 'Search', shortcut: 'Ctrl+K' },
   { icon: File, label: 'Files', shortcut: 'Ctrl+F' },
   { icon: GitBranch, label: 'Source Control', shortcut: 'Ctrl+G' },
+  { icon: FileText, label: 'Prompt Templates', shortcut: 'Ctrl+P' },
 ];
 
 function ActivityBar({
@@ -35,6 +37,7 @@ function ActivityBar({
       { ...BUILT_IN_ITEMS[2], id: 'search' as ActivityId },
       { ...BUILT_IN_ITEMS[3], id: 'files' as ActivityId },
       { ...BUILT_IN_ITEMS[4], id: 'git' as ActivityId },
+      { ...BUILT_IN_ITEMS[5], id: 'templates' as ActivityId },
       ...pluginActivities,
     ];
     return list;

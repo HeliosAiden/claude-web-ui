@@ -7,6 +7,7 @@ type TemplateEditorModalProps = {
   onSave: (data: { name: string; content: string; description?: string; category?: string }) => Promise<boolean>;
   template?: PromptTemplate | null;
   existingCategories: string[];
+  initialContent?: string;
 };
 
 export default function TemplateEditorModal({
@@ -15,6 +16,7 @@ export default function TemplateEditorModal({
   onSave,
   template,
   existingCategories,
+  initialContent = '',
 }: TemplateEditorModalProps) {
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
@@ -36,12 +38,12 @@ export default function TemplateEditorModal({
   useEffect(() => {
     if (open) {
       setName(template?.name || '');
-      setContent(template?.content || '');
+      setContent(template?.content || initialContent || '');
       setDescription(template?.description || '');
       setCategory(template?.category || '');
       setError('');
     }
-  }, [open, template]);
+  }, [open, template, initialContent]);
 
   useEffect(() => {
     if (!open) return;

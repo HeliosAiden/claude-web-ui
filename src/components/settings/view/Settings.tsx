@@ -9,7 +9,6 @@ import CredentialsSettingsTab from '../view/tabs/api-settings/CredentialsSetting
 import GitSettingsTab from '../view/tabs/git-settings/GitSettingsTab';
 import NotificationsSettingsTab from '../view/tabs/NotificationsSettingsTab';
 import PluginSettingsTab from '../../plugins/view/PluginSettingsTab';
-import TemplatesSettingsTab from '../view/tabs/templates/TemplatesSettingsTab';
 import { useSettingsController } from '../hooks/useSettingsController';
 import { useWebPush } from '../../../hooks/useWebPush';
 import type { SettingsProps } from '../types/types';
@@ -159,8 +158,6 @@ function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: Set
               {activeTab === 'api' && <CredentialsSettingsTab />}
 
               {activeTab === 'plugins' && <PluginSettingsTab />}
-
-              {activeTab === 'templates' && <TemplatesSettingsTab />}
 
             </div>
           </main>
