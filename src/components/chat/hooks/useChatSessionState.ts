@@ -84,6 +84,8 @@ function chatMessageToNormalized(
     kind: 'text',
     role: msg.type === 'user' ? 'user' : 'assistant',
     content: msg.content || '',
+    images: msg.images,
+    files: msg.files,
   } as NormalizedMessage;
 }
 

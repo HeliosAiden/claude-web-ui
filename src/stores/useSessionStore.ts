@@ -55,6 +55,7 @@ export interface NormalizedMessage {
   isLocalCommandStdout?: boolean;
   isCompactSummary?: boolean;
   images?: string[];
+  files?: unknown[];
   toolName?: string;
   toolInput?: unknown;
   toolId?: string;

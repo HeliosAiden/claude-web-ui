@@ -9,6 +9,13 @@ export interface ChatImage {
   name: string;
 }
 
+export interface ChatAttachment {
+  data: string;
+  name: string;
+  size: number;
+  mimeType: string;
+}
+
 export interface ToolResult {
   content?: unknown;
   isError?: boolean;
@@ -33,6 +40,7 @@ export interface ChatMessage {
   displayText?: string;
   timestamp: string | number | Date;
   images?: ChatImage[];
+  files?: ChatAttachment[];
   reasoning?: string;
   isThinking?: boolean;
   isStreaming?: boolean;

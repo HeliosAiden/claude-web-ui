@@ -62,6 +62,8 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
               type: 'user',
               content: unescapeWithMathProtection(decodeHtmlEntities(content)),
               timestamp: msg.timestamp,
+              images: msg.images as any,
+              files: msg.files as any,
               ...sharedMetadata,
             });
           }

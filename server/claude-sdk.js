@@ -350,57 +350,74 @@ function extractTokenBudget(resultMessage) {
 }
 
 /**
- * Handles image processing for SDK queries
- * Saves base64 images to temporary files and returns modified prompt with file paths
+ * Handles image and file attachment processing for SDK queries
+ * Saves base64 attachments to temporary files and returns modified prompt with file paths
  * @param {string} command - Original user prompt
  * @param {Array} images - Array of image objects with base64 data
+ * @param {Array} files - Array of file objects with base64 data
  * @param {string} cwd - Working directory for temp file creation
  * @returns {Promise<Object>} {modifiedCommand, tempImagePaths, tempDir}
  */
-async function handleImages(command, images, cwd) {
+async function handleAttachments(command, images, files, cwd) {
   const tempImagePaths = [];
   let tempDir = null;
 
-  if (!images || images.length === 0) {
+  if ((!images || images.length === 0) && (!files || files.length === 0)) {
     return { modifiedCommand: command, tempImagePaths, tempDir };
   }
 
   try {
-    // Create temp directory in the project directory
     const workingDir = cwd || process.cwd();
-    tempDir = path.join(workingDir, '.tmp', 'images', Date.now().toString());
+    tempDir = path.join(workingDir, '.tmp', 'attachments', Date.now().toString());
     await fs.mkdir(tempDir, { recursive: true });
 
-    // Save each image to a temp file
-    for (const [index, image] of images.entries()) {
-      // Extract base64 data and mime type
-      const matches = image.data.match(/^data:([^;]+);base64,(.+)$/);
-      if (!matches) {
-        console.error('Invalid image data format');
-        continue;
+    let pathIndex = 0;
+
+    // Process images
+    if (images && images.length > 0) {
+      for (const image of images) {
+        const matches = image.data.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) { continue; }
+
+        const [, mimeType, base64Data] = matches;
+        const extension = mimeType.split('/')[1] || 'png';
+        const filename = `image_${pathIndex}.${extension}`;
+        const filepath = path.join(tempDir, filename);
+        await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+        tempImagePaths.push(filepath);
+        pathIndex++;
       }
-
-      const [, mimeType, base64Data] = matches;
-      const extension = mimeType.split('/')[1] || 'png';
-      const filename = `image_${index}.${extension}`;
-      const filepath = path.join(tempDir, filename);
-
-      // Write base64 data to file
-      await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
-      tempImagePaths.push(filepath);
     }
 
-    // Include the full image paths in the prompt
+    // Process files
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const matches = file.data.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) { continue; }
+
+        const [, mimeType, base64Data] = matches;
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `file_${pathIndex}_${safeName}`;
+        const filepath = path.join(tempDir, filename);
+        await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+        tempImagePaths.push(filepath);
+        pathIndex++;
+      }
+    }
+
+    // Include attachment paths in the prompt
     let modifiedCommand = command;
     if (tempImagePaths.length > 0 && command && command.trim()) {
-      const imageNote = `\n\n[Images provided at the following paths:]\n${tempImagePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
-      modifiedCommand = command + imageNote;
+      const parts = [];
+      if (images && images.length > 0) parts.push(`${images.length} image(s)`);
+      if (files && files.length > 0) parts.push(`${files.length} file(s)`);
+      const attachmentNote = `\n\n[${parts.join(', ')} attached at the following paths:]\n${tempImagePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+      modifiedCommand = command + attachmentNote;
     }
 
-    // Images processed
     return { modifiedCommand, tempImagePaths, tempDir };
   } catch (error) {
-    console.error('Error processing images for SDK:', error);
+    console.error('Error processing attachments for SDK:', error);
     return { modifiedCommand: command, tempImagePaths, tempDir };
   }
 }
@@ -528,11 +545,11 @@ async function queryClaudeSDK(command, options = {}, ws) {
       sdkOptions.mcpServers = mcpServers;
     }
 
-    // Handle images - save to temp files and modify prompt
-    const imageResult = await handleImages(command, options.images, options.cwd);
-    const finalCommand = imageResult.modifiedCommand;
-    tempImagePaths = imageResult.tempImagePaths;
-    tempDir = imageResult.tempDir;
+    // Handle attachments - save images and files to temp files and modify prompt
+    const attachmentResult = await handleAttachments(command, options.images, options.files, options.cwd);
+    const finalCommand = attachmentResult.modifiedCommand;
+    tempImagePaths = attachmentResult.tempImagePaths;
+    tempDir = attachmentResult.tempDir;
 
     sdkOptions.hooks = {
       Notification: [{
@@ -721,6 +738,46 @@ async function queryClaudeSDK(command, options = {}, ws) {
         if (tokenBudgetData) {
           ws.send(createNormalizedMessage({ kind: 'status', text: 'token_budget', tokenBudget: tokenBudgetData, sessionId: capturedSessionId || sessionId || null, provider: 'claude' }));
         }
+      }
+    }
+
+    // ─── Sidecar attachment persistence ────────────────────────────────────
+    if (capturedSessionId && (options.images?.length > 0 || options.files?.length > 0)) {
+      try {
+        const jsonlPath = computeJSONLPath(capturedSessionId, options.cwd || options.projectPath);
+        const attachmentsDir = path.join(path.dirname(jsonlPath), 'attachments');
+        await fs.mkdir(attachmentsDir, { recursive: true });
+
+        const sidecarPath = path.join(attachmentsDir, `${capturedSessionId}.attachments.jsonl`);
+        let seq = 0;
+        try {
+          const existing = await fs.readFile(sidecarPath, 'utf8');
+          seq = existing.trim().split('\n').filter(Boolean).length;
+        } catch { /* file doesn't exist yet */ }
+
+        const attachmentEntry = {
+          seq,
+          clientMessageId: options.clientMessageId || '',
+          timestamp: new Date().toISOString(),
+          images: (options.images || []).map(img => ({
+            name: img.name,
+            data: img.data,
+            size: img.size,
+            mimeType: img.mimeType
+          })),
+          files: (options.files || []).map(f => ({
+            name: f.name,
+            data: f.data,
+            size: f.size,
+            mimeType: f.mimeType
+          })),
+          contentPrefix: (command || '').trim().slice(0, 80),
+        };
+
+        await fs.appendFile(sidecarPath, JSON.stringify(attachmentEntry) + '\n', 'utf8');
+        console.log(`[Attachments] Persisted for session ${capturedSessionId}: ${attachmentEntry.images.length} image(s), ${attachmentEntry.files.length} file(s)`);
+      } catch (error) {
+        console.error('[Attachments] Failed to persist attachment data:', error);
       }
     }
 

@@ -588,6 +588,48 @@ export class ClaudeSessionsProvider implements IProviderSessions {
       normalized.push(...this.normalizeMessage(raw, sessionId));
     }
 
+    // ─── Sidecar attachment reader ─────────────────────────────────────
+    // Read the sidecar .attachments.jsonl and merge attachment data into
+    // user text messages in sequence order. The seq counter matches the
+    // Nth user text message with the Nth sidecar entry.
+    try {
+      const jsonLPath = sessionsDb.getSessionById(sessionId)?.jsonl_path;
+      if (jsonLPath) {
+        const attachmentsDir = path.join(path.dirname(jsonLPath), 'attachments');
+        const sidecarPath = path.join(attachmentsDir, `${sessionId}.attachments.jsonl`);
+        const sidecarContent = await fsp.readFile(sidecarPath, 'utf8').catch(() => null);
+        if (sidecarContent) {
+          const entries = sidecarContent.trim().split('\n').filter(Boolean).map(line => {
+            try { return JSON.parse(line); } catch { return null; }
+          }).filter(Boolean);
+
+          let userMsgIndex = 0;
+          for (const msg of normalized) {
+            if (msg.kind === 'text' && msg.role === 'user') {
+              const entry = entries[userMsgIndex];
+              if (entry && (entry.images?.length > 0 || entry.files?.length > 0)) {
+                msg.images = (entry.images || []).map((img: any) => ({
+                  data: img.data,
+                  name: img.name,
+                  size: img.size,
+                  mimeType: img.mimeType,
+                }));
+                msg.files = (entry.files || []).map((f: any) => ({
+                  data: f.data,
+                  name: f.name,
+                  size: f.size,
+                  mimeType: f.mimeType,
+                }));
+              }
+              userMsgIndex++;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`[ClaudeProvider] Failed to read attachment sidecar for ${sessionId}:`, error);
+    }
+
     for (const msg of normalized) {
       if (msg.kind === 'tool_use' && msg.toolId && toolResultMap.has(msg.toolId)) {
         const toolResult = toolResultMap.get(msg.toolId);

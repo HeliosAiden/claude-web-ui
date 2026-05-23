@@ -152,37 +152,55 @@ async function spawnGemini(command, options = {}, ws) {
     const cleanPath = (cwd || projectPath || process.cwd()).replace(/[^\x20-\x7E]/g, '').trim();
     const workingDir = cleanPath;
 
-    // Handle images by saving them to temporary files and passing paths to Gemini
+    // Handle attachments by saving them to temporary files and passing paths to Gemini
     const tempImagePaths = [];
     let tempDir = null;
-    if (images && images.length > 0) {
+    const hasAttachments = (images && images.length > 0) || (options.files && options.files.length > 0);
+    if (hasAttachments) {
         try {
-            // Create temp directory in the project directory so Gemini can access it
-            tempDir = path.join(workingDir, '.tmp', 'images', Date.now().toString());
+            tempDir = path.join(workingDir, '.tmp', 'attachments', Date.now().toString());
             await fs.mkdir(tempDir, { recursive: true });
 
-            // Save each image to a temp file
-            for (const [index, image] of images.entries()) {
-                // Extract base64 data and mime type
-                const matches = image.data.match(/^data:([^;]+);base64,(.+)$/);
-                if (!matches) {
-                    continue;
+            let pathIndex = 0;
+
+            // Process images
+            if (images && images.length > 0) {
+                for (const image of images) {
+                    const matches = image.data.match(/^data:([^;]+);base64,(.+)$/);
+                    if (!matches) { continue; }
+
+                    const [, mimeType, base64Data] = matches;
+                    const extension = mimeType.split('/')[1] || 'png';
+                    const filename = `image_${pathIndex}.${extension}`;
+                    const filepath = path.join(tempDir, filename);
+                    await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+                    tempImagePaths.push(filepath);
+                    pathIndex++;
                 }
-
-                const [, mimeType, base64Data] = matches;
-                const extension = mimeType.split('/')[1] || 'png';
-                const filename = `image_${index}.${extension}`;
-                const filepath = path.join(tempDir, filename);
-
-                // Write base64 data to file
-                await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
-                tempImagePaths.push(filepath);
             }
 
-            // Include the full image paths in the prompt for Gemini to reference
-            // Gemini CLI can read images from file paths in the prompt
+            // Process files
+            if (options.files && options.files.length > 0) {
+                for (const file of options.files) {
+                    const matches = file.data.match(/^data:([^;]+);base64,(.+)$/);
+                    if (!matches) { continue; }
+
+                    const [, mimeType, base64Data] = matches;
+                    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                    const filename = `file_${pathIndex}_${safeName}`;
+                    const filepath = path.join(tempDir, filename);
+                    await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+                    tempImagePaths.push(filepath);
+                    pathIndex++;
+                }
+            }
+
+            // Include attachment paths in the prompt for Gemini to reference
             if (tempImagePaths.length > 0 && command && command.trim()) {
-                const imageNote = `\n\n[Images given: ${tempImagePaths.length} images are located at the following paths:]\n${tempImagePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+                const parts = [];
+                if (images && images.length > 0) parts.push(`${images.length} image(s)`);
+                if (options.files && options.files.length > 0) parts.push(`${options.files.length} file(s)`);
+                const attachmentNote = `\n\n[${parts.join(', ')} attached at the following paths:]\n${tempImagePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
                 const modifiedCommand = command + imageNote;
 
                 // Update the command in args

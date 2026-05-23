@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PaperclipIcon } from 'lucide-react';
 import SessionProviderLogo from '../../../llm-logo-provider/SessionProviderLogo';
 import type {
   ChatMessage,
@@ -138,6 +139,36 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
                     className="h-auto max-w-full cursor-pointer rounded-lg transition-opacity hover:opacity-90"
                     onClick={() => window.open(img.data, '_blank')}
                   />
+                ))}
+              </div>
+            )}
+            {message.files && message.files.length > 0 && (
+              <div className="mt-2 flex flex-col gap-1">
+                {message.files.map((file, idx) => (
+                  <div
+                    key={file.name || idx}
+                    className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2"
+                  >
+                    <PaperclipIcon className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 truncate text-sm">{file.name}</span>
+                    <span className="shrink-0 text-xs opacity-70">
+                      {file.size ? (
+                        file.size < 1024
+                          ? `${file.size} B`
+                          : file.size < 1024 * 1024
+                            ? `${(file.size / 1024).toFixed(1)} KB`
+                            : `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                      ) : ''}
+                    </span>
+                    <a
+                      href={file.data}
+                      download={file.name}
+                      className="ml-auto shrink-0 text-xs underline opacity-80 hover:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Download
+                    </a>
+                  </div>
                 ))}
               </div>
             )}

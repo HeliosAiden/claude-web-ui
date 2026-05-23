@@ -1129,6 +1129,76 @@ app.post('/api/projects/:projectId/upload-images', authenticateToken, async (req
     }
 });
 
+// ─── File attachment upload (any file type) ──────────────────────────────────
+
+app.post('/api/projects/:projectId/upload-attachments', authenticateToken, async (req, res) => {
+    try {
+        const multer = (await import('multer')).default;
+        const path = (await import('path')).default;
+        const fs = (await import('fs')).promises;
+        const os = (await import('os')).default;
+
+        const storage = multer.diskStorage({
+            destination: async (req, file, cb) => {
+                const uploadDir = path.join(os.tmpdir(), 'claude-ui-uploads', String(req.user.id));
+                await fs.mkdir(uploadDir, { recursive: true });
+                cb(null, uploadDir);
+            },
+            filename: (req, file, cb) => {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                cb(null, uniqueSuffix + '-' + sanitizedName);
+            }
+        });
+
+        const upload = multer({
+            storage,
+            limits: {
+                fileSize: 10 * 1024 * 1024, // 10MB
+                files: 10
+            }
+        });
+
+        upload.array('files', 10)(req, res, async (err) => {
+            if (err) {
+                return res.status(400).json({ error: err.message });
+            }
+
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({ error: 'No files provided' });
+            }
+
+            try {
+                const processedFiles = await Promise.all(
+                    req.files.map(async (file) => {
+                        const buffer = await fs.readFile(file.path);
+                        const base64 = buffer.toString('base64');
+                        const mimeType = file.mimetype || 'application/octet-stream';
+
+                        await fs.unlink(file.path);
+
+                        return {
+                            name: file.originalname,
+                            data: `data:${mimeType};base64,${base64}`,
+                            size: file.size,
+                            mimeType: mimeType
+                        };
+                    })
+                );
+
+                res.json({ files: processedFiles });
+            } catch (error) {
+                console.error('Error processing attachments:', error);
+                await Promise.all(req.files.map(f => fs.unlink(f.path).catch(() => {})));
+                res.status(500).json({ error: 'Failed to process attachments' });
+            }
+        });
+    } catch (error) {
+        console.error('Error in attachment upload endpoint:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Get token usage for a specific session. `projectId` is the DB primary key;
 // the Claude branch below resolves it to an absolute path via the DB.
 app.get('/api/projects/:projectId/sessions/:sessionId/token-usage', authenticateToken, async (req, res) => {
