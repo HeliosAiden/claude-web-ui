@@ -2,6 +2,8 @@ import type { VerifyClientCallbackSync } from 'ws';
 
 import type { AuthenticatedWebSocketRequest } from '@/shared/types.js';
 
+import { ALLOWED_ORIGINS } from '../../../constants/config.js';
+
 type WebSocketAuthDependencies = {
   isPlatform: boolean;
   authenticateWebSocket: (token: string | null) => {
@@ -21,6 +23,16 @@ export function verifyWebSocketClient(
 ): boolean {
   const request = info.req as AuthenticatedWebSocketRequest;
   console.log('WebSocket connection attempt to:', request.url);
+
+  const origin = info.origin ?? request.headers.origin ?? null;
+  if (!origin) {
+    console.log('[WARN] WebSocket connection rejected: missing Origin header');
+    return false;
+  }
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    console.log(`[WARN] WebSocket connection rejected: origin "${origin}" not allowed`);
+    return false;
+  }
 
   // Platform mode: use the first DB user and skip token checks.
   if (dependencies.isPlatform) {

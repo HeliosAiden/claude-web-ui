@@ -7,6 +7,8 @@ import { WebSocket, type RawData } from 'ws';
 
 import { parseIncomingJsonObject } from '@/shared/utils.js';
 
+import { IS_PLAIN_SHELL_ENABLED } from '../../../constants/config.js';
+
 type ShellIncomingMessage = {
   type?: string;
   data?: string;
@@ -32,6 +34,7 @@ type PtySessionEntry = {
 const ptySessionsMap = new Map<string, PtySessionEntry>();
 const PTY_SESSION_TIMEOUT = 30 * 60 * 1000;
 const SHELL_URL_PARSE_BUFFER_LIMIT = 32768;
+const SAFE_SESSION_ID_PATTERN = /^[a-zA-Z0-9_.\-:]+$/;
 
 type ShellWebSocketDependencies = {
   getSessionById: (sessionId: string) => { cliSessionId?: string } | null | undefined;
@@ -91,14 +94,15 @@ function buildShellCommand(
   dependencies: ShellWebSocketDependencies
 ): string {
   const hasSession = readBoolean(message.hasSession);
-  const sessionId = readString(message.sessionId);
+  const rawSessionId = readString(message.sessionId);
   const initialCommand = readString(message.initialCommand);
   const provider = readString(message.provider, 'claude');
-  const safeSessionIdPattern = /^[a-zA-Z0-9_.\-:]+$/;
-  const isPlainShell =
+  const sessionId = rawSessionId && SAFE_SESSION_ID_PATTERN.test(rawSessionId) ? rawSessionId : '';
+  const isPlainShell = IS_PLAIN_SHELL_ENABLED && (
     readBoolean(message.isPlainShell) ||
     (!!initialCommand && !hasSession) ||
-    provider === 'plain-shell';
+    provider === 'plain-shell'
+  );
 
   if (isPlainShell) {
     return initialCommand;
@@ -128,8 +132,9 @@ function buildShellCommand(
       try {
         const existingSession = dependencies.getSessionById(sessionId);
         if (existingSession && existingSession.cliSessionId) {
-          resumeId = existingSession.cliSessionId;
-          if (!safeSessionIdPattern.test(resumeId)) {
+          if (SAFE_SESSION_ID_PATTERN.test(existingSession.cliSessionId)) {
+            resumeId = existingSession.cliSessionId;
+          } else {
             resumeId = '';
           }
         }
@@ -181,10 +186,16 @@ export function handleShellConnection(
         const hasSession = readBoolean(data.hasSession);
         const provider = readString(data.provider, 'claude');
         const initialCommand = readString(data.initialCommand);
-        const isPlainShell =
+        const isPlainShell = IS_PLAIN_SHELL_ENABLED && (
           readBoolean(data.isPlainShell) ||
           (!!initialCommand && !hasSession) ||
-          provider === 'plain-shell';
+          provider === 'plain-shell'
+        );
+
+        if (initialCommand && !/^[a-zA-Z0-9_\-.\/ =]+$/.test(initialCommand)) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Invalid initial command: contains unsafe characters' }));
+          return;
+        }
 
         urlDetectionBuffer = '';
         announcedAuthUrls.clear();
@@ -252,8 +263,7 @@ export function handleShellConnection(
           return;
         }
 
-        const safeSessionIdPattern = /^[a-zA-Z0-9_.\-:]+$/;
-        if (sessionId && !safeSessionIdPattern.test(sessionId)) {
+        if (sessionId && !SAFE_SESSION_ID_PATTERN.test(sessionId)) {
           ws.send(JSON.stringify({ type: 'error', message: 'Invalid session ID' }));
           return;
         }

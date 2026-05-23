@@ -76,7 +76,7 @@ import { appConfigDb, initializeDatabase, projectsDb } from './modules/database/
 import { configureWebPush } from './services/vapid-keys.js';
 import { initializeTelegramBots, shutdownTelegramBots } from './services/telegram-bot.js';
 import { validateApiKey, authenticateToken, authenticateWebSocket } from './middleware/auth.js';
-import { IS_PLATFORM } from './constants/config.js';
+import { IS_PLATFORM, ALLOWED_ORIGINS } from './constants/config.js';
 import { c } from './utils/colors.js';
 
 const __dirname = getModuleDir(import.meta.url);
@@ -137,7 +137,10 @@ const wss = createWebSocketServer(server, {
 // Make WebSocket server available to routes
 app.locals.wss = wss;
 
-app.use(cors({ exposedHeaders: ['X-Refreshed-Token'] }));
+app.use(cors({
+  origin: ALLOWED_ORIGINS,
+  exposedHeaders: ['X-Refreshed-Token'],
+}));
 app.use(express.json({
     limit: '50mb',
     type: (req) => {

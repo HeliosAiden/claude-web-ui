@@ -161,6 +161,11 @@ export default tseslint.config(
           mode: "file",
         },
         {
+          type: "backend-config", // shared server configuration constants
+          pattern: "server/constants/config.js", // classify config so modules can depend on it without boundary violations
+          mode: "file",
+        },
+        {
           type: "backend-legacy-runtime", // legacy runtime persistence modules used while providers migrate into server/modules
           pattern: [
             "server/projects.js",

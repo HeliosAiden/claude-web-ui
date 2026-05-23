@@ -142,16 +142,39 @@ export function useShellConnection({
 
             currentFitAddon.fit();
 
+            // Derive provider from initialCommand for login flows
+            let effectiveIsPlainShell = isPlainShellRef.current;
+            let effectiveProvider = isPlainShellRef.current
+              ? 'plain-shell'
+              : (selectedSessionRef.current?.__provider || localStorage.getItem('selected-provider') || 'claude');
+
+            if (effectiveIsPlainShell && initialCommandRef.current) {
+              const cmd = initialCommandRef.current;
+              if (cmd.startsWith('claude ') || cmd === 'claude') {
+                effectiveProvider = 'claude';
+                effectiveIsPlainShell = false;
+              } else if (cmd.startsWith('cursor-agent ') || cmd === 'cursor-agent') {
+                effectiveProvider = 'cursor';
+                effectiveIsPlainShell = false;
+              } else if (cmd.startsWith('codex ') || cmd === 'codex') {
+                effectiveProvider = 'codex';
+                effectiveIsPlainShell = false;
+              } else if (cmd.startsWith('gemini ') || cmd === 'gemini') {
+                effectiveProvider = 'gemini';
+                effectiveIsPlainShell = false;
+              }
+            }
+
             sendSocketMessage(socket, {
               type: 'init',
               projectPath: currentProject.fullPath || currentProject.path || '',
-              sessionId: isPlainShellRef.current ? null : selectedSessionRef.current?.id || null,
-              hasSession: isPlainShellRef.current ? false : Boolean(selectedSessionRef.current),
-              provider: isPlainShellRef.current ? 'plain-shell' : (selectedSessionRef.current?.__provider || localStorage.getItem('selected-provider') || 'claude'),
+              sessionId: effectiveIsPlainShell ? null : selectedSessionRef.current?.id || null,
+              hasSession: effectiveIsPlainShell ? false : Boolean(selectedSessionRef.current),
+              provider: effectiveProvider,
               cols: currentTerminal.cols,
               rows: currentTerminal.rows,
               initialCommand: initialCommandRef.current,
-              isPlainShell: isPlainShellRef.current,
+              isPlainShell: effectiveIsPlainShell,
             });
           }, TERMINAL_INIT_DELAY_MS);
         };
