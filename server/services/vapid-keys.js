@@ -1,20 +1,20 @@
 import webPush from 'web-push';
-import { getConnection } from '../modules/database/connection.js';
+
+import { vapidKeysDb } from '../modules/database/index.js';
 
 let cachedKeys = null;
-const db = getConnection();
 
 function ensureVapidKeys() {
   if (cachedKeys) return cachedKeys;
 
-  const row = db.prepare('SELECT public_key, private_key FROM vapid_keys ORDER BY id DESC LIMIT 1').get();
-  if (row) {
-    cachedKeys = { publicKey: row.public_key, privateKey: row.private_key };
+  const pair = vapidKeysDb.getVapidKeys();
+  if (pair) {
+    cachedKeys = pair;
     return cachedKeys;
   }
 
   const keys = webPush.generateVAPIDKeys();
-  db.prepare('INSERT INTO vapid_keys (public_key, private_key) VALUES (?, ?)').run(keys.publicKey, keys.privateKey);
+  vapidKeysDb.createVapidKeys(keys.publicKey, keys.privateKey);
   cachedKeys = keys;
   return cachedKeys;
 }

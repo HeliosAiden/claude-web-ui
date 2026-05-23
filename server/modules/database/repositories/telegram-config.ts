@@ -1,4 +1,5 @@
 import { getConnection } from '@/modules/database/connection.js';
+import { decrypt, encrypt } from '@/modules/database/repositories/crypto-utils.js';
 
 export type TelegramConfig = {
   userId: number;
@@ -21,9 +22,16 @@ export const telegramConfigDb = {
       .prepare('SELECT user_id, bot_token, chat_id, enabled FROM telegram_config WHERE user_id = ?')
       .get(userId) as TelegramConfigRow | undefined;
     if (!row) return null;
+    let botToken: string;
+    try {
+      botToken = decrypt(row.bot_token);
+    } catch (err) {
+      console.error('Failed to decrypt Telegram bot token:', err);
+      return null;
+    }
     return {
       userId: row.user_id,
-      botToken: row.bot_token,
+      botToken,
       chatId: row.chat_id,
       enabled: row.enabled === 1,
     };
@@ -34,12 +42,21 @@ export const telegramConfigDb = {
     const rows = db
       .prepare('SELECT user_id, bot_token, chat_id, enabled FROM telegram_config WHERE enabled = 1')
       .all() as TelegramConfigRow[];
-    return rows.map((row) => ({
-      userId: row.user_id,
-      botToken: row.bot_token,
-      chatId: row.chat_id,
-      enabled: row.enabled === 1,
-    }));
+    return rows.map((row) => {
+      let botToken: string;
+      try {
+        botToken = decrypt(row.bot_token);
+      } catch (err) {
+        console.error('Failed to decrypt Telegram bot token:', err);
+        return null;
+      }
+      return {
+        userId: row.user_id,
+        botToken,
+        chatId: row.chat_id,
+        enabled: row.enabled === 1,
+      };
+    }).filter((c): c is TelegramConfig => c !== null);
   },
 
   upsertConfig(userId: number, botToken: string, chatId: string, enabled: boolean): TelegramConfig {
@@ -52,7 +69,7 @@ export const telegramConfigDb = {
          chat_id = excluded.chat_id,
          enabled = excluded.enabled,
          updated_at = CURRENT_TIMESTAMP`
-    ).run(userId, botToken, chatId, enabled ? 1 : 0);
+    ).run(userId, encrypt(botToken), chatId, enabled ? 1 : 0);
     return { userId, botToken, chatId, enabled };
   },
 

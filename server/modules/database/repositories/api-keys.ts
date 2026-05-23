@@ -5,14 +5,15 @@
  * Keys are prefixed with `ck_` and tied to a user via foreign key.
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import { getConnection } from '@/modules/database/connection.js';
+import { getApiKeyPrefix, hashApiKey } from '@/modules/database/repositories/crypto-utils.js';
 
 type ApiKeyRow = {
   id: number;
   key_name: string;
-  api_key: string;
+  api_key_prefix: string;
   created_at: string;
   last_used: string | null;
   is_active: number;
@@ -50,11 +51,13 @@ export const apiKeysDb = {
   createApiKey(userId: number, keyName: string): CreateApiKeyResult {
     const db = getConnection();
     const apiKey = generateApiKey();
+    const hash = hashApiKey(apiKey);
+    const prefix = getApiKeyPrefix(apiKey);
     const result = db
       .prepare(
-        'INSERT INTO api_keys (user_id, key_name, api_key) VALUES (?, ?, ?)'
+        'INSERT INTO api_keys (user_id, key_name, api_key, api_key_prefix) VALUES (?, ?, ?, ?)'
       )
-      .run(userId, keyName, apiKey);
+      .run(userId, keyName, hash, prefix);
     return { id: result.lastInsertRowid, keyName, apiKey };
   },
 
@@ -63,7 +66,7 @@ export const apiKeysDb = {
     const db = getConnection();
     return db
       .prepare(
-        'SELECT id, key_name, api_key, created_at, last_used, is_active FROM api_keys WHERE user_id = ? ORDER BY created_at DESC'
+        'SELECT id, key_name, api_key_prefix, created_at, last_used, is_active FROM api_keys WHERE user_id = ? ORDER BY created_at DESC'
       )
       .all(userId) as ApiKeyRow[];
   },
@@ -82,7 +85,7 @@ export const apiKeysDb = {
          JOIN users u ON ak.user_id = u.id
          WHERE ak.api_key = ? AND ak.is_active = 1 AND u.is_active = 1`
       )
-      .get(apiKey) as ValidatedApiKeyUser | undefined;
+      .get(hashApiKey(apiKey)) as ValidatedApiKeyUser | undefined;
 
     if (row) {
       db.prepare(

@@ -175,6 +175,11 @@ export default tseslint.config(
           mode: "file",
         },
         {
+          type: "backend-utils", // general-purpose server utilities that modules may import directly
+          pattern: "server/utils/**", // classify all files in server/utils so they don't trigger no-unknown errors
+          mode: "folder",
+        },
+        {
           type: "backend-module", // logical element name used by boundaries rules below
           pattern: "server/modules/*", // each direct folder in server/modules is treated as one module boundary
           mode: "folder", // classify dependencies at folder-module level (not per individual file)

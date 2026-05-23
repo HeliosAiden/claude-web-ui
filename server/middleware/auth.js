@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
+
 import { userDb, appConfigDb } from '../modules/database/index.js';
-import { IS_PLATFORM } from '../constants/config.js';
+import { IS_PLATFORM, PLATFORM_SHARED_SECRET } from '../constants/config.js';
 
 // Use env var if set, otherwise auto-generate a unique secret per installation
 const JWT_SECRET = process.env.JWT_SECRET || appConfigDb.getOrCreateJwtSecret();
@@ -11,7 +12,7 @@ const validateApiKey = (req, res, next) => {
   if (!process.env.API_KEY) {
     return next();
   }
-  
+
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== process.env.API_KEY) {
     return res.status(401).json({ error: 'Invalid API key' });
@@ -19,10 +20,47 @@ const validateApiKey = (req, res, next) => {
   next();
 };
 
+// Track whether we've warned about unset PLATFORM_SHARED_SECRET
+let platformSecretWarningShown = false;
+
+/**
+ * Validates the platform shared secret from a request.
+ * Returns null on success, or an error message string on failure.
+ */
+function validatePlatformSecret(reqOrSecret) {
+  if (!PLATFORM_SHARED_SECRET) {
+    if (!platformSecretWarningShown) {
+      console.warn(
+        '[WARN] PLATFORM_SHARED_SECRET is not set. ' +
+        'Platform mode auth is DISABLED — anyone reaching the backend ' +
+        'will be authenticated as the first DB user. ' +
+        'Set PLATFORM_SHARED_SECRET in production.'
+      );
+      platformSecretWarningShown = true;
+    }
+    return null; // no secret configured — allow (backward compat)
+  }
+
+  const provided = typeof reqOrSecret === 'string'
+    ? reqOrSecret
+    : reqOrSecret?.headers?.['x-platform-shared-secret'];
+
+  if (!provided || provided !== PLATFORM_SHARED_SECRET) {
+    return 'Invalid or missing platform shared secret';
+  }
+
+  return null;
+}
+
 // JWT authentication middleware
 const authenticateToken = async (req, res, next) => {
-  // Platform mode:  use single database user
+  // Platform mode: validate shared secret, then use single database user
   if (IS_PLATFORM) {
+    const secretErr = validatePlatformSecret(req);
+    if (secretErr) {
+      return res.status(403).json({ error: secretErr });
+    }
+
     try {
       const user = userDb.getFirstUser();
       if (!user) {
@@ -89,9 +127,14 @@ const generateToken = (user) => {
 };
 
 // WebSocket authentication function
-const authenticateWebSocket = (token) => {
-  // Platform mode: bypass token validation, return first user
+const authenticateWebSocket = (token, sharedSecret) => {
+  // Platform mode: validate shared secret, then return first user
   if (IS_PLATFORM) {
+    const secretErr = validatePlatformSecret(sharedSecret || '');
+    if (secretErr) {
+      return null;
+    }
+
     try {
       const user = userDb.getFirstUser();
       if (user) {

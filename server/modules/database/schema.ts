@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     user_id INTEGER NOT NULL,
     key_name TEXT NOT NULL,
     api_key TEXT UNIQUE NOT NULL,
+    api_key_prefix TEXT NOT NULL DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_used DATETIME,
     is_active BOOLEAN DEFAULT 1,

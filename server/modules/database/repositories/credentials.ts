@@ -7,6 +7,7 @@
  */
 
 import { getConnection } from '@/modules/database/connection.js';
+import { decrypt, encrypt } from '@/modules/database/repositories/crypto-utils.js';
 import type {
   CreateCredentialResult,
   CredentialPublicRow,
@@ -26,11 +27,12 @@ export const credentialsDb = {
     description: string | null = null
   ): CreateCredentialResult {
     const db = getConnection();
+    const encrypted = encrypt(credentialValue);
     const result = db
       .prepare(
         'INSERT INTO user_credentials (user_id, credential_name, credential_type, credential_value, description) VALUES (?, ?, ?, ?, ?)'
       )
-      .run(userId, credentialName, credentialType, credentialValue, description);
+      .run(userId, credentialName, credentialType, encrypted, description);
     return {
       id: result.lastInsertRowid,
       credentialName,
@@ -77,7 +79,16 @@ export const credentialsDb = {
         'SELECT credential_value FROM user_credentials WHERE user_id = ? AND credential_type = ? AND is_active = 1 ORDER BY created_at DESC LIMIT 1'
       )
       .get(userId, credentialType) as { credential_value: string } | undefined;
-    return row?.credential_value ?? null;
+    if (!row) return null;
+    try {
+      return decrypt(row.credential_value);
+    } catch (err) {
+      console.error(
+        `Failed to decrypt credential (type=${credentialType}):`,
+        err,
+      );
+      return null;
+    }
   },
 
   /** Permanently removes a credential. Returns true if a row was deleted. */

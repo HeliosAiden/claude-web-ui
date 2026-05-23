@@ -149,12 +149,13 @@ function buildShellCommand(
     return command;
   }
 
-  const command = initialCommand || 'claude';
+  const claudeBin = process.env.CLAUDE_CLI_PATH || 'claude';
+  const command = initialCommand || claudeBin;
   if (hasSession && sessionId) {
     if (os.platform() === 'win32') {
-      return `claude --resume "${sessionId}"; if ($LASTEXITCODE -ne 0) { claude }`;
+      return `${claudeBin} --resume "${sessionId}"; if ($LASTEXITCODE -ne 0) { ${claudeBin} }`;
     }
-    return `claude --resume "${sessionId}" || claude`;
+    return `${claudeBin} --resume "${sessionId}" || ${claudeBin}`;
   }
   return command;
 }

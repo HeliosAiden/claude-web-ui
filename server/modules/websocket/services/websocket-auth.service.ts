@@ -6,7 +6,10 @@ import { ALLOWED_ORIGINS } from '../../../constants/config.js';
 
 type WebSocketAuthDependencies = {
   isPlatform: boolean;
-  authenticateWebSocket: (token: string | null) => {
+  authenticateWebSocket: (
+    token: string | null,
+    sharedSecret?: string | null,
+  ) => {
     id?: string | number;
     userId?: string | number;
     username?: string;
@@ -34,11 +37,14 @@ export function verifyWebSocketClient(
     return false;
   }
 
-  // Platform mode: use the first DB user and skip token checks.
+  // Platform mode: validate shared secret, then use the first DB user.
   if (dependencies.isPlatform) {
-    const user = dependencies.authenticateWebSocket(null);
+    const sharedSecret =
+      (request.headers['x-platform-shared-secret'] as string | undefined) ??
+      null;
+    const user = dependencies.authenticateWebSocket(null, sharedSecret);
     if (!user) {
-      console.log('[WARN] Platform mode: No user found in database');
+      console.log('[WARN] Platform mode WebSocket authentication failed');
       return false;
     }
 

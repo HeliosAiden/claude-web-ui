@@ -13,6 +13,7 @@ import { Octokit } from '@octokit/rest';
 import { CLAUDE_MODELS, CURSOR_MODELS, CODEX_MODELS } from '../../shared/modelConstants.js';
 import { IS_PLATFORM } from '../constants/config.js';
 import { normalizeProjectPath } from '../shared/utils.js';
+import { maskToken, setupGitAuth } from '../utils/git-auth.js';
 
 const router = express.Router();
 
@@ -368,10 +369,11 @@ async function cloneGitHubRepo(githubUrl, githubToken = null, projectPath) {
 
       // Prepare the git clone URL with authentication if token is provided
       let cloneUrl = githubUrl;
+      let gitAuth = null;
       if (githubToken) {
-        // Convert HTTPS URL to authenticated URL
-        // Example: https://github.com/user/repo -> https://token@github.com/user/repo
-        cloneUrl = githubUrl.replace('https://github.com', `https://${githubToken}@github.com`);
+        // Use GIT_ASKPASS instead of embedding the token in the URL,
+        // keeping secrets out of `ps aux` and git error messages.
+        gitAuth = setupGitAuth(githubToken);
       }
 
       console.log('🔄 Cloning repository:', githubUrl);
@@ -379,7 +381,8 @@ async function cloneGitHubRepo(githubUrl, githubToken = null, projectPath) {
 
       // Execute git clone
       const gitProcess = spawn('git', ['clone', '--depth', '1', cloneUrl, cloneDir], {
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, ...(gitAuth?.env ?? {}) },
       });
 
       let stdout = '';
@@ -390,17 +393,22 @@ async function cloneGitHubRepo(githubUrl, githubToken = null, projectPath) {
       });
 
       gitProcess.stderr.on('data', (data) => {
-        stderr += data.toString();
-        console.log('Git stderr:', data.toString());
+        const message = data.toString();
+        stderr += message;
+        console.log('Git stderr:', maskToken(message, githubToken));
       });
 
       gitProcess.on('close', (code) => {
+        // Clean up the temp askpass script
+        gitAuth?.cleanup();
+
         if (code === 0) {
           console.log('✅ Repository cloned successfully');
           resolve(cloneDir);
         } else {
-          console.error('❌ Git clone failed:', stderr);
-          reject(new Error(`Git clone failed: ${stderr}`));
+          const sanitized = maskToken(stderr, githubToken);
+          console.error('❌ Git clone failed:', sanitized);
+          reject(new Error(`Git clone failed: ${sanitized}`));
         }
       });
 

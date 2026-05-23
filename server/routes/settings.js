@@ -1,4 +1,5 @@
 import express from 'express';
+
 import { apiKeysDb, appConfigDb, credentialsDb, notificationPreferencesDb, pushSubscriptionsDb, telegramConfigDb } from '../modules/database/index.js';
 import { WORKSPACES_ROOT, setWorkspaceRoot } from '../shared/utils.js';
 import { getPublicKey } from '../services/vapid-keys.js';
@@ -22,7 +23,7 @@ router.get('/api-keys', async (req, res) => {
     // Don't send the full API key in the list for security
     const sanitizedKeys = apiKeys.map(key => ({
       ...key,
-      api_key: key.api_key.substring(0, 10) + '...'
+      api_key: key.api_key_prefix + '...'
     }));
     res.json({ apiKeys: sanitizedKeys });
   } catch (error) {

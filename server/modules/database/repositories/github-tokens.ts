@@ -7,6 +7,7 @@
 
 import { getConnection } from '@/modules/database/connection.js';
 import { credentialsDb } from '@/modules/database/repositories/credentials.js';
+import { decrypt } from '@/modules/database/repositories/crypto-utils.js';
 import type {
   CredentialPublicRow,
   CreateCredentialResult,
@@ -72,9 +73,17 @@ export const githubTokensDb = {
 
     if (!row) return null;
 
+    let githubToken: string;
+    try {
+      githubToken = decrypt(row.credential_value);
+    } catch (err) {
+      console.error('Failed to decrypt GitHub token:', err);
+      return null;
+    }
+
     return {
       ...row,
-      github_token: row.credential_value,
+      github_token: githubToken,
     };
   },
 

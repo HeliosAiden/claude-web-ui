@@ -12,6 +12,11 @@ import {
   USER_NOTIFICATION_PREFERENCES_TABLE_SCHEMA_SQL,
   VAPID_KEYS_TABLE_SCHEMA_SQL,
 } from '@/modules/database/schema.js';
+import {
+  encrypt,
+  hashApiKey,
+  MIGRATION_SENTINEL,
+} from '@/modules/database/repositories/crypto-utils.js';
 
 const SQLITE_UUID_SQL = `
 lower(hex(randomblob(4))) || '-' ||
@@ -404,6 +409,108 @@ const ensureProjectsForSessionPaths = (db: Database): void => {
   `);
 };
 
+/** Detects whether a value is already in encrypted hex:hex:hex format. */
+const isEncrypted = (value: string): boolean =>
+  /^[0-9a-f]{32}:[0-9a-f]{32}:[0-9a-f]+$/i.test(value);
+
+/** Detects whether an API key is already hashed (64 hex chars, no prefix). */
+const isHashed = (value: string): boolean => /^[0-9a-f]{64}$/i.test(value);
+
+/**
+ * Migrates existing plaintext secrets to hashed/encrypted form.
+ *
+ * Designed to run exactly once.  Uses a sentinel in app_config so that
+ * subsequent boots, schema re-applies, and rollbacks are safe.
+ */
+const migratePlaintextSecrets = (db: Database): void => {
+  const sentinel = db
+    .prepare('SELECT value FROM app_config WHERE key = ?')
+    .get(MIGRATION_SENTINEL) as { value: string } | undefined;
+  if (sentinel) {
+    return;
+  }
+
+  console.log('Running migration: Hashing API keys and encrypting stored secrets');
+
+  const apiKeysTableInfo = db.prepare('PRAGMA table_info(api_keys)').all() as { name: string }[];
+  const apiKeyColumnNames = apiKeysTableInfo.map((c) => c.name);
+
+  const migrateApiKeys = db.transaction(() => {
+    addColumnToTableIfNotExists(db, 'api_keys', apiKeyColumnNames, 'api_key_prefix', 'TEXT NOT NULL DEFAULT \'\'');
+
+    const rows = db
+      .prepare('SELECT id, api_key FROM api_keys')
+      .all() as { id: number; api_key: string }[];
+
+    for (const row of rows) {
+      if (isHashed(row.api_key)) continue;
+      const hash = hashApiKey(row.api_key);
+      const prefix = row.api_key.substring(0, 10);
+      db.prepare('UPDATE api_keys SET api_key = ?, api_key_prefix = ? WHERE id = ?').run(
+        hash,
+        prefix,
+        row.id,
+      );
+    }
+  });
+
+  const migrateCredentials = db.transaction(() => {
+    const rows = db
+      .prepare('SELECT id, credential_value FROM user_credentials')
+      .all() as { id: number; credential_value: string }[];
+
+    for (const row of rows) {
+      if (isEncrypted(row.credential_value)) continue;
+      const encrypted = encrypt(row.credential_value);
+      db.prepare('UPDATE user_credentials SET credential_value = ? WHERE id = ?').run(
+        encrypted,
+        row.id,
+      );
+    }
+  });
+
+  const migrateVapidKeys = db.transaction(() => {
+    const rows = db
+      .prepare('SELECT id, private_key FROM vapid_keys')
+      .all() as { id: number; private_key: string }[];
+
+    for (const row of rows) {
+      if (isEncrypted(row.private_key)) continue;
+      const encrypted = encrypt(row.private_key);
+      db.prepare('UPDATE vapid_keys SET private_key = ? WHERE id = ?').run(encrypted, row.id);
+    }
+  });
+
+  const migrateTelegramConfig = db.transaction(() => {
+    const rows = db
+      .prepare('SELECT user_id, bot_token FROM telegram_config')
+      .all() as { user_id: number; bot_token: string }[];
+
+    for (const row of rows) {
+      if (isEncrypted(row.bot_token)) continue;
+      const encrypted = encrypt(row.bot_token);
+      db.prepare('UPDATE telegram_config SET bot_token = ? WHERE user_id = ?').run(
+        encrypted,
+        row.user_id,
+      );
+    }
+  });
+
+  const runAll = db.transaction(() => {
+    migrateApiKeys();
+    migrateCredentials();
+    migrateVapidKeys();
+    migrateTelegramConfig();
+    db.prepare('INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)').run(
+      MIGRATION_SENTINEL,
+      'done',
+    );
+  });
+
+  runAll();
+  console.log('Plaintext secret migration completed');
+};
+
 export const runMigrations = (db: Database) => {
   try {
     const usersTableInfo = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
@@ -461,6 +568,8 @@ export const runMigrations = (db: Database) => {
     db.exec(MESSAGE_BOOKMARKS_TABLE_SCHEMA_SQL);
     db.exec('CREATE INDEX IF NOT EXISTS idx_message_bookmarks_user_id ON message_bookmarks(user_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_message_bookmarks_session_id ON message_bookmarks(session_id)');
+
+    migratePlaintextSecrets(db);
 
     console.log('Database migrations completed successfully');
   } catch (error: any) {

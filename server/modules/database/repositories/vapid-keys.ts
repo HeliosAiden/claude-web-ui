@@ -5,6 +5,7 @@
  */
 
 import { getConnection } from '@/modules/database/connection.js';
+import { decrypt, encrypt } from '@/modules/database/repositories/crypto-utils.js';
 
 type VapidKeyRow = {
   public_key: string;
@@ -27,9 +28,18 @@ export const vapidKeysDb = {
       .get() as Pick<VapidKeyRow, 'public_key' | 'private_key'> | undefined;
 
     if (!row) return null;
+
+    let privateKey: string;
+    try {
+      privateKey = decrypt(row.private_key);
+    } catch (err) {
+      console.error('Failed to decrypt VAPID private key:', err);
+      return null;
+    }
+
     return {
       publicKey: row.public_key,
-      privateKey: row.private_key,
+      privateKey,
     };
   },
 
@@ -38,7 +48,7 @@ export const vapidKeysDb = {
     const db = getConnection();
     db.prepare(
       'INSERT INTO vapid_keys (public_key, private_key) VALUES (?, ?)'
-    ).run(publicKey, privateKey);
+    ).run(publicKey, encrypt(privateKey));
   },
 
   /** Replaces all existing keys with a fresh pair. */

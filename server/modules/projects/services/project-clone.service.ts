@@ -6,6 +6,7 @@ import { githubTokensDb } from '@/modules/database/index.js';
 import { createProject } from '@/modules/projects/services/project-management.service.js';
 import type { WorkspacePathValidationResult } from '@/shared/types.js';
 import { AppError, validateWorkspacePath } from '@/shared/utils.js';
+import { setupGitAuth } from '@/utils/git-auth.js';
 
 type CloneProjectInput = {
   workspacePath: string;
@@ -42,7 +43,11 @@ type CloneProjectDependencies = {
     tokenId: number,
     userId: number,
   ) => Promise<{ github_token: string } | null>;
-  spawnGitClone: (cloneUrl: string, clonePath: string) => GitCloneProcess;
+  spawnGitClone: (
+    cloneUrl: string,
+    clonePath: string,
+    extraEnv?: Record<string, string>,
+  ) => GitCloneProcess;
   registerProject: (projectPath: string, customName: string) => Promise<{ project: Record<string, unknown> }>;
   logError: (message: string, error: unknown) => void;
 };
@@ -124,12 +129,17 @@ const defaultDependencies: CloneProjectDependencies = {
       | null;
     return tokenRow;
   },
-  spawnGitClone: (cloneUrl: string, clonePath: string): GitCloneProcess =>
+  spawnGitClone: (
+    cloneUrl: string,
+    clonePath: string,
+    extraEnv?: Record<string, string>,
+  ): GitCloneProcess =>
     spawn('git', ['clone', '--progress', '--', cloneUrl, clonePath], {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
         GIT_TERMINAL_PROMPT: '0',
+        ...extraEnv,
       },
     }) as unknown as GitCloneProcess,
   registerProject: async (
@@ -223,20 +233,17 @@ export async function startCloneProject(
     );
   }
 
-  let cloneUrl = normalizedGithubUrl;
-  if (githubToken) {
-    try {
-      const url = new URL(normalizedGithubUrl);
-      url.username = githubToken;
-      url.password = '';
-      cloneUrl = url.toString();
-    } catch {
-      // SSH URLs cannot be represented by URL constructor and are used as-is.
-    }
-  }
+  // Use GIT_ASKPASS for authentication instead of embedding the token in the
+  // clone URL.  This keeps the token out of process listings (`ps aux`) and
+  // out of git error output.
+  const gitAuth = githubToken ? setupGitAuth(githubToken) : null;
 
   handlers.onProgress(`Cloning into '${repoName}'...`);
-  const gitProcess = dependencies.spawnGitClone(cloneUrl, clonePath);
+  const gitProcess = dependencies.spawnGitClone(
+    normalizedGithubUrl,
+    clonePath,
+    gitAuth?.env,
+  );
   let lastError = '';
 
   gitProcess.stdout?.on('data', (data: Buffer | string) => {
@@ -256,6 +263,8 @@ export async function startCloneProject(
 
   const waitForCompletion = new Promise<void>((resolve, reject) => {
     gitProcess.on('close', async (code) => {
+      gitAuth?.cleanup();
+
       if (code === 0) {
         try {
           const createdProject = await dependencies.registerProject(clonePath, repoName);
@@ -293,6 +302,8 @@ export async function startCloneProject(
     });
 
     gitProcess.on('error', (error) => {
+      gitAuth?.cleanup();
+
       if (error.code === 'ENOENT') {
         reject(
           new AppError('Git is not installed or not in PATH', {
