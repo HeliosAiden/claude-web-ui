@@ -243,6 +243,17 @@ export async function validateWorkspacePath(requestedPath: string): Promise<Work
           continue;
         }
 
+        // Allow the configured workspace root and paths under it, even if
+        // they fall under a system-protected directory (e.g. /root/Workspace).
+        const normalizedWorkspaceRoot = normalizeProjectPath(WORKSPACES_ROOT);
+        if (
+          normalizedWorkspaceRoot
+          && (normalizedPath === normalizedWorkspaceRoot
+            || normalizedPath.startsWith(`${normalizedWorkspaceRoot}${path.sep}`))
+        ) {
+          continue;
+        }
+
         return {
           valid: false,
           error: `Cannot create workspace in system directory: ${forbiddenPath}`,

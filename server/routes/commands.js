@@ -5,6 +5,7 @@ import os from 'os';
 import { CLAUDE_MODELS, CURSOR_MODELS, CODEX_MODELS } from '../../shared/modelConstants.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
 import { findAppRoot, getModuleDir } from '../utils/runtime-paths.js';
+import { sessionsDb } from '../modules/database/index.js';
 
 const __dirname = getModuleDir(import.meta.url);
 // This route reads the top-level package.json for the status command, so it needs the real
@@ -236,6 +237,17 @@ Custom commands can be created in:
   },
 
   '/clear': async (args, context) => {
+    const sessionId = context?.sessionId;
+    if (sessionId) {
+      try {
+        const session = sessionsDb.getSessionById(sessionId);
+        if (session?.jsonl_path) {
+          await fs.writeFile(session.jsonl_path, '', 'utf8');
+        }
+      } catch (err) {
+        console.error(`Error clearing session ${sessionId}:`, err.message);
+      }
+    }
     return {
       type: 'builtin',
       action: 'clear',

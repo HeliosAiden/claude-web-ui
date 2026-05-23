@@ -119,6 +119,8 @@ npm run dev
 
 Open `http://localhost:3001`. Your FCC configuration will be auto-discovered from `~/.config/free-claude-code/.env`.
 
+> **Note for Linux (glibc) users**: The SDK's bundled binary is the musl variant which won't run on glibc-based distros (Ubuntu, Debian). If you're using FCC, set `CLAUDE_CLI_PATH=fcc-claude` in `.env` — it's a Python script with no libc issues and works with the FCC proxy out of the box.
+
 #### Docker Sandboxes (Experimental)
 
 Run agents in isolated sandboxes with hypervisor-level isolation. Starts Claude Code by default. Requires the [`sbx` CLI](https://docs.docker.com/ai/sandboxes/get-started/).
@@ -279,9 +281,5 @@ Claude Web UI — a fork of [CloudCLI](https://cloudcli.ai) with Free Claude Cod
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[CodeMirror](https://codemirror.net/)** - Advanced code editor
 
-
-### Sponsors
-- [Siteboon - AI powered website builder](https://siteboon.ai)
----
 
 **Made with care for the Claude Code, Cursor, Codex, and Free Claude Code community.**

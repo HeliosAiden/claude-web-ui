@@ -582,6 +582,25 @@ export function useSessionStore() {
   }, [notify, resolveSessionId]);
 
   /**
+   * Clear all messages (server + realtime) and reset pagination state.
+   * Used by /clear to wipe the chat UI entirely.
+   */
+  const clearAllMessages = useCallback((sessionId: string) => {
+    const resolvedSessionId = resolveSessionId(sessionId) ?? sessionId;
+    const slot = storeRef.current.get(resolvedSessionId);
+    if (slot) {
+      slot.serverMessages = [];
+      slot.realtimeMessages = [];
+      slot.offset = 0;
+      slot.total = 0;
+      slot.hasMore = false;
+      slot.fetchedAt = 0;
+      recomputeMergedIfNeeded(slot);
+      notify(resolvedSessionId);
+    }
+  }, [notify, resolveSessionId]);
+
+  /**
    * Get merged messages for a session (for rendering).
    */
   const getMessages = useCallback((sessionId: string): NormalizedMessage[] => {
@@ -677,6 +696,7 @@ export function useSessionStore() {
     updateStreaming,
     finalizeStreaming,
     clearRealtime,
+    clearAllMessages,
     getMessages,
     getSessionSlot,
     replaceSessionId,
@@ -684,7 +704,7 @@ export function useSessionStore() {
     getSlot, has, fetchFromServer, fetchMore,
     appendRealtime, appendRealtimeBatch, refreshFromServer,
     setActiveSession, setStatus, isStale, updateStreaming, finalizeStreaming,
-    clearRealtime, getMessages, getSessionSlot, replaceSessionId,
+    clearRealtime, clearAllMessages, getMessages, getSessionSlot, replaceSessionId,
   ]);
 }
 
