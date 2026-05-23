@@ -185,6 +185,16 @@ export default tseslint.config(
           mode: "folder", // classify dependencies at folder-module level (not per individual file)
           capture: ["moduleName"], // capture the module folder name for messages/debugging/template use
         },
+        {
+          type: "backend-routes", // Express route files organized in server/routes
+          pattern: "server/routes/**", // all files in server/routes define route handlers
+          mode: "folder",
+        },
+        {
+          type: "backend-services", // backend service modules (business logic extracted from god files)
+          pattern: "server/services/**", // all files in server/services provide reusable service functions
+          mode: "folder",
+        },
       ],
     },
     rules: {
