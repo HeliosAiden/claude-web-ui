@@ -99,6 +99,10 @@ temp/
 # Local Netlify folder
 .netlify
 
+# CI / Git hooks
+.github/
+.husky/
+
 # AI specific
 .claude/
 .cursor/
