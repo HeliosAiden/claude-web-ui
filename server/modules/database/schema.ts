@@ -40,48 +40,6 @@ CREATE TABLE IF NOT EXISTS user_credentials (
 );
 `;
 
-export const USER_NOTIFICATION_PREFERENCES_TABLE_SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS user_notification_preferences (
-    user_id INTEGER PRIMARY KEY,
-    preferences_json TEXT NOT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-`;
-
-export const VAPID_KEYS_TABLE_SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS vapid_keys (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    public_key TEXT NOT NULL,
-    private_key TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-`;
-
-export const TELEGRAM_CONFIG_TABLE_SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS telegram_config (
-    user_id INTEGER PRIMARY KEY,
-    bot_token TEXT NOT NULL,
-    chat_id TEXT NOT NULL,
-    enabled BOOLEAN DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-`;
-
-export const PUSH_SUBSCRIPTIONS_TABLE_SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS push_subscriptions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    endpoint TEXT NOT NULL UNIQUE,
-    keys_p256dh TEXT NOT NULL,
-    keys_auth TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-`;
-
 export const PROJECTS_TABLE_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
     project_id TEXT PRIMARY KEY NOT NULL,
@@ -177,16 +135,6 @@ CREATE INDEX IF NOT EXISTS idx_user_credentials_user_id ON user_credentials(user
 CREATE INDEX IF NOT EXISTS idx_user_credentials_type ON user_credentials(credential_type);
 CREATE INDEX IF NOT EXISTS idx_user_credentials_active ON user_credentials(is_active);
 
-${USER_NOTIFICATION_PREFERENCES_TABLE_SCHEMA_SQL}
-CREATE INDEX IF NOT EXISTS idx_user_notification_preferences_user_id ON user_notification_preferences(user_id);
-
-${VAPID_KEYS_TABLE_SCHEMA_SQL}
-
-${PUSH_SUBSCRIPTIONS_TABLE_SCHEMA_SQL}
-CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id);
-
-${TELEGRAM_CONFIG_TABLE_SCHEMA_SQL}
-CREATE INDEX IF NOT EXISTS idx_telegram_config_enabled ON telegram_config(enabled);
 
 ${PROJECTS_TABLE_SCHEMA_SQL}
 -- NOTE: These indexes are created in migrations after legacy table-shape repairs.

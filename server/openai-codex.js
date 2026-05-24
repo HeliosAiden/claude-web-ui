@@ -14,7 +14,6 @@
  */
 
 import { Codex } from '@openai/codex-sdk';
-import { notifyRunFailed, notifyRunStopped } from './services/notification-orchestrator.js';
 import { sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { createNormalizedMessage } from './shared/utils.js';
@@ -299,13 +298,6 @@ export async function queryCodex(command, options = {}, ws) {
 
       if (event.type === 'turn.failed' && !terminalFailure) {
         terminalFailure = event.error || new Error('Turn failed');
-        notifyRunFailed({
-          userId: ws?.userId || null,
-          provider: 'codex',
-          sessionId: capturedSessionId || sessionId || null,
-          sessionName: sessionSummary,
-          error: terminalFailure
-        });
       }
 
       // Extract and send token usage if available (normalized to match Claude format)
@@ -323,13 +315,6 @@ export async function queryCodex(command, options = {}, ws) {
         sessionId: capturedSessionId || sessionId || null,
         provider: 'codex'
       }));
-      notifyRunStopped({
-        userId: ws?.userId || null,
-        provider: 'codex',
-        sessionId: capturedSessionId || sessionId || null,
-        sessionName: sessionSummary,
-        stopReason: 'completed'
-      });
     }
 
   } catch (error) {
@@ -349,15 +334,6 @@ export async function queryCodex(command, options = {}, ws) {
         : error.message;
 
       sendMessage(ws, createNormalizedMessage({ kind: 'error', content: errorContent, sessionId: capturedSessionId || sessionId || null, provider: 'codex' }));
-      if (!terminalFailure) {
-        notifyRunFailed({
-          userId: ws?.userId || null,
-          provider: 'codex',
-          sessionId: capturedSessionId || sessionId || null,
-          sessionName: sessionSummary,
-          error
-        });
-      }
     }
 
   } finally {

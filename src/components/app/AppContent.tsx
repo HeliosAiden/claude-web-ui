@@ -104,42 +104,6 @@ function AppContentInner() {
       }));
   }, [plugins]);
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-      return undefined;
-    }
-
-    const handleServiceWorkerMessage = (event: MessageEvent) => {
-      const message = event.data;
-      if (!message || message.type !== 'notification:navigate') {
-        return;
-      }
-
-      if (typeof message.provider === 'string' && message.provider.trim()) {
-        localStorage.setItem('selected-provider', message.provider);
-      }
-
-      setActiveTab('chat');
-      setActiveActivity('explorer');
-      setFlyoutOpen(false);
-
-      void refreshProjectsSilently();
-
-      if (typeof message.sessionId === 'string' && message.sessionId) {
-        navigate(`/session/${message.sessionId}`);
-        return;
-      }
-
-      navigate('/');
-    };
-
-    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-
-    return () => {
-      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
-    };
-  }, [navigate, refreshProjectsSilently, setActiveTab, setActiveActivity, setFlyoutOpen]);
-
   // Permission recovery: query pending permissions on WebSocket reconnect or session change
   useEffect(() => {
     const isReconnect = isConnected && !wasConnectedRef.current;

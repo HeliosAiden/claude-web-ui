@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { LLMProvider } from '../../../types/app';
 import type { ProviderAuthStatus } from '../../provider-auth/types';
 
-export type SettingsMainTab = 'agents' | 'appearance' | 'git' | 'api' | 'notifications' | 'plugins';
+export type SettingsMainTab = 'agents' | 'appearance' | 'git' | 'api' | 'plugins';
 export type AgentProvider = LLMProvider;
 export type AgentCategory = 'account' | 'permissions' | 'mcp';
 export type ProjectSortOrder = 'name' | 'date';
@@ -23,27 +23,6 @@ export type ClaudePermissionsState = {
   allowedTools: string[];
   disallowedTools: string[];
   skipPermissions: boolean;
-};
-
-export type NotificationPreferencesState = {
-  channels: {
-    inApp: boolean;
-    webPush: boolean;
-    telegram: boolean;
-  };
-  events: {
-    actionRequired: boolean;
-    stop: boolean;
-    error: boolean;
-  };
-};
-
-export type TelegramConfigState = {
-  configured: boolean;
-  enabled: boolean;
-  botToken?: string;
-  chatId?: string;
-  botTokenMasked?: string;
 };
 
 export type CursorPermissionsState = {

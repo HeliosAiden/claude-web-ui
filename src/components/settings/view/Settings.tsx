@@ -7,10 +7,8 @@ import AgentsSettingsTab from '../view/tabs/agents-settings/AgentsSettingsTab';
 import AppearanceSettingsTab from '../view/tabs/AppearanceSettingsTab';
 import CredentialsSettingsTab from '../view/tabs/api-settings/CredentialsSettingsTab';
 import GitSettingsTab from '../view/tabs/git-settings/GitSettingsTab';
-import NotificationsSettingsTab from '../view/tabs/NotificationsSettingsTab';
 import PluginSettingsTab from '../../plugins/view/PluginSettingsTab';
 import { useSettingsController } from '../hooks/useSettingsController';
-import { useWebPush } from '../../../hooks/useWebPush';
 import type { SettingsProps } from '../types/types';
 
 function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: SettingsProps) {
@@ -25,10 +23,6 @@ function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: Set
     updateCodeEditorSetting,
     claudePermissions,
     setClaudePermissions,
-    notificationPreferences,
-    setNotificationPreferences,
-    telegramConfig,
-    setTelegramConfig,
     cursorPermissions,
     setCursorPermissions,
     codexPermissionMode,
@@ -47,32 +41,6 @@ function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: Set
     isOpen,
     initialTab
   });
-
-  const {
-    permission: pushPermission,
-    isSubscribed: isPushSubscribed,
-    isLoading: isPushLoading,
-    subscribe: pushSubscribe,
-    unsubscribe: pushUnsubscribe,
-  } = useWebPush();
-
-  const handleEnablePush = async () => {
-    await pushSubscribe();
-    // Server sets webPush: true in preferences on subscribe; sync local state
-    setNotificationPreferences({
-      ...notificationPreferences,
-      channels: { ...notificationPreferences.channels, webPush: true },
-    });
-  };
-
-  const handleDisablePush = async () => {
-    await pushUnsubscribe();
-    // Server sets webPush: false in preferences on unsubscribe; sync local state
-    setNotificationPreferences({
-      ...notificationPreferences,
-      channels: { ...notificationPreferences.channels, webPush: false },
-    });
-  };
 
   if (!isOpen) {
     return null;
@@ -140,20 +108,6 @@ function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: Set
                   projects={projects}
                 />
               )}
-
-            {activeTab === 'notifications' && (
-              <NotificationsSettingsTab
-                notificationPreferences={notificationPreferences}
-                onNotificationPreferencesChange={setNotificationPreferences}
-                pushPermission={pushPermission}
-                isPushSubscribed={isPushSubscribed}
-                isPushLoading={isPushLoading}
-                onEnablePush={handleEnablePush}
-                onDisablePush={handleDisablePush}
-                telegramConfig={telegramConfig}
-                onTelegramConfigChange={setTelegramConfig}
-              />
-            )}
 
               {activeTab === 'api' && <CredentialsSettingsTab />}
 

@@ -93,42 +93,10 @@
     "appearance": "외관",
     "git": "Git",
     "apiTokens": "API & 토큰",
-    "notifications": "알림",
     "plugins": "플러그인",
     "about": "정보"
   },
   "notifications": {
-    "title": "알림",
-    "description": "수신할 알림 이벤트를 설정합니다.",
-    "webPush": {
-      "title": "웹 푸시 알림",
-      "enable": "푸시 알림 활성화",
-      "disable": "푸시 알림 비활성화",
-      "enabled": "푸시 알림이 활성화되었습니다",
-      "loading": "업데이트 중...",
-      "unsupported": "이 브라우저에서는 푸시 알림이 지원되지 않습니다.",
-      "denied": "푸시 알림이 차단되었습니다. 브라우저 설정에서 허용해 주세요."
-    },
-    "telegram": {
-      "title": "Telegram Notifications",
-      "description": "Receive notifications via Telegram bot. Messages are sent to your Telegram chat.",
-      "enabled": "Enabled",
-      "botToken": "Bot Token",
-      "botTokenLabel": "Telegram Bot Token",
-      "botTokenHelp": "Create a bot with @BotFather on Telegram and paste the token here.",
-      "chatId": "Chat ID",
-      "chatIdLabel": "Your Chat ID",
-      "chatIdHelp": "Send /start to your bot on Telegram to get your Chat ID.",
-      "remove": "Remove Configuration"
-    },
-    "events": {
-      "title": "이벤트 유형",
-      "actionRequired": "작업 필요",
-      "stop": "실행 중지",
-      "error": "실행 실패"
-    }
-  },
-  "appearanceSettings": {
     "darkMode": {
       "label": "다크 모드",
       "description": "라이트/다크 테마 전환"

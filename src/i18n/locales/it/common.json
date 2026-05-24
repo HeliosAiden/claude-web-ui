@@ -205,36 +205,6 @@
       "failedToCreateFolder": "Impossibile creare la cartella"
     }
   },
-  "notifications": {
-    "genericTool": "uno strumento",
-    "codes": {
-      "generic": {
-        "info": {
-          "title": "Notifica"
-        }
-      },
-      "permission": {
-        "required": {
-          "title": "Azione richiesta",
-          "body": "{{toolName}} è in attesa della tua decisione."
-        }
-      },
-      "run": {
-        "stopped": {
-          "title": "Esecuzione interrotta",
-          "body": "Motivo: {{reason}}"
-        },
-        "failed": {
-          "title": "Esecuzione fallita"
-        }
-      },
-      "agent": {
-        "notification": {
-          "title": "Notifica agente"
-        }
-      }
-    }
-  },
   "versionUpdate": {
     "title": "Aggiornamento disponibile",
     "newVersionReady": "Una nuova versione è pronta",

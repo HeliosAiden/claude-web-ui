@@ -108,7 +108,6 @@
     "multer": "^2.0.1",
     "node-fetch": "^2.7.0",
     "node-pty": "^1.2.0-beta.12",
-    "node-telegram-bot-api": "^0.67.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
@@ -122,7 +121,6 @@
     "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
     "tailwind-merge": "^3.3.1",
-    "web-push": "^3.6.7",
     "ws": "^8.14.2",
     "zustand": "^5.0.13"
   },
@@ -135,7 +133,6 @@
     "@types/cross-spawn": "^6.0.6",
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.7",
-    "@types/node-telegram-bot-api": "^0.64.14",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@types/ws": "^8.18.1",

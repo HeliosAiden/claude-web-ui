@@ -21,12 +21,7 @@ import os from 'os';
 import { CLAUDE_MODELS } from '../shared/modelConstants.js';
 import { resolveClaudeCodeExecutablePath } from './shared/claude-cli-path.js';
 import {
-  createNotificationEvent,
-  notifyRunFailed,
-  notifyRunStopped,
-  notifyUserIfEnabled
-} from './services/notification-orchestrator.js';
-import { sessionsService } from './modules/providers/services/sessions.service.js';
+  sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { createNormalizedMessage } from './shared/utils.js';
 
@@ -524,14 +519,6 @@ async function queryClaudeSDK(command, options = {}, ws) {
   let tempImagePaths = [];
   let tempDir = null;
 
-  const emitNotification = (event) => {
-    notifyUserIfEnabled({
-      userId: ws?.userId || null,
-      writer: ws,
-      event
-    });
-  };
-
   let abortController;
   let abortTimer;
 
@@ -550,26 +537,6 @@ async function queryClaudeSDK(command, options = {}, ws) {
     const finalCommand = attachmentResult.modifiedCommand;
     tempImagePaths = attachmentResult.tempImagePaths;
     tempDir = attachmentResult.tempDir;
-
-    sdkOptions.hooks = {
-      Notification: [{
-        matcher: '',
-        hooks: [async (input) => {
-          const message = typeof input?.message === 'string' ? input.message : 'Claude requires your attention.';
-          emitNotification(createNotificationEvent({
-            provider: 'claude',
-            sessionId: capturedSessionId || sessionId || null,
-            kind: 'action_required',
-            code: 'agent.notification',
-            meta: { message, sessionName: sessionSummary },
-            severity: 'warning',
-            requiresUserAction: true,
-            dedupeKey: `claude:hook:notification:${capturedSessionId || sessionId || 'none'}:${message}`
-          }));
-          return {};
-        }]
-      }]
-    };
 
     // Caveat: in 'auto' and 'bypassPermissions' modes the SDK resolves approval
     // at the permission-mode step and skips this callback, so interactive tools
@@ -602,16 +569,6 @@ async function queryClaudeSDK(command, options = {}, ws) {
 
       const requestId = createRequestId();
       ws.send(createNormalizedMessage({ kind: 'permission_request', requestId, toolName, input, sessionId: capturedSessionId || sessionId || null, provider: 'claude' }));
-      emitNotification(createNotificationEvent({
-        provider: 'claude',
-        sessionId: capturedSessionId || sessionId || null,
-        kind: 'action_required',
-        code: 'permission.required',
-        meta: { toolName, sessionName: sessionSummary },
-        severity: 'warning',
-        requiresUserAction: true,
-        dedupeKey: `claude:permission:${capturedSessionId || sessionId || 'none'}:${requestId}`
-      }));
 
       const decision = await waitForToolApproval(requestId, {
         timeoutMs: requiresInteraction ? 0 : undefined,
@@ -662,22 +619,10 @@ async function queryClaudeSDK(command, options = {}, ws) {
     }, QUERY_ABORT_TIMEOUT_MS);
     sdkOptions.abortController = abortController;
 
-    let queryInstance;
-    try {
-      queryInstance = query({
-        prompt: finalCommand,
-        options: sdkOptions
-      });
-    } catch (hookError) {
-      // Older/newer SDK versions may not accept hook shapes yet.
-      // Keep notification behavior operational via runtime events even if hook registration fails.
-      console.warn('Failed to initialize Claude query with hooks, retrying without hooks:', hookError?.message || hookError);
-      delete sdkOptions.hooks;
-      queryInstance = query({
-        prompt: finalCommand,
-        options: sdkOptions
-      });
-    }
+    const queryInstance = query({
+      prompt: finalCommand,
+      options: sdkOptions
+    });
 
     // Restore immediately — Query constructor already captured the value
     if (prevStreamTimeout !== undefined) {
@@ -792,13 +737,6 @@ async function queryClaudeSDK(command, options = {}, ws) {
 
     // Send completion event
     ws.send(createNormalizedMessage({ kind: 'complete', exitCode: 0, isNewSession: !sessionId && !!command, sessionId: capturedSessionId, provider: 'claude' }));
-    notifyRunStopped({
-      userId: ws?.userId || null,
-      provider: 'claude',
-      sessionId: capturedSessionId || sessionId || null,
-      sessionName: sessionSummary,
-      stopReason: 'completed'
-    });
     // Complete
 
   } catch (error) {
@@ -820,13 +758,6 @@ async function queryClaudeSDK(command, options = {}, ws) {
     // follower mode instead of showing an error.
     if (effectiveSid && ptyOwnedSessions.has(effectiveSid)) {
       ws.send(createNormalizedMessage({ kind: 'complete', exitCode: 0, isPtyOwned: true, sessionId: effectiveSid, provider: 'claude' }));
-      notifyRunStopped({
-        userId: ws?.userId || null,
-        provider: 'claude',
-        sessionId: effectiveSid,
-        sessionName: sessionSummary,
-        stopReason: 'pty_takeover'
-      });
       return;
     }
 
@@ -845,13 +776,6 @@ async function queryClaudeSDK(command, options = {}, ws) {
 
     // Send error to WebSocket
     ws.send(createNormalizedMessage({ kind: 'error', content: errorContent, sessionId: effectiveSid, provider: 'claude' }));
-    notifyRunFailed({
-      userId: ws?.userId || null,
-      provider: 'claude',
-      sessionId: effectiveSid,
-      sessionName: sessionSummary,
-      error
-    });
   }
 }
 

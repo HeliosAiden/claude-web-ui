@@ -93,42 +93,10 @@
     "appearance": "Aspetto",
     "git": "Git",
     "apiTokens": "API e Token",
-    "notifications": "Notifiche",
     "plugins": "Plugin",
     "about": "Informazioni"
   },
   "notifications": {
-    "title": "Notifiche",
-    "description": "Controlla quali notifiche ricevere.",
-    "webPush": {
-      "title": "Notifiche push web",
-      "enable": "Abilita notifiche push",
-      "disable": "Disabilita notifiche push",
-      "enabled": "Le notifiche push sono abilitate",
-      "loading": "Aggiornamento...",
-      "unsupported": "Le notifiche push non sono supportate in questo browser.",
-      "denied": "Le notifiche push sono bloccate. Abilitale nelle impostazioni del browser."
-    },
-    "telegram": {
-      "title": "Telegram Notifications",
-      "description": "Receive notifications via Telegram bot. Messages are sent to your Telegram chat.",
-      "enabled": "Enabled",
-      "botToken": "Bot Token",
-      "botTokenLabel": "Telegram Bot Token",
-      "botTokenHelp": "Create a bot with @BotFather on Telegram and paste the token here.",
-      "chatId": "Chat ID",
-      "chatIdLabel": "Your Chat ID",
-      "chatIdHelp": "Send /start to your bot on Telegram to get your Chat ID.",
-      "remove": "Remove Configuration"
-    },
-    "events": {
-      "title": "Tipi di evento",
-      "actionRequired": "Azione richiesta",
-      "stop": "Esecuzione interrotta",
-      "error": "Esecuzione fallita"
-    }
-  },
-  "appearanceSettings": {
     "darkMode": {
       "label": "Modalità scura",
       "description": "Alterna tra tema chiaro e scuro"

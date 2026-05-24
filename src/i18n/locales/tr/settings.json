@@ -93,42 +93,10 @@
     "appearance": "Görünüm",
     "git": "Git",
     "apiTokens": "API ve Token'lar",
-    "notifications": "Bildirimler",
     "plugins": "Eklentiler",
     "about": "Hakkında"
   },
   "notifications": {
-    "title": "Bildirimler",
-    "description": "Hangi bildirim etkinliklerini alacağını kontrol et.",
-    "webPush": {
-      "title": "Web Push Bildirimleri",
-      "enable": "Push Bildirimlerini Etkinleştir",
-      "disable": "Push Bildirimlerini Devre Dışı Bırak",
-      "enabled": "Push bildirimleri etkin",
-      "loading": "Güncelleniyor...",
-      "unsupported": "Bu tarayıcıda push bildirimleri desteklenmiyor.",
-      "denied": "Push bildirimleri engellendi. Lütfen tarayıcı ayarlarından izin ver."
-    },
-    "telegram": {
-      "title": "Telegram Notifications",
-      "description": "Receive notifications via Telegram bot. Messages are sent to your Telegram chat.",
-      "enabled": "Enabled",
-      "botToken": "Bot Token",
-      "botTokenLabel": "Telegram Bot Token",
-      "botTokenHelp": "Create a bot with @BotFather on Telegram and paste the token here.",
-      "chatId": "Chat ID",
-      "chatIdLabel": "Your Chat ID",
-      "chatIdHelp": "Send /start to your bot on Telegram to get your Chat ID.",
-      "remove": "Remove Configuration"
-    },
-    "events": {
-      "title": "Etkinlik Türleri",
-      "actionRequired": "Aksiyon gerekli",
-      "stop": "Çalıştırma durduruldu",
-      "error": "Çalıştırma başarısız"
-    }
-  },
-  "appearanceSettings": {
     "darkMode": {
       "label": "Koyu Mod",
       "description": "Açık ve koyu temalar arasında geçiş yap"

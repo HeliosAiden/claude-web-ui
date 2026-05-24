@@ -6,11 +6,7 @@ import {
   MESSAGE_BOOKMARKS_TABLE_SCHEMA_SQL,
   PROJECTS_TABLE_SCHEMA_SQL,
   PROMPT_TEMPLATES_TABLE_SCHEMA_SQL,
-  PUSH_SUBSCRIPTIONS_TABLE_SCHEMA_SQL,
   SESSIONS_TABLE_SCHEMA_SQL,
-  TELEGRAM_CONFIG_TABLE_SCHEMA_SQL,
-  USER_NOTIFICATION_PREFERENCES_TABLE_SCHEMA_SQL,
-  VAPID_KEYS_TABLE_SCHEMA_SQL,
 } from '@/modules/database/schema.js';
 import {
   encrypt,
@@ -469,38 +465,9 @@ const migratePlaintextSecrets = (db: Database): void => {
     }
   });
 
-  const migrateVapidKeys = db.transaction(() => {
-    const rows = db
-      .prepare('SELECT id, private_key FROM vapid_keys')
-      .all() as { id: number; private_key: string }[];
-
-    for (const row of rows) {
-      if (isEncrypted(row.private_key)) continue;
-      const encrypted = encrypt(row.private_key);
-      db.prepare('UPDATE vapid_keys SET private_key = ? WHERE id = ?').run(encrypted, row.id);
-    }
-  });
-
-  const migrateTelegramConfig = db.transaction(() => {
-    const rows = db
-      .prepare('SELECT user_id, bot_token FROM telegram_config')
-      .all() as { user_id: number; bot_token: string }[];
-
-    for (const row of rows) {
-      if (isEncrypted(row.bot_token)) continue;
-      const encrypted = encrypt(row.bot_token);
-      db.prepare('UPDATE telegram_config SET bot_token = ? WHERE user_id = ?').run(
-        encrypted,
-        row.user_id,
-      );
-    }
-  });
-
   const runAll = db.transaction(() => {
     migrateApiKeys();
     migrateCredentials();
-    migrateVapidKeys();
-    migrateTelegramConfig();
     db.prepare('INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)').run(
       MIGRATION_SENTINEL,
       'done',
@@ -527,13 +494,6 @@ export const runMigrations = (db: Database) => {
     );
 
     db.exec(APP_CONFIG_TABLE_SCHEMA_SQL);
-    db.exec(USER_NOTIFICATION_PREFERENCES_TABLE_SCHEMA_SQL);
-    db.exec(VAPID_KEYS_TABLE_SCHEMA_SQL);
-    db.exec(PUSH_SUBSCRIPTIONS_TABLE_SCHEMA_SQL);
-    db.exec('CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)');
-
-    db.exec(TELEGRAM_CONFIG_TABLE_SCHEMA_SQL);
-    db.exec('CREATE INDEX IF NOT EXISTS idx_telegram_config_enabled ON telegram_config(enabled)');
 
     db.exec(PROJECTS_TABLE_SCHEMA_SQL);
     rebuildProjectsTableWithPrimaryKeySchema(db);

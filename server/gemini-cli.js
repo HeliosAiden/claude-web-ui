@@ -7,7 +7,6 @@ import crossSpawn from 'cross-spawn';
 
 import sessionManager from './sessionManager.js';
 import GeminiResponseHandler from './gemini-response-handler.js';
-import { notifyRunFailed, notifyRunStopped } from './services/notification-orchestrator.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { createNormalizedMessage } from './shared/utils.js';
 
@@ -300,36 +299,7 @@ async function spawnGemini(command, options = {}, ws) {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: spawnEnv
         });
-        let terminalNotificationSent = false;
         let terminalFailureReason = null;
-
-        const notifyTerminalState = ({ code = null, error = null } = {}) => {
-            if (terminalNotificationSent) {
-                return;
-            }
-
-            terminalNotificationSent = true;
-
-            const finalSessionId = capturedSessionId || sessionId || processKey;
-            if (code === 0 && !error) {
-                notifyRunStopped({
-                    userId: ws?.userId || null,
-                    provider: 'gemini',
-                    sessionId: finalSessionId,
-                    sessionName: sessionSummary,
-                    stopReason: 'completed'
-                });
-                return;
-            }
-
-            notifyRunFailed({
-                userId: ws?.userId || null,
-                provider: 'gemini',
-                sessionId: finalSessionId,
-                sessionName: sessionSummary,
-                error: error || terminalFailureReason || `Gemini CLI exited with code ${code}`
-            });
-        };
 
         // Attach temp file info to process for cleanup later
         geminiProcess.tempImagePaths = tempImagePaths;
@@ -511,7 +481,6 @@ async function spawnGemini(command, options = {}, ws) {
             }
 
             if (code === 0) {
-                notifyTerminalState({ code });
                 resolve();
             } else {
                 const socketSessionId = typeof ws.getSessionId === 'function' ? ws.getSessionId() : finalSessionId;
@@ -549,10 +518,6 @@ async function spawnGemini(command, options = {}, ws) {
                     }
                 }
 
-                notifyTerminalState({
-                    code,
-                    error: code === null ? 'Gemini CLI process was terminated or timed out' : null
-                });
                 reject(
                     new Error(
                         terminalFailureReason
@@ -578,7 +543,6 @@ async function spawnGemini(command, options = {}, ws) {
 
             const errorSessionId = typeof ws.getSessionId === 'function' ? ws.getSessionId() : finalSessionId;
             ws.send(createNormalizedMessage({ kind: 'error', content: errorContent, sessionId: errorSessionId, provider: 'gemini' }));
-            notifyTerminalState({ error });
 
             reject(error);
         });

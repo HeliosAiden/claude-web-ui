@@ -73,8 +73,6 @@ import tokenUsageRoutes from './routes/token-usage.js';
 import systemRoutes from './routes/system.js';
 import { startEnabledPluginServers, stopAllPlugins, getPluginPort } from './utils/plugin-process-manager.js';
 import { appConfigDb, initializeDatabase } from './modules/database/index.js';
-import { configureWebPush } from './services/vapid-keys.js';
-import { initializeTelegramBots, shutdownTelegramBots } from './services/telegram-bot.js';
 import { validateApiKey, authenticateToken, authenticateWebSocket } from './middleware/auth.js';
 import { IS_PLATFORM, ALLOWED_ORIGINS } from './constants/config.js';
 import { c } from './utils/colors.js';
@@ -258,9 +256,6 @@ async function startServer() {
           console.log('[INIT] Workspace root loaded from DB:', dbWorkspaceRoot);
         }
 
-        configureWebPush();
-        initializeTelegramBots();
-
         const distIndexPath = path.join(APP_ROOT, 'dist', 'index.html');
         const isProduction = fs.existsSync(distIndexPath);
 
@@ -296,7 +291,6 @@ async function startServer() {
         await closeSessionsWatcher();
 
         const shutdownPlugins = async () => {
-            await shutdownTelegramBots();
             await stopAllPlugins();
             process.exit(0);
         };

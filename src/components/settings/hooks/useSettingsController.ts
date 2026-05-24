@@ -13,10 +13,8 @@ import type {
   CodexPermissionMode,
   CursorPermissionsState,
   GeminiPermissionMode,
-  NotificationPreferencesState,
   ProjectSortOrder,
   SettingsMainTab,
-  TelegramConfigState,
 } from '../types/types';
 
 type ThemeContextValue = {
@@ -46,14 +44,9 @@ type CodexSettingsStorage = {
   permissionMode?: CodexPermissionMode;
 };
 
-type NotificationPreferencesResponse = {
-  success?: boolean;
-  preferences?: NotificationPreferencesState;
-};
-
 type ActiveLoginProvider = AgentProvider | '';
 
-const KNOWN_MAIN_TABS: SettingsMainTab[] = ['agents', 'appearance', 'git', 'api', 'notifications', 'plugins'];
+const KNOWN_MAIN_TABS: SettingsMainTab[] = ['agents', 'appearance', 'git', 'api', 'plugins'];
 
 const normalizeMainTab = (tab: string): SettingsMainTab => {
   // Keep backwards compatibility with older callers that still pass "tools".
@@ -104,19 +97,6 @@ const createEmptyCursorPermissions = (): CursorPermissionsState => ({
   ...DEFAULT_CURSOR_PERMISSIONS,
 });
 
-const createDefaultNotificationPreferences = (): NotificationPreferencesState => ({
-  channels: {
-    inApp: true,
-    webPush: false,
-    telegram: false,
-  },
-  events: {
-    actionRequired: true,
-    stop: true,
-    error: true,
-  },
-});
-
 export function useSettingsController({ isOpen, initialTab }: UseSettingsControllerArgs) {
   const { isDarkMode, toggleDarkMode } = useTheme() as ThemeContextValue;
   const closeTimerRef = useRef<number | null>(null);
@@ -134,13 +114,6 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
   const [cursorPermissions, setCursorPermissions] = useState<CursorPermissionsState>(() => (
     createEmptyCursorPermissions()
   ));
-  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferencesState>(() => (
-    createDefaultNotificationPreferences()
-  ));
-  const [telegramConfig, setTelegramConfig] = useState<TelegramConfigState>(() => ({
-    configured: false,
-    enabled: false,
-  }));
   const [codexPermissionMode, setCodexPermissionMode] = useState<CodexPermissionMode>('default');
   const [geminiPermissionMode, setGeminiPermissionMode] = useState<GeminiPermissionMode>('default');
 
@@ -189,38 +162,6 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
       );
       setGeminiPermissionMode(savedGeminiSettings.permissionMode || 'default');
 
-      try {
-        const notificationResponse = await authenticatedFetch('/api/settings/notification-preferences');
-        if (notificationResponse.ok) {
-          const notificationData = await toResponseJson<NotificationPreferencesResponse>(notificationResponse);
-          if (notificationData.success && notificationData.preferences) {
-            setNotificationPreferences(notificationData.preferences);
-          } else {
-            setNotificationPreferences(createDefaultNotificationPreferences());
-          }
-        } else {
-          setNotificationPreferences(createDefaultNotificationPreferences());
-        }
-      } catch {
-        setNotificationPreferences(createDefaultNotificationPreferences());
-      }
-
-      // Load Telegram config
-      try {
-        const telegramResponse = await authenticatedFetch('/api/settings/telegram-config');
-        if (telegramResponse.ok) {
-          const telegramData = await telegramResponse.json();
-          setTelegramConfig({
-            configured: telegramData.configured || false,
-            enabled: telegramData.enabled || false,
-            chatId: telegramData.chatId || '',
-            botTokenMasked: telegramData.botTokenMasked || '',
-          });
-        }
-      } catch {
-        // Telegram config fetch failed silently
-      }
-
       // Load workspace root from server
       try {
         const wsRootResponse = await authenticatedFetch('/api/settings/workspace-root');
@@ -236,7 +177,6 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
       console.error('Error loading settings:', error);
       setClaudePermissions(createEmptyClaudePermissions());
       setCursorPermissions(createEmptyCursorPermissions());
-      setNotificationPreferences(createDefaultNotificationPreferences());
       setCodexPermissionMode('default');
       setProjectSortOrder('name');
     }
@@ -286,40 +226,6 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
         lastUpdated: now,
       }));
 
-      const notificationResponse = await authenticatedFetch('/api/settings/notification-preferences', {
-        method: 'PUT',
-        body: JSON.stringify(notificationPreferences),
-      });
-      if (!notificationResponse.ok) {
-        throw new Error('Failed to save notification preferences');
-      }
-
-      // Save Telegram config
-      if (telegramConfig.configured) {
-        // Already configured — use toggle endpoint to update enabled state
-        // (full botToken is not available after loading from backend)
-        const telegramResponse = await authenticatedFetch('/api/settings/telegram-config/toggle', {
-          method: 'PATCH',
-          body: JSON.stringify({ enabled: telegramConfig.enabled }),
-        });
-        if (!telegramResponse.ok) {
-          throw new Error('Failed to save Telegram config');
-        }
-      } else if (telegramConfig.botToken) {
-        // New setup — use PUT with the full token
-        const telegramResponse = await authenticatedFetch('/api/settings/telegram-config', {
-          method: 'PUT',
-          body: JSON.stringify({
-            botToken: telegramConfig.botToken,
-            chatId: telegramConfig.chatId,
-            enabled: telegramConfig.enabled,
-          }),
-        });
-        if (!telegramResponse.ok) {
-          throw new Error('Failed to save Telegram config');
-        }
-      }
-
       // Save workspace root to server
       if (workspaceRoot) {
         const wsRootResponse = await authenticatedFetch('/api/settings/workspace-root', {
@@ -344,8 +250,6 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
     cursorPermissions.allowedCommands,
     cursorPermissions.disallowedCommands,
     cursorPermissions.skipPermissions,
-    notificationPreferences,
-    telegramConfig,
     geminiPermissionMode,
     projectSortOrder,
     workspaceRoot,
@@ -445,10 +349,6 @@ export function useSettingsController({ isOpen, initialTab }: UseSettingsControl
     setClaudePermissions,
     cursorPermissions,
     setCursorPermissions,
-    notificationPreferences,
-    setNotificationPreferences,
-    telegramConfig,
-    setTelegramConfig,
     codexPermissionMode,
     setCodexPermissionMode,
     providerAuthStatus,
