@@ -1,15 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bookmark, ChevronDown, ChevronUp, X } from 'lucide-react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import type { ChatMessage } from '../../types/types';
-import type { Project, ProjectSession, LLMProvider } from '../../../../types/app';
-import type { ProviderAuthStatusMap } from '../../../provider-auth/types';
+import type { LLMProvider } from '../../../../types/app';
 import { getIntrinsicMessageKey } from '../../utils/messageKeys';
 import { authenticatedFetch } from '../../../../utils/api';
 import MessageComponent from './MessageComponent';
 import ChatFindWidget from './ChatFindWidget';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
+import { useChatSessionContext } from '../../../../contexts/ChatSessionContext';
+import { useChatProviderContext } from '../../../../contexts/ChatProviderContext';
 
 function getMessageSearchText(message: ChatMessage): string {
   return [
@@ -21,102 +22,58 @@ function getMessageSearchText(message: ChatMessage): string {
 }
 
 interface ChatMessagesPaneProps {
-  scrollContainerRef: RefObject<HTMLDivElement>;
-  onWheel: () => void;
-  onTouchMove: () => void;
-  isLoadingSessionMessages: boolean;
-  chatMessages: ChatMessage[];
-  selectedSession: ProjectSession | null;
-  currentSessionId: string | null;
-  provider: LLMProvider;
-  setProvider: (provider: LLMProvider) => void;
-  textareaRef: RefObject<HTMLTextAreaElement>;
-  claudeModel: string;
-  setClaudeModel: (model: string) => void;
-  cursorModel: string;
-  setCursorModel: (model: string) => void;
-  codexModel: string;
-  setCodexModel: (model: string) => void;
-  geminiModel: string;
-  setGeminiModel: (model: string) => void;
-  fccModels: { value: string; label: string }[];
-  providerAuthStatus: ProviderAuthStatusMap;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
   setInput: Dispatch<SetStateAction<string>>;
-  isLoadingMoreMessages: boolean;
-  hasMoreMessages: boolean;
-  totalMessages: number;
-  sessionMessagesCount: number;
-  visibleMessageCount: number;
   visibleMessages: ChatMessage[];
-  loadEarlierMessages: () => void;
-  loadAllMessages: () => void;
-  allMessagesLoaded: boolean;
-  isLoadingAllMessages: boolean;
-  loadAllJustFinished: boolean;
-  showLoadAllOverlay: boolean;
-  createDiff: any;
   onFileOpen?: (filePath: string, diffInfo?: unknown) => void;
   onShowSettings?: () => void;
   onGrantToolPermission: (suggestion: { entry: string; toolName: string }) => { success: boolean };
   autoExpandTools?: boolean;
   showRawParameters?: boolean;
   showThinking?: boolean;
-  selectedProject: Project;
-  bookmarkedMessageUuids: Set<string>;
-  pinnedBookmarks: Array<{
-    messageUuid: string;
-    contentSnippet: string;
-    role: string;
-    messageTimestamp: string;
-  }>;
 }
 
 export default function ChatMessagesPane({
-  scrollContainerRef,
-  onWheel,
-  onTouchMove,
-  isLoadingSessionMessages,
-  chatMessages,
-  selectedSession,
-  currentSessionId,
-  provider,
-  setProvider,
   textareaRef,
-  claudeModel,
-  setClaudeModel,
-  cursorModel,
-  setCursorModel,
-  codexModel,
-  setCodexModel,
-  geminiModel,
-  setGeminiModel,
-  fccModels,
-  providerAuthStatus,
   setInput,
-  isLoadingMoreMessages,
-  hasMoreMessages,
-  totalMessages,
-  sessionMessagesCount,
-  visibleMessageCount,
   visibleMessages,
-  loadEarlierMessages,
-  loadAllMessages,
-  allMessagesLoaded,
-  isLoadingAllMessages,
-  loadAllJustFinished,
-  showLoadAllOverlay,
-  createDiff,
   onFileOpen,
   onShowSettings,
   onGrantToolPermission,
   autoExpandTools,
   showRawParameters,
   showThinking,
-  selectedProject,
-  bookmarkedMessageUuids,
-  pinnedBookmarks,
 }: ChatMessagesPaneProps) {
   const { t } = useTranslation('chat');
+  const {
+    selectedSession,
+    currentSessionId,
+    chatMessages,
+    selectedProject,
+    scrollContainerRef,
+    handleScroll,
+    isLoadingSessionMessages,
+    isLoadingMoreMessages,
+    hasMoreMessages,
+    totalMessages,
+    visibleMessageCount,
+    loadEarlierMessages,
+    loadAllMessages,
+    allMessagesLoaded,
+    isLoadingAllMessages,
+    loadAllJustFinished,
+    showLoadAllOverlay,
+    createDiff,
+    bookmarkedMessageUuids,
+    pinnedBookmarks,
+  } = useChatSessionContext();
+
+  const {
+    provider, setProvider, claudeModel, setClaudeModel,
+    cursorModel, setCursorModel, codexModel, setCodexModel,
+    geminiModel, setGeminiModel, fccModels, providerAuthStatus,
+  } = useChatProviderContext();
+
   const messageKeyMapRef = useRef<WeakMap<ChatMessage, string>>(new WeakMap());
   const allocatedKeysRef = useRef<Set<string>>(new Set());
   const generatedMessageKeyCounterRef = useRef(0);
@@ -330,8 +287,8 @@ export default function ChatMessagesPane({
   return (
     <div
       ref={scrollContainerRef}
-      onWheel={onWheel}
-      onTouchMove={onTouchMove}
+      onWheel={handleScroll}
+      onTouchMove={handleScroll}
       className="chat-messages-scroll-container relative flex-1 space-y-3 overflow-y-auto overflow-x-hidden px-0 py-3 sm:space-y-4 sm:p-4"
     >
       {isLoadingSessionMessages && chatMessages.length === 0 ? (
@@ -377,7 +334,7 @@ export default function ChatMessagesPane({
             <div className="border-b border-gray-200 py-2 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
               {totalMessages > 0 && (
                 <span>
-                  {t('session.messages.showingOf', { shown: sessionMessagesCount, total: totalMessages })}{' '}
+                  {t('session.messages.showingOf', { shown: chatMessages.length, total: totalMessages })}{' '}
                   <span className="text-xs">{t('session.messages.scrollToLoad')}</span>
                 </span>
               )}
@@ -532,4 +489,3 @@ export default function ChatMessagesPane({
     </div>
   );
 }
-

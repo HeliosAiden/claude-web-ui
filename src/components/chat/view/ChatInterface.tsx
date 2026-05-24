@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next';
 
 import { useProviderAuthStatus } from '../../provider-auth/hooks/useProviderAuthStatus';
 import PermissionContext from '../../../contexts/PermissionContext';
+import ChatSessionContext from '../../../contexts/ChatSessionContext';
+import ChatProviderContext from '../../../contexts/ChatProviderContext';
 import { QuickSettingsPanel } from '../../quick-settings-panel';
 import type { ChatInterfaceProps, Provider  } from '../types/types';
 import type { LLMProvider } from '../../../types/app';
 import { useChatProviderState } from '../hooks/useChatProviderState';
 import { useChatSessionState } from '../hooks/useChatSessionState';
+import { useChatScrollPaginationState } from '../hooks/useChatScrollPaginationState';
+import { useChatPaginationPrimitives } from '../hooks/useChatPaginationPrimitives';
 import { useChatRealtimeHandlers } from '../hooks/useChatRealtimeHandlers';
 import { useChatComposerState } from '../hooks/useChatComposerState';
 import { useSessionStore } from '../../../stores/useSessionStore';
@@ -90,6 +94,33 @@ function ChatInterface({
     refreshProviderAuthStatuses();
   }, [refreshProviderAuthStatuses]);
 
+  const pagination = useChatPaginationPrimitives();
+
+  // Session state — messages, bookmarks, streaming status, tokens
+  const sessionState = useChatSessionState({
+    selectedProject,
+    selectedSession,
+    ws,
+    sendMessage,
+    externalMessageUpdate,
+    newSessionTrigger,
+    processingSessions,
+    resetStreamingState,
+    pendingViewSessionRef,
+    sessionStore,
+    pagination,
+  });
+
+  // Scroll and pagination state
+  const scrollState = useChatScrollPaginationState({
+    selectedSession,
+    selectedProject,
+    sessionStore,
+    chatMessagesLength: sessionState.chatMessages.length,
+    autoScrollToBottom,
+    pagination,
+  });
+
   const {
     chatMessages,
     addMessage,
@@ -100,45 +131,71 @@ function ChatInterface({
     currentSessionId,
     setCurrentSessionId,
     isLoadingSessionMessages,
+    canAbortSession,
+    setCanAbortSession,
+    tokenBudget,
+    setTokenBudget,
+    claudeStatus,
+    setClaudeStatus,
+    createDiff,
+    bookmarkedMessageUuids,
+    pinnedBookmarks,
+  } = sessionState;
+
+  const {
+    scrollContainerRef,
+    scrollToBottom,
+    scrollToBottomAndReset,
+    handleScroll,
+    isUserScrolledUp,
+    setIsUserScrolledUp,
     isLoadingMoreMessages,
     hasMoreMessages,
     totalMessages,
-    canAbortSession,
-    setCanAbortSession,
-    isUserScrolledUp,
-    setIsUserScrolledUp,
-    tokenBudget,
-    setTokenBudget,
     visibleMessageCount,
-    visibleMessages,
     loadEarlierMessages,
     loadAllMessages,
     allMessagesLoaded,
     isLoadingAllMessages,
     loadAllJustFinished,
     showLoadAllOverlay,
-    claudeStatus,
-    setClaudeStatus,
-    createDiff,
-    scrollContainerRef,
-    scrollToBottom,
-    scrollToBottomAndReset,
-    handleScroll,
-    bookmarkedMessageUuids,
-    pinnedBookmarks,
-  } = useChatSessionState({
-    selectedProject,
-    selectedSession,
-    ws,
-    sendMessage,
-    autoScrollToBottom,
-    externalMessageUpdate,
-    newSessionTrigger,
-    processingSessions,
-    resetStreamingState,
-    pendingViewSessionRef,
-    sessionStore,
-  });
+  } = scrollState;
+
+  // Compute visible messages from chatMessages + visibleMessageCount
+  const visibleMessages = useMemo(() => {
+    if (chatMessages.length <= visibleMessageCount) return chatMessages;
+    return chatMessages.slice(-visibleMessageCount);
+  }, [chatMessages, visibleMessageCount]);
+
+  const providerContextValue = useMemo(() => ({
+    provider, setProvider, cursorModel, setCursorModel,
+    claudeModel, setClaudeModel, codexModel, setCodexModel,
+    geminiModel, setGeminiModel, fccModels, providerAuthStatus,
+    permissionMode, cyclePermissionMode,
+  }), [
+    provider, setProvider, cursorModel, setCursorModel,
+    claudeModel, setClaudeModel, codexModel, setCodexModel,
+    geminiModel, setGeminiModel, fccModels, providerAuthStatus,
+    permissionMode, cyclePermissionMode,
+  ]);
+
+  const sessionContextValue = useMemo(() => ({
+    chatMessages, selectedSession, currentSessionId, selectedProject,
+    bookmarkedMessageUuids, pinnedBookmarks, createDiff,
+    scrollContainerRef, handleScroll, isUserScrolledUp,
+    isLoadingSessionMessages, isLoadingMoreMessages, hasMoreMessages,
+    totalMessages, visibleMessageCount, loadEarlierMessages,
+    loadAllMessages, allMessagesLoaded, isLoadingAllMessages,
+    loadAllJustFinished, showLoadAllOverlay,
+  }), [
+    chatMessages, selectedSession, currentSessionId, selectedProject,
+    bookmarkedMessageUuids, pinnedBookmarks, createDiff,
+    scrollContainerRef, handleScroll, isUserScrolledUp,
+    isLoadingSessionMessages, isLoadingMoreMessages, hasMoreMessages,
+    totalMessages, visibleMessageCount, loadEarlierMessages,
+    loadAllMessages, allMessagesLoaded, isLoadingAllMessages,
+    loadAllJustFinished, showLoadAllOverlay,
+  ]);
 
   const {
     input,
@@ -348,52 +405,20 @@ function ChatInterface({
   }
 
   return (
+    <ChatProviderContext.Provider value={providerContextValue}>
+    <ChatSessionContext.Provider value={sessionContextValue}>
     <PermissionContext.Provider value={permissionContextValue}>
       <div className="flex h-full flex-col">
         <ChatMessagesPane
-          scrollContainerRef={scrollContainerRef}
-          onWheel={handleScroll}
-          onTouchMove={handleScroll}
-          isLoadingSessionMessages={isLoadingSessionMessages}
-          chatMessages={chatMessages}
-          selectedSession={selectedSession}
-          currentSessionId={currentSessionId}
-          provider={provider}
-          setProvider={(nextProvider) => setProvider(nextProvider as Provider)}
           textareaRef={textareaRef}
-          claudeModel={claudeModel}
-          setClaudeModel={setClaudeModel}
-          cursorModel={cursorModel}
-          setCursorModel={setCursorModel}
-          codexModel={codexModel}
-          setCodexModel={setCodexModel}
-          geminiModel={geminiModel}
-          setGeminiModel={setGeminiModel}
-          fccModels={fccModels}
-          providerAuthStatus={providerAuthStatus}
           setInput={setInput}
-          isLoadingMoreMessages={isLoadingMoreMessages}
-          hasMoreMessages={hasMoreMessages}
-          totalMessages={totalMessages}
-          sessionMessagesCount={chatMessages.length}
-          visibleMessageCount={visibleMessageCount}
           visibleMessages={visibleMessages}
-          loadEarlierMessages={loadEarlierMessages}
-          loadAllMessages={loadAllMessages}
-          allMessagesLoaded={allMessagesLoaded}
-          isLoadingAllMessages={isLoadingAllMessages}
-          loadAllJustFinished={loadAllJustFinished}
-          showLoadAllOverlay={showLoadAllOverlay}
-          createDiff={createDiff}
           onFileOpen={onFileOpen}
           onShowSettings={onShowSettings}
           onGrantToolPermission={handleGrantToolPermission}
           autoExpandTools={autoExpandTools}
           showRawParameters={showRawParameters}
           showThinking={showThinking}
-          selectedProject={selectedProject}
-          bookmarkedMessageUuids={bookmarkedMessageUuids}
-          pinnedBookmarks={pinnedBookmarks}
         />
 
         <ChatComposer
@@ -403,20 +428,6 @@ function ChatInterface({
           claudeStatus={claudeStatus}
           isLoading={isLoading}
           onAbortSession={handleAbortSession}
-          provider={provider}
-          setProvider={(nextProvider) => setProvider(nextProvider as Provider)}
-          claudeModel={claudeModel}
-          setClaudeModel={setClaudeModel}
-          cursorModel={cursorModel}
-          setCursorModel={setCursorModel}
-          codexModel={codexModel}
-          setCodexModel={setCodexModel}
-          geminiModel={geminiModel}
-          setGeminiModel={setGeminiModel}
-          fccModels={fccModels}
-          providerAuthStatus={providerAuthStatus}
-          permissionMode={permissionMode}
-          onModeSwitch={cyclePermissionMode}
           thinkingMode={thinkingMode}
           setThinkingMode={setThinkingMode}
           tokenBudget={tokenBudget}
@@ -503,6 +514,8 @@ function ChatInterface({
         }}
       />
     </PermissionContext.Provider>
+    </ChatSessionContext.Provider>
+    </ChatProviderContext.Provider>
   );
 }
 

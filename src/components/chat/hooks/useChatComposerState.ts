@@ -9,12 +9,9 @@ import type {
   SetStateAction,
   TouchEvent,
 } from 'react';
-import { useDropzone } from 'react-dropzone';
 
 import { authenticatedFetch } from '../../../utils/api';
 import { thinkingModes } from '../constants/thinkingModes';
-import { grantClaudeToolPermission } from '../utils/chatPermissions';
-import { safeLocalStorage } from '../utils/chatStorage';
 import type {
   ChatMessage,
   PendingPermissionRequest,
@@ -22,9 +19,13 @@ import type {
 } from '../types/types';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
 import { escapeRegExp } from '../utils/chatFormatting';
+import { safeLocalStorage } from '../utils/chatStorage';
 
 import { useFileMentions } from './useFileMentions';
 import { type SlashCommand, useSlashCommands } from './useSlashCommands';
+import { useChatInputState } from './useChatInputState';
+import { useChatMediaState } from './useChatMediaState';
+import { useChatActions } from './useChatActions';
 
 type PendingViewSession = {
   sessionId: string | null;
@@ -132,29 +133,123 @@ export function useChatComposerState({
   setIsUserScrolledUp,
   setPendingPermissionRequests,
 }: UseChatComposerStateArgs) {
-  const [input, setInput] = useState(() => {
-    if (typeof window !== 'undefined' && selectedProject) {
-      // Draft inputs are keyed by the DB projectId so per-project drafts
-      // survive display-name changes.
-      return safeLocalStorage.getItem(`draft_input_${selectedProject.projectId}`) || '';
-    }
-    return '';
-  });
-  const [attachedImages, setAttachedImages] = useState<File[]>([]);
-  const [uploadingImages, setUploadingImages] = useState<Map<string, number>>(new Map());
-  const [imageErrors, setImageErrors] = useState<Map<string, string>>(new Map());
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [uploadingFiles, setUploadingFiles] = useState<Map<string, number>>(new Map());
-  const [fileErrors, setFileErrors] = useState<Map<string, string>>(new Map());
-  const [isTextareaExpanded, setIsTextareaExpanded] = useState(false);
   const [thinkingMode, setThinkingMode] = useState('none');
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const inputHighlightRef = useRef<HTMLDivElement>(null);
   const handleSubmitRef = useRef<
     ((event: FormEvent<HTMLFormElement> | MouseEvent | TouchEvent | KeyboardEvent<HTMLTextAreaElement>) => Promise<void>) | null
   >(null);
-  const inputValueRef = useRef(input);
+
+  // 1. Sub-hooks — input, media, actions
+  const {
+    input,
+    setInput,
+    textareaRef,
+    inputHighlightRef,
+    isTextareaExpanded,
+    setIsTextareaExpanded,
+    isInputFocused,
+    inputValueRef,
+    handleInputFocusChange,
+    syncInputOverlayScroll,
+    handleInsertTemplate,
+  } = useChatInputState({
+    selectedProject,
+    onInputFocusChange,
+    setCursorPosition: undefined,
+    handleCommandInputChange: undefined,
+    resetCommandMenuState: undefined,
+  });
+
+  const mediaState = useChatMediaState();
+
+  const actions = useChatActions({
+    canAbortSession,
+    currentSessionId,
+    pendingViewSessionRef,
+    provider,
+    sendMessage,
+    selectedSession,
+    setPendingPermissionRequests,
+    setClaudeStatus,
+  });
+
+  // 2. Sub-hooks that need input from input state
+  const executeCommand = useCallback(
+    async (command: SlashCommand, rawInput?: string) => {
+      if (!command || !selectedProject) {
+        return;
+      }
+
+      try {
+        const effectiveInput = rawInput ?? input;
+        const commandMatch = effectiveInput.match(new RegExp(`${escapeRegExp(command.name)}\\s*(.*)`));
+        const args =
+          commandMatch && commandMatch[1] ? commandMatch[1].trim().split(/\s+/) : [];
+
+        const context = {
+          projectPath: selectedProject.fullPath || selectedProject.path,
+          projectId: selectedProject.projectId,
+          sessionId: currentSessionId,
+          provider,
+          model: provider === 'cursor' ? cursorModel : provider === 'codex' ? codexModel : provider === 'gemini' ? geminiModel : claudeModel,
+          tokenUsage: tokenBudget,
+        };
+
+        const response = await authenticatedFetch('/api/commands/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            commandName: command.name,
+            commandPath: command.path,
+            args,
+            context,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = `Failed to execute command (${response.status})`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData?.message || errorData?.error || errorMessage;
+          } catch {
+            // Ignore JSON parse failures and use fallback message.
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = (await response.json()) as CommandExecutionResult;
+        if (result.type === 'builtin') {
+          handleBuiltInCommand(result);
+          setInput('');
+          inputValueRef.current = '';
+        } else if (result.type === 'custom') {
+          await handleCustomCommand(result);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error executing command:', error);
+        addMessage({
+          type: 'assistant',
+          content: `Error executing command: ${message}`,
+          timestamp: Date.now(),
+        });
+      }
+    },
+    [
+      claudeModel,
+      codexModel,
+      currentSessionId,
+      cursorModel,
+      geminiModel,
+      input,
+      provider,
+      selectedProject,
+      addMessage,
+      tokenBudget,
+    ],
+  );
 
   const handleBuiltInCommand = useCallback(
     (result: CommandExecutionResult) => {
@@ -268,87 +363,6 @@ export function useChatComposerState({
     }, 0);
   }, [addMessage]);
 
-  const executeCommand = useCallback(
-    async (command: SlashCommand, rawInput?: string) => {
-      if (!command || !selectedProject) {
-        return;
-      }
-
-      try {
-        const effectiveInput = rawInput ?? input;
-        const commandMatch = effectiveInput.match(new RegExp(`${escapeRegExp(command.name)}\\s*(.*)`));
-        const args =
-          commandMatch && commandMatch[1] ? commandMatch[1].trim().split(/\s+/) : [];
-
-        // The `/api/commands/execute` context sends `projectId` now instead of
-        // a folder-derived project name; the path is still included verbatim.
-        const context = {
-          projectPath: selectedProject.fullPath || selectedProject.path,
-          projectId: selectedProject.projectId,
-          sessionId: currentSessionId,
-          provider,
-          model: provider === 'cursor' ? cursorModel : provider === 'codex' ? codexModel : provider === 'gemini' ? geminiModel : claudeModel,
-          tokenUsage: tokenBudget,
-        };
-
-        const response = await authenticatedFetch('/api/commands/execute', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            commandName: command.name,
-            commandPath: command.path,
-            args,
-            context,
-          }),
-        });
-
-        if (!response.ok) {
-          let errorMessage = `Failed to execute command (${response.status})`;
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData?.message || errorData?.error || errorMessage;
-          } catch {
-            // Ignore JSON parse failures and use fallback message.
-          }
-          throw new Error(errorMessage);
-        }
-
-        const result = (await response.json()) as CommandExecutionResult;
-        if (result.type === 'builtin') {
-          handleBuiltInCommand(result);
-          setInput('');
-          inputValueRef.current = '';
-        } else if (result.type === 'custom') {
-          await handleCustomCommand(result);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Error executing command:', error);
-        addMessage({
-          type: 'assistant',
-          content: `Error executing command: ${message}`,
-          timestamp: Date.now(),
-        });
-      }
-    },
-    [
-      claudeModel,
-      codexModel,
-      currentSessionId,
-      cursorModel,
-      geminiModel,
-      handleBuiltInCommand,
-      handleCustomCommand,
-      input,
-      provider,
-      selectedProject,
-      addMessage,
-      tokenBudget,
-    ],
-  );
-
   const {
     slashCommands,
     slashCommandsCount,
@@ -385,112 +399,64 @@ export function useChatComposerState({
     textareaRef,
   });
 
-  const syncInputOverlayScroll = useCallback((target: HTMLTextAreaElement) => {
-    if (!inputHighlightRef.current || !target) {
-      return;
-    }
-    inputHighlightRef.current.scrollTop = target.scrollTop;
-    inputHighlightRef.current.scrollLeft = target.scrollLeft;
-  }, []);
+  // 3. Wire optional callbacks into input state (now that sub-hooks are available)
+  // Update: useChatInputState is already initialized with undefined callbacks above.
+  // Since the refs-based pattern doesn't work for inline callback injection, we wrap
+  // inputHandleChange to inject the sub-hook callbacks.
+  const handleInputChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = event.target.value;
+      const cursorPos = event.target.selectionStart;
 
-  const handleImageFiles = useCallback((files: File[]) => {
-    const validFiles = files.filter((file) => {
-      try {
-        if (!file || typeof file !== 'object') {
-          console.warn('Invalid file object:', file);
-          return false;
-        }
+      setInput(newValue);
+      inputValueRef.current = newValue;
+      setCursorPosition(cursorPos);
 
-        if (!file.type || !file.type.startsWith('image/')) {
-          return false;
-        }
-
-        if (!file.size || file.size > 5 * 1024 * 1024) {
-          const fileName = file.name || 'Unknown file';
-          setImageErrors((previous) => {
-            const next = new Map(previous);
-            next.set(fileName, 'File too large (max 5MB)');
-            return next;
-          });
-          return false;
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Error validating file:', error, file);
-        return false;
+      if (!newValue.trim()) {
+        event.target.style.height = 'auto';
+        setIsTextareaExpanded(false);
+        resetCommandMenuState();
+        return;
       }
-    });
 
-    if (validFiles.length > 0) {
-      setAttachedImages((previous) => [...previous, ...validFiles].slice(0, 5));
-    }
-  }, []);
-
-  const handleFileFiles = useCallback((files: File[]) => {
-    const validFiles = files.filter((file) => {
-      try {
-        if (!file || typeof file !== 'object') return false;
-        if (file.type.startsWith('image/')) return false; // images go through handleImageFiles
-        if (!file.size || file.size > 10 * 1024 * 1024) {
-          const fileName = file.name || 'Unknown file';
-          setFileErrors((previous) => {
-            const next = new Map(previous);
-            next.set(fileName, 'File too large (max 10MB)');
-            return next;
-          });
-          return false;
-        }
-        return true;
-      } catch (error) {
-        console.error('Error validating file:', error, file);
-        return false;
-      }
-    });
-
-    if (validFiles.length > 0) {
-      setAttachedFiles((previous) => [...previous, ...validFiles].slice(0, 10));
-    }
-  }, []);
-
-  const handlePaste = useCallback(
-    (event: ClipboardEvent<HTMLTextAreaElement>) => {
-      const items = Array.from(event.clipboardData.items);
-
-      items.forEach((item) => {
-        if (!item.type.startsWith('image/')) {
-          return;
-        }
-        const file = item.getAsFile();
-        if (file) {
-          handleImageFiles([file]);
-        }
-      });
-
-      if (items.length === 0 && event.clipboardData.files.length > 0) {
-        const files = Array.from(event.clipboardData.files);
-        const imageFiles = files.filter((file) => file.type.startsWith('image/'));
-        if (imageFiles.length > 0) {
-          handleImageFiles(imageFiles);
-        }
-      }
+      handleCommandInputChange(newValue, cursorPos);
     },
-    [handleImageFiles],
+    [handleCommandInputChange, resetCommandMenuState, setCursorPosition],
   );
 
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
-    maxSize: 10 * 1024 * 1024,
-    maxFiles: 10,
-    onDrop: (acceptedFiles) => {
-      const imageFiles = acceptedFiles.filter((f) => f.type.startsWith('image/'));
-      const otherFiles = acceptedFiles.filter((f) => !f.type.startsWith('image/'));
-      if (imageFiles.length > 0) handleImageFiles(imageFiles);
-      if (otherFiles.length > 0) handleFileFiles(otherFiles);
+  const handleTextareaClick = useCallback(
+    (event: MouseEvent<HTMLTextAreaElement>) => {
+      setCursorPosition(event.currentTarget.selectionStart);
     },
-    noClick: true,
-    noKeyboard: true,
-  });
+    [setCursorPosition],
+  );
 
+  const handleTextareaInput = useCallback(
+    (event: FormEvent<HTMLTextAreaElement>) => {
+      const target = event.currentTarget;
+      target.style.height = 'auto';
+      target.style.height = `${Math.max(22, target.scrollHeight)}px`;
+      setCursorPosition(target.selectionStart);
+      syncInputOverlayScroll(target);
+
+      const lineHeight = parseInt(window.getComputedStyle(target).lineHeight);
+      setIsTextareaExpanded(target.scrollHeight > lineHeight * 2);
+    },
+    [setCursorPosition, syncInputOverlayScroll],
+  );
+
+  const handleClearInput = useCallback(() => {
+    setInput('');
+    inputValueRef.current = '';
+    resetCommandMenuState();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.focus();
+    }
+    setIsTextareaExpanded(false);
+  }, [resetCommandMenuState]);
+
+  // 4. handleSubmit — stays in orchestrator, reads from sub-hook values
   const handleSubmit = useCallback(
     async (
       event: FormEvent<HTMLFormElement> | MouseEvent | TouchEvent | KeyboardEvent<HTMLTextAreaElement>,
@@ -501,7 +467,7 @@ export function useChatComposerState({
         return;
       }
 
-      // Intercept slash commands: if input starts with /commandName, execute as command with args
+      // Intercept slash commands
       const trimmedInput = currentInput.trim();
       if (trimmedInput.startsWith('/')) {
         const firstSpace = trimmedInput.indexOf(' ');
@@ -511,12 +477,12 @@ export function useChatComposerState({
           executeCommand(matchedCommand, trimmedInput);
           setInput('');
           inputValueRef.current = '';
-          setAttachedImages([]);
-          setUploadingImages(new Map());
-          setImageErrors(new Map());
-          setAttachedFiles([]);
-          setUploadingFiles(new Map());
-          setFileErrors(new Map());
+          mediaState.setAttachedImages([]);
+          mediaState.setUploadingImages(new Map());
+          mediaState.setImageErrors(new Map());
+          mediaState.setAttachedFiles([]);
+          mediaState.setUploadingFiles(new Map());
+          mediaState.setFileErrors(new Map());
           resetCommandMenuState();
           setIsTextareaExpanded(false);
           if (textareaRef.current) {
@@ -533,9 +499,9 @@ export function useChatComposerState({
       }
 
       let uploadedImages: unknown[] = [];
-      if (attachedImages.length > 0) {
+      if (mediaState.attachedImages.length > 0) {
         const formData = new FormData();
-        attachedImages.forEach((file) => {
+        mediaState.attachedImages.forEach((file) => {
           formData.append('images', file);
         });
 
@@ -565,9 +531,9 @@ export function useChatComposerState({
       }
 
       let uploadedFiles: unknown[] = [];
-      if (attachedFiles.length > 0) {
+      if (mediaState.attachedFiles.length > 0) {
         const formData = new FormData();
-        attachedFiles.forEach((file) => {
+        mediaState.attachedFiles.forEach((file) => {
           formData.append('files', file);
         });
 
@@ -610,7 +576,7 @@ export function useChatComposerState({
       };
 
       addMessage(userMessage);
-      setIsLoading(true); // Processing banner starts
+      setIsLoading(true);
       setCanAbortSession(true);
       setClaudeStatus({
         text: 'Processing',
@@ -623,11 +589,8 @@ export function useChatComposerState({
 
       if (!effectiveSessionId && !selectedSession?.id) {
         if (typeof window !== 'undefined') {
-          // Reset stale pending IDs from previous interrupted runs before creating a new one.
           sessionStorage.removeItem('pendingSessionId');
         }
-        // For new sessions we intentionally keep this as `null` until the backend
-        // emits `session_created` with the canonical provider session id.
         pendingViewSessionRef.current = { sessionId: null, startedAt: Date.now() };
       }
       if (effectiveSessionId) {
@@ -734,12 +697,12 @@ export function useChatComposerState({
       setInput('');
       inputValueRef.current = '';
       resetCommandMenuState();
-      setAttachedImages([]);
-      setUploadingImages(new Map());
-      setImageErrors(new Map());
-      setAttachedFiles([]);
-      setUploadingFiles(new Map());
-      setFileErrors(new Map());
+      mediaState.setAttachedImages([]);
+      mediaState.setUploadingImages(new Map());
+      mediaState.setImageErrors(new Map());
+      mediaState.setAttachedFiles([]);
+      mediaState.setUploadingFiles(new Map());
+      mediaState.setFileErrors(new Map());
       setIsTextareaExpanded(false);
       setThinkingMode('none');
 
@@ -751,8 +714,8 @@ export function useChatComposerState({
     },
     [
       selectedSession,
-      attachedImages,
-      attachedFiles,
+      mediaState.attachedImages,
+      mediaState.attachedFiles,
       claudeModel,
       codexModel,
       currentSessionId,
@@ -783,74 +746,7 @@ export function useChatComposerState({
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
-  useEffect(() => {
-    inputValueRef.current = input;
-  }, [input]);
-
-  useEffect(() => {
-    if (!selectedProject) {
-      return;
-    }
-    const savedInput = safeLocalStorage.getItem(`draft_input_${selectedProject.projectId}`) || '';
-    setInput((previous) => {
-      const next = previous === savedInput ? previous : savedInput;
-      inputValueRef.current = next;
-      return next;
-    });
-  }, [selectedProject?.projectId]);
-
-  useEffect(() => {
-    if (!selectedProject) {
-      return;
-    }
-    if (input !== '') {
-      safeLocalStorage.setItem(`draft_input_${selectedProject.projectId}`, input);
-    } else {
-      safeLocalStorage.removeItem(`draft_input_${selectedProject.projectId}`);
-    }
-  }, [input, selectedProject]);
-
-  useEffect(() => {
-    if (!textareaRef.current) {
-      return;
-    }
-    // Re-run when input changes so restored drafts get the same autosize behavior as typed text.
-    textareaRef.current.style.height = 'auto';
-    textareaRef.current.style.height = `${Math.max(22, textareaRef.current.scrollHeight)}px`;
-    const lineHeight = parseInt(window.getComputedStyle(textareaRef.current).lineHeight);
-    const expanded = textareaRef.current.scrollHeight > lineHeight * 2;
-    setIsTextareaExpanded(expanded);
-  }, [input]);
-
-  useEffect(() => {
-    if (!textareaRef.current || input.trim()) {
-      return;
-    }
-    textareaRef.current.style.height = 'auto';
-    setIsTextareaExpanded(false);
-  }, [input]);
-
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) => {
-      const newValue = event.target.value;
-      const cursorPos = event.target.selectionStart;
-
-      setInput(newValue);
-      inputValueRef.current = newValue;
-      setCursorPosition(cursorPos);
-
-      if (!newValue.trim()) {
-        event.target.style.height = 'auto';
-        setIsTextareaExpanded(false);
-        resetCommandMenuState();
-        return;
-      }
-
-      handleCommandInputChange(newValue, cursorPos);
-    },
-    [handleCommandInputChange, resetCommandMenuState, setCursorPosition],
-  );
-
+  // 5. handleKeyDown — stays in orchestrator (cross-cuts commands, file mentions, submit)
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (handleCommandMenuKeyDown(event)) {
@@ -892,135 +788,6 @@ export function useChatComposerState({
     ],
   );
 
-  const handleTextareaClick = useCallback(
-    (event: MouseEvent<HTMLTextAreaElement>) => {
-      setCursorPosition(event.currentTarget.selectionStart);
-    },
-    [setCursorPosition],
-  );
-
-  const handleTextareaInput = useCallback(
-    (event: FormEvent<HTMLTextAreaElement>) => {
-      const target = event.currentTarget;
-      target.style.height = 'auto';
-      target.style.height = `${Math.max(22, target.scrollHeight)}px`;
-      setCursorPosition(target.selectionStart);
-      syncInputOverlayScroll(target);
-
-      const lineHeight = parseInt(window.getComputedStyle(target).lineHeight);
-      setIsTextareaExpanded(target.scrollHeight > lineHeight * 2);
-    },
-    [setCursorPosition, syncInputOverlayScroll],
-  );
-
-  const handleClearInput = useCallback(() => {
-    setInput('');
-    inputValueRef.current = '';
-    resetCommandMenuState();
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.focus();
-    }
-    setIsTextareaExpanded(false);
-  }, [resetCommandMenuState]);
-
-  const handleAbortSession = useCallback(() => {
-    if (!canAbortSession) {
-      return;
-    }
-
-    const pendingSessionId =
-      typeof window !== 'undefined' ? sessionStorage.getItem('pendingSessionId') : null;
-    const cursorSessionId =
-      typeof window !== 'undefined' ? sessionStorage.getItem('cursorSessionId') : null;
-
-    const candidateSessionIds = [
-      currentSessionId,
-      pendingViewSessionRef.current?.sessionId || null,
-      pendingSessionId,
-      provider === 'cursor' ? cursorSessionId : null,
-      selectedSession?.id || null,
-    ];
-
-    const targetSessionId =
-      candidateSessionIds.find((sessionId) => Boolean(sessionId)) || null;
-
-    if (!targetSessionId) {
-      console.warn('Abort requested but no concrete session ID is available yet.');
-      return;
-    }
-
-    sendMessage({
-      type: 'abort-session',
-      sessionId: targetSessionId,
-      provider,
-    });
-  }, [canAbortSession, currentSessionId, pendingViewSessionRef, provider, selectedSession?.id, sendMessage]);
-
-  const handleGrantToolPermission = useCallback(
-    (suggestion: { entry: string; toolName: string }) => {
-      if (!suggestion || provider !== 'claude') {
-        return { success: false };
-      }
-      return grantClaudeToolPermission(suggestion.entry);
-    },
-    [provider],
-  );
-
-  const handlePermissionDecision = useCallback(
-    (
-      requestIds: string | string[],
-      decision: { allow?: boolean; message?: string; rememberEntry?: string | null; updatedInput?: unknown },
-    ) => {
-      const ids = Array.isArray(requestIds) ? requestIds : [requestIds];
-      const validIds = ids.filter(Boolean);
-      if (validIds.length === 0) {
-        return;
-      }
-
-      validIds.forEach((requestId) => {
-        sendMessage({
-          type: 'claude-permission-response',
-          requestId,
-          allow: Boolean(decision?.allow),
-          updatedInput: decision?.updatedInput,
-          message: decision?.message,
-          rememberEntry: decision?.rememberEntry,
-        });
-      });
-
-      setPendingPermissionRequests((previous) => {
-        const next = previous.filter((request) => !validIds.includes(request.requestId));
-        if (next.length === 0) {
-          setClaudeStatus(null);
-        }
-        return next;
-      });
-    },
-    [sendMessage, setClaudeStatus, setPendingPermissionRequests],
-  );
-
-  const [isInputFocused, setIsInputFocused] = useState(false);
-
-  const handleInputFocusChange = useCallback(
-    (focused: boolean) => {
-      setIsInputFocused(focused);
-      onInputFocusChange?.(focused);
-    },
-    [onInputFocusChange],
-  );
-
-  const handleInsertTemplate = useCallback(
-    (content: string) => {
-      setInput(content);
-      // Focus the textarea after inserting
-      requestAnimationFrame(() => {
-        textareaRef.current?.focus();
-      });
-    },
-    [textareaRef],
-  );
-
   return {
     input,
     setInput,
@@ -1043,30 +810,30 @@ export function useChatComposerState({
     selectedFileIndex,
     renderInputWithMentions,
     selectFile,
-    attachedImages,
-    setAttachedImages,
-    uploadingImages,
-    imageErrors,
-    attachedFiles,
-    setAttachedFiles,
-    uploadingFiles,
-    fileErrors,
-    getRootProps,
-    getInputProps,
-    isDragActive,
-    openImagePicker: open,
-    openFilePicker: open, // Both buttons use the same unified dropzone
+    attachedImages: mediaState.attachedImages,
+    setAttachedImages: mediaState.setAttachedImages,
+    uploadingImages: mediaState.uploadingImages,
+    imageErrors: mediaState.imageErrors,
+    attachedFiles: mediaState.attachedFiles,
+    setAttachedFiles: mediaState.setAttachedFiles,
+    uploadingFiles: mediaState.uploadingFiles,
+    fileErrors: mediaState.fileErrors,
+    getRootProps: mediaState.getRootProps,
+    getInputProps: mediaState.getInputProps,
+    isDragActive: mediaState.isDragActive,
+    openImagePicker: mediaState.openImagePicker,
+    openFilePicker: mediaState.openFilePicker,
     handleSubmit,
     handleInputChange,
     handleKeyDown,
-    handlePaste,
+    handlePaste: mediaState.handlePaste,
     handleTextareaClick,
     handleTextareaInput,
     syncInputOverlayScroll,
     handleClearInput,
-    handleAbortSession,
-    handlePermissionDecision,
-    handleGrantToolPermission,
+    handleAbortSession: actions.handleAbortSession,
+    handlePermissionDecision: actions.handlePermissionDecision,
+    handleGrantToolPermission: actions.handleGrantToolPermission,
     handleInputFocusChange,
     isInputFocused,
     handleInsertTemplate,

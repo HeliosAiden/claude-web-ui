@@ -14,7 +14,6 @@ import type {
 import { ImageIcon, PaperclipIcon, MessageSquareIcon, XIcon, ArrowDownIcon } from 'lucide-react';
 import type { PendingPermissionRequest, PermissionMode, Provider } from '../../types/types';
 import type { LLMProvider } from '../../../../types/app';
-import type { ProviderAuthStatusMap } from '../../../provider-auth/types';
 import CommandMenu from './CommandMenu';
 import ClaudeStatus from './ClaudeStatus';
 import ImageAttachment from './ImageAttachment';
@@ -34,6 +33,7 @@ import {
   PromptInputButton,
   PromptInputSubmit,
 } from '../../../../shared/view/ui';
+import { useChatProviderContext } from '../../../../contexts/ChatProviderContext';
 
 interface MentionableFile {
   name: string;
@@ -60,20 +60,6 @@ interface ChatComposerProps {
   claudeStatus: { text: string; tokens: number; can_interrupt: boolean } | null;
   isLoading: boolean;
   onAbortSession: () => void;
-  provider: Provider | string;
-  setProvider: (next: LLMProvider) => void;
-  claudeModel: string;
-  setClaudeModel: Dispatch<SetStateAction<string>>;
-  cursorModel: string;
-  setCursorModel: Dispatch<SetStateAction<string>>;
-  codexModel: string;
-  setCodexModel: Dispatch<SetStateAction<string>>;
-  geminiModel: string;
-  setGeminiModel: Dispatch<SetStateAction<string>>;
-  fccModels: { value: string; label: string }[];
-  providerAuthStatus: ProviderAuthStatusMap;
-  permissionMode: PermissionMode | string;
-  onModeSwitch: () => void;
   thinkingMode: string;
   setThinkingMode: Dispatch<SetStateAction<string>>;
   tokenBudget: { used?: number; total?: number } | null;
@@ -132,20 +118,6 @@ export default function ChatComposer({
   claudeStatus,
   isLoading,
   onAbortSession,
-  provider,
-  setProvider,
-  claudeModel,
-  setClaudeModel,
-  cursorModel,
-  setCursorModel,
-  codexModel,
-  setCodexModel,
-  geminiModel,
-  setGeminiModel,
-  fccModels,
-  providerAuthStatus,
-  permissionMode,
-  onModeSwitch,
   thinkingMode,
   setThinkingMode,
   tokenBudget,
@@ -197,6 +169,12 @@ export default function ChatComposer({
   onInsertTemplate,
 }: ChatComposerProps) {
   const { t } = useTranslation('chat');
+  const {
+    provider, setProvider, claudeModel, setClaudeModel,
+    cursorModel, setCursorModel, codexModel, setCodexModel,
+    geminiModel, setGeminiModel, fccModels, providerAuthStatus,
+    permissionMode, cyclePermissionMode,
+  } = useChatProviderContext();
   const textareaRect = textareaRef.current?.getBoundingClientRect();
   const commandMenuPosition = {
     top: textareaRect ? Math.max(16, textareaRect.top - 316) : 0,
@@ -325,7 +303,7 @@ export default function ChatComposer({
 
               <button
                 type="button"
-                onClick={onModeSwitch}
+                onClick={cyclePermissionMode}
                 className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
                   permissionMode === 'default'
                     ? 'border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted'
