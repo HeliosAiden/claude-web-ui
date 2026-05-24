@@ -36,7 +36,7 @@ export function createWebSocketServer(
     const pathname = new URL(url, 'http://localhost').pathname;
 
     if (pathname === '/shell') {
-      handleShellConnection(ws, dependencies.shell);
+      handleShellConnection(ws, incomingRequest.user ?? null, dependencies.shell);
       return;
     }
 
