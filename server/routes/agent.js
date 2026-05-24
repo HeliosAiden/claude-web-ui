@@ -958,7 +958,7 @@ router.post('/', authenticateToken, validateExternalApiKey, async (req, res) => 
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model,
-        permissionMode: 'bypassPermissions' // Bypass all permissions for API calls
+        permissionMode: 'agent-restricted' // Restricted permissions for API calls
       }, writer);
 
     } else if (provider === 'cursor') {
@@ -969,7 +969,7 @@ router.post('/', authenticateToken, validateExternalApiKey, async (req, res) => 
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model || undefined,
-        skipPermissions: true // Bypass permissions for Cursor
+        skipPermissions: false // Disable permission bypass for API calls
       }, writer);
     } else if (provider === 'codex') {
       console.log('🤖 Starting Codex SDK session');
@@ -979,7 +979,7 @@ router.post('/', authenticateToken, validateExternalApiKey, async (req, res) => 
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model || CODEX_MODELS.DEFAULT,
-        permissionMode: 'bypassPermissions'
+        permissionMode: 'agent-restricted' // Restricted permissions for API calls
       }, writer);
     } else if (provider === 'gemini') {
       console.log('✨ Starting Gemini CLI session');
@@ -989,7 +989,7 @@ router.post('/', authenticateToken, validateExternalApiKey, async (req, res) => 
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model,
-        skipPermissions: true // CLI mode bypasses permissions
+        skipPermissions: false // Disable permission bypass for API calls
       }, writer);
     }
 

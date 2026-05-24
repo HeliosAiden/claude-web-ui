@@ -12,13 +12,15 @@
  * - WebSocket message streaming
  */
 
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import crypto from 'crypto';
 import { promises as fs } from 'fs';
-
 import path from 'path';
 import os from 'os';
+
+import { query } from '@anthropic-ai/claude-agent-sdk';
+
 import { CLAUDE_MODELS } from '../shared/modelConstants.js';
+
 import { resolveClaudeCodeExecutablePath } from './shared/claude-cli-path.js';
 import {
   sessionsService } from './modules/providers/services/sessions.service.js';
@@ -549,6 +551,17 @@ async function queryClaudeSDK(command, options = {}, ws) {
 
       if (!requiresInteraction) {
         if (sdkOptions.permissionMode === 'bypassPermissions') {
+          return { behavior: 'allow', updatedInput: input };
+        }
+
+        // agent-restricted: for the external /api/agent endpoint where no
+        // interactive user is present. Only read-only tools are allowed.
+        if (sdkOptions.permissionMode === 'agent-restricted') {
+          const alwaysDenied = ['Bash', 'Write', 'Edit', 'RenameFile', 'DeleteFile', 'TaskCreate',
+            'AskUserQuestion', 'ExitPlanMode', 'PushNotification', 'NotebookEdit'];
+          if (alwaysDenied.includes(toolName)) {
+            return { behavior: 'deny', message: `${toolName} is not allowed in agent API mode.` };
+          }
           return { behavior: 'allow', updatedInput: input };
         }
 
