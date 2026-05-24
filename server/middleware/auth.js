@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 
 import { userDb, appConfigDb } from '../modules/database/index.js';
 import { IS_PLATFORM, PLATFORM_SHARED_SECRET } from '../constants/config.js';
@@ -80,7 +80,8 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload: decoded } = await jwtVerify(token, secret);
 
     // Verify user still exists and is active
     const user = userDb.getUserById(decoded.userId);
@@ -108,18 +109,15 @@ const authenticateToken = async (req, res, next) => {
 
 // Generate JWT token
 const generateToken = (user) => {
-  return jwt.sign(
-    {
-      userId: user.id,
-      username: user.username
-    },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+  return new SignJWT({ userId: user.id, username: user.username })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(new TextEncoder().encode(JWT_SECRET));
 };
 
 // WebSocket authentication function
-const authenticateWebSocket = (token, sharedSecret) => {
+const authenticateWebSocket = async (token, sharedSecret) => {
   // Platform mode: validate shared secret, then return first user
   if (IS_PLATFORM) {
     const secretErr = validatePlatformSecret(sharedSecret || '');
@@ -145,7 +143,8 @@ const authenticateWebSocket = (token, sharedSecret) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload: decoded } = await jwtVerify(token, secret);
     // Verify user actually exists in database (matches REST authenticateToken behavior)
     const user = userDb.getUserById(decoded.userId);
     if (!user) {
