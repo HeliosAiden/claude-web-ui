@@ -49,14 +49,14 @@ function spawnAsync(command, args, options = {}) {
 // Input validation helpers (defense-in-depth)
 function validateCommitRef(commit) {
   // Allow hex hashes, HEAD, HEAD~N, HEAD^N, tag names, branch names
-  if (!/^[a-zA-Z0-9._~^{}@\/-]+$/.test(commit)) {
+  if (!commit || /^-/.test(commit) || !/^[a-zA-Z0-9._~^{}@\/-]+$/.test(commit)) {
     throw new Error('Invalid commit reference');
   }
   return commit;
 }
 
 function validateBranchName(branch) {
-  if (!/^[a-zA-Z0-9._\/-]+$/.test(branch)) {
+  if (!branch || /^-/.test(branch) || !/^[a-zA-Z0-9._\/-]+$/.test(branch)) {
     throw new Error('Invalid branch name');
   }
   return branch;
@@ -79,7 +79,7 @@ function validateFilePath(file, projectPath) {
 }
 
 function validateRemoteName(remote) {
-  if (!/^[a-zA-Z0-9._-]+$/.test(remote)) {
+  if (!remote || /^-/.test(remote) || !/^[a-zA-Z0-9._-]+$/.test(remote)) {
     throw new Error('Invalid remote name');
   }
   return remote;
@@ -697,7 +697,7 @@ router.post('/checkout', async (req, res) => {
     
     // Checkout the branch
     validateBranchName(branch);
-    const { stdout } = await spawnAsync('git', ['checkout', branch], { cwd: projectPath });
+    const { stdout } = await spawnAsync('git', ['checkout', branch, '--'], { cwd: projectPath });
     
     res.json({ success: true, output: stdout });
   } catch (error) {
@@ -795,7 +795,7 @@ router.get('/commits', async (req, res) => {
     for (const commit of commits) {
       try {
         const { stdout: stats } = await spawnAsync(
-          'git', ['show', '--stat', '--format=', commit.hash],
+          'git', ['show', '--stat', '--format=', commit.hash, '--'],
           { cwd: projectPath }
         );
         commit.stats = stats.trim().split('\n').pop(); // Get the summary line
@@ -827,7 +827,7 @@ router.get('/commit-diff', async (req, res) => {
 
     // Get diff for the commit
     const { stdout } = await spawnAsync(
-      'git', ['show', commit],
+      'git', ['show', commit, '--'],
       { cwd: projectPath }
     );
 

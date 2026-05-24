@@ -161,6 +161,21 @@ export default tseslint.config(
           mode: "file",
         },
         {
+          type: "backend-middleware", // Express middleware files
+          pattern: "server/middleware/**", // classify middleware so routes can import them
+          mode: "folder",
+        },
+        {
+          type: "backend-legacy-root", // root-level server files being migrated into modules
+          pattern: [
+            "server/claude-sdk.js",
+            "server/cursor-cli.js",
+            "server/openai-codex.js",
+            "server/gemini-cli.js",
+          ], // provider entry points used by routes during the migration to server/modules/providers
+          mode: "file",
+        },
+        {
           type: "backend-config", // shared server configuration constants
           pattern: "server/constants/config.js", // classify config so modules can depend on it without boundary violations
           mode: "file",

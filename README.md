@@ -174,6 +174,14 @@ To use Claude Code's full functionality, you'll need to manually enable tools:
 
 **Recommended approach**: Start with basic tools enabled and add more as needed. You can always adjust these settings later.
 
+### Agent API Restrictions
+
+The external `/api/agent` REST endpoint is restricted to **read-only tools only** (Read, WebFetch, Grep, Glob, etc.). Tools that modify files or execute shell commands (Bash, Write, Edit, DeleteFile) are denied, since no interactive user is present to approve them. This applies to all supported providers (Claude, Cursor, Codex, Gemini).
+
+### Platform Mode Security
+
+When running in platform mode (`VITE_IS_PLATFORM=true`), you **must** set `PLATFORM_SHARED_SECRET` to a strong, unique secret. The server will refuse to start without it. Your reverse proxy must include this value in the `x-platform-shared-secret` header on every request.
+
 ---
 
 ## Plugins

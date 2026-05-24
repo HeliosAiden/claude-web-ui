@@ -5,6 +5,14 @@ All notable changes to CloudCLI UI will be documented in this file.
 
 ## Unreleased (Claude Web UI fork)
 
+### Security Fixes
+
+* **critical**: require PLATFORM_SHARED_SECRET in platform mode and add JWT auth to agent API ([305db5a](https://github.com/HeliosAiden/claude-web-ui/commit/305db5a))
+* **critical**: restrict agent API to read-only tools — remove blanket permission bypass ([7f05430](https://github.com/HeliosAiden/claude-web-ui/commit/7f05430))
+* **critical**: require authentication for plain-shell PTY mode and tighten input validation ([73b2d39](https://github.com/HeliosAiden/claude-web-ui/commit/73b2d39))
+* **critical**: prevent git argument injection with input validation and `--` separators ([4df7ab0](https://github.com/HeliosAiden/claude-web-ui/commit/4df7ab0))
+* **critical**: replace unmaintained jsonwebtoken (CVE-2022-23529) with jose ([1acffa1](https://github.com/HeliosAiden/claude-web-ui/commit/1acffa1))
+
 ### New Features
 
 * add Free Claude Code (FCC) integration support ([e94e5bd](https://github.com/HeliosAiden/claude-web-ui/commit/e94e5bd))

@@ -1,17 +1,20 @@
-import express from 'express';
 import { spawn } from 'child_process';
 import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
 import crypto from 'crypto';
+
+import express from 'express';
+import { Octokit } from '@octokit/rest';
+
 import { userDb, apiKeysDb, githubTokensDb, projectsDb } from '../modules/database/index.js';
 import { queryClaudeSDK } from '../claude-sdk.js';
 import { spawnCursor } from '../cursor-cli.js';
 import { queryCodex } from '../openai-codex.js';
 import { spawnGemini } from '../gemini-cli.js';
-import { Octokit } from '@octokit/rest';
-import { CLAUDE_MODELS, CURSOR_MODELS, CODEX_MODELS } from '../../shared/modelConstants.js';
+import { CODEX_MODELS } from '../../shared/modelConstants.js';
 import { IS_PLATFORM } from '../constants/config.js';
+import { authenticateToken } from '../middleware/auth.js';
 import { normalizeProjectPath } from '../shared/utils.js';
 import { maskToken, setupGitAuth } from '../utils/git-auth.js';
 
@@ -847,7 +850,7 @@ class ResponseCollector {
  *     "cleanup": false
  *   }
  */
-router.post('/', validateExternalApiKey, async (req, res) => {
+router.post('/', authenticateToken, validateExternalApiKey, async (req, res) => {
   const { githubUrl, projectPath, message, provider = 'claude', model, githubToken, branchName, sessionId } = req.body;
 
   // Parse stream and cleanup as booleans (handle string "true"/"false" from curl)
@@ -955,7 +958,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model,
-        permissionMode: 'bypassPermissions' // Bypass all permissions for API calls
+        permissionMode: 'agent-restricted' // Restricted permissions for API calls
       }, writer);
 
     } else if (provider === 'cursor') {
@@ -966,7 +969,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model || undefined,
-        skipPermissions: true // Bypass permissions for Cursor
+        skipPermissions: false // Disable permission bypass for API calls
       }, writer);
     } else if (provider === 'codex') {
       console.log('🤖 Starting Codex SDK session');
@@ -976,7 +979,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model || CODEX_MODELS.DEFAULT,
-        permissionMode: 'bypassPermissions'
+        permissionMode: 'agent-restricted' // Restricted permissions for API calls
       }, writer);
     } else if (provider === 'gemini') {
       console.log('✨ Starting Gemini CLI session');
@@ -986,7 +989,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
         cwd: finalProjectPath,
         sessionId: sessionId || null,
         model: model,
-        skipPermissions: true // CLI mode bypasses permissions
+        skipPermissions: false // Disable permission bypass for API calls
       }, writer);
     }
 
@@ -1060,7 +1063,7 @@ router.post('/', validateExternalApiKey, async (req, res) => {
                 // Branch might already exist locally, try to checkout
                 if (stderr.includes('already exists')) {
                   console.log(`ℹ️ Branch '${finalBranchName}' already exists locally, checking out...`);
-                  const checkoutExisting = spawn('git', ['checkout', finalBranchName], {
+                  const checkoutExisting = spawn('git', ['checkout', finalBranchName, '--'], {
                     cwd: finalProjectPath,
                     stdio: 'pipe'
                   });

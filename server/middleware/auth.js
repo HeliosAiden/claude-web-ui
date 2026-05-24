@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 
 import { userDb, appConfigDb } from '../modules/database/index.js';
 import { IS_PLATFORM, PLATFORM_SHARED_SECRET } from '../constants/config.js';
@@ -20,25 +20,17 @@ const validateApiKey = (req, res, next) => {
   next();
 };
 
-// Track whether we've warned about unset PLATFORM_SHARED_SECRET
-let platformSecretWarningShown = false;
-
 /**
  * Validates the platform shared secret from a request.
  * Returns null on success, or an error message string on failure.
+ *
+ * Note: When IS_PLATFORM=true, config.js fatally exits at startup if
+ * PLATFORM_SHARED_SECRET is unset, so this function without a secret
+ * only applies in OSS mode where platform auth is not active.
  */
 function validatePlatformSecret(reqOrSecret) {
   if (!PLATFORM_SHARED_SECRET) {
-    if (!platformSecretWarningShown) {
-      console.warn(
-        '[WARN] PLATFORM_SHARED_SECRET is not set. ' +
-        'Platform mode auth is DISABLED — anyone reaching the backend ' +
-        'will be authenticated as the first DB user. ' +
-        'Set PLATFORM_SHARED_SECRET in production.'
-      );
-      platformSecretWarningShown = true;
-    }
-    return null; // no secret configured — allow (backward compat)
+    return null; // OSS mode — no platform secret expected
   }
 
   const provided = typeof reqOrSecret === 'string'
@@ -88,7 +80,8 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload: decoded } = await jwtVerify(token, secret);
 
     // Verify user still exists and is active
     const user = userDb.getUserById(decoded.userId);
@@ -116,18 +109,15 @@ const authenticateToken = async (req, res, next) => {
 
 // Generate JWT token
 const generateToken = (user) => {
-  return jwt.sign(
-    {
-      userId: user.id,
-      username: user.username
-    },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+  return new SignJWT({ userId: user.id, username: user.username })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(new TextEncoder().encode(JWT_SECRET));
 };
 
 // WebSocket authentication function
-const authenticateWebSocket = (token, sharedSecret) => {
+const authenticateWebSocket = async (token, sharedSecret) => {
   // Platform mode: validate shared secret, then return first user
   if (IS_PLATFORM) {
     const secretErr = validatePlatformSecret(sharedSecret || '');
@@ -153,7 +143,8 @@ const authenticateWebSocket = (token, sharedSecret) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload: decoded } = await jwtVerify(token, secret);
     // Verify user actually exists in database (matches REST authenticateToken behavior)
     const user = userDb.getUserById(decoded.userId);
     if (!user) {

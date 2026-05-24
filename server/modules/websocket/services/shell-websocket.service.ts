@@ -165,6 +165,7 @@ function buildShellCommand(
  */
 export function handleShellConnection(
   ws: WebSocket,
+  user: { id?: string | number; userId?: string | number; username?: string } | null,
   dependencies: ShellWebSocketDependencies
 ): void {
   console.log('[INFO] Shell websocket connected');
@@ -193,7 +194,17 @@ export function handleShellConnection(
           provider === 'plain-shell'
         );
 
-        if (initialCommand && !/^[a-zA-Z0-9_\-.\/ =]+$/.test(initialCommand)) {
+        // Plain-shell mode requires an authenticated user since the command
+        // is passed directly to bash -c.
+        if (isPlainShell && !user) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Authentication required for plain shell access. Connect with a valid auth token.'
+          }));
+          return;
+        }
+
+        if (initialCommand && !/^[a-zA-Z0-9_\-.\/]+$/.test(initialCommand)) {
           ws.send(JSON.stringify({ type: 'error', message: 'Invalid initial command: contains unsafe characters' }));
           return;
         }

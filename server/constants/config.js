@@ -4,6 +4,15 @@
  */
 export const IS_PLATFORM = process.env.VITE_IS_PLATFORM === 'true';
 
+// In platform mode, the shared secret MUST be set to prevent auth bypass.
+if (IS_PLATFORM && !process.env.PLATFORM_SHARED_SECRET) {
+  console.error(
+    '[FATAL] PLATFORM_SHARED_SECRET is required when VITE_IS_PLATFORM=true. ' +
+    'Set PLATFORM_SHARED_SECRET to a strong, unique secret shared with your reverse proxy.'
+  );
+  process.exit(1);
+}
+
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim())
   : ['http://localhost:3001', 'http://localhost:5173', 'http://127.0.0.1:3001', 'http://127.0.0.1:5173'];

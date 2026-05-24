@@ -1,4 +1,4 @@
-import type { VerifyClientCallbackSync } from 'ws';
+import type { VerifyClientCallbackAsync } from 'ws';
 
 import type { AuthenticatedWebSocketRequest } from '@/shared/types.js';
 
@@ -9,32 +9,35 @@ type WebSocketAuthDependencies = {
   authenticateWebSocket: (
     token: string | null,
     sharedSecret?: string | null,
-  ) => {
+  ) => Promise<{
     id?: string | number;
     userId?: string | number;
     username?: string;
     [key: string]: unknown;
-  } | null;
+  } | null>;
 };
 
 /**
  * Authenticates websocket upgrade requests before the `connection` handler runs.
  */
 export function verifyWebSocketClient(
-  info: Parameters<VerifyClientCallbackSync<AuthenticatedWebSocketRequest>>[0],
-  dependencies: WebSocketAuthDependencies
-): boolean {
+  info: Parameters<VerifyClientCallbackAsync<AuthenticatedWebSocketRequest>>[0],
+  dependencies: WebSocketAuthDependencies,
+  callback: (result: boolean) => void
+): void {
   const request = info.req as AuthenticatedWebSocketRequest;
   console.log('WebSocket connection attempt to:', request.url);
 
   const origin = info.origin ?? request.headers.origin ?? null;
   if (!origin) {
     console.log('[WARN] WebSocket connection rejected: missing Origin header');
-    return false;
+    callback(false);
+    return;
   }
   if (!ALLOWED_ORIGINS.includes(origin)) {
     console.log(`[WARN] WebSocket connection rejected: origin "${origin}" not allowed`);
-    return false;
+    callback(false);
+    return;
   }
 
   // Platform mode: validate shared secret, then use the first DB user.
@@ -42,15 +45,18 @@ export function verifyWebSocketClient(
     const sharedSecret =
       (request.headers['x-platform-shared-secret'] as string | undefined) ??
       null;
-    const user = dependencies.authenticateWebSocket(null, sharedSecret);
-    if (!user) {
-      console.log('[WARN] Platform mode WebSocket authentication failed');
-      return false;
-    }
+    dependencies.authenticateWebSocket(null, sharedSecret).then((user) => {
+      if (!user) {
+        console.log('[WARN] Platform mode WebSocket authentication failed');
+        callback(false);
+        return;
+      }
 
-    request.user = user;
-    console.log('[OK] Platform mode WebSocket authenticated for user:', user.username);
-    return true;
+      request.user = user;
+      console.log('[OK] Platform mode WebSocket authenticated for user:', user.username);
+      callback(true);
+    });
+    return;
   }
 
   // OSS mode: read JWT from query string first, then Authorization header.
@@ -60,13 +66,15 @@ export function verifyWebSocketClient(
     request.headers.authorization?.split(' ')[1] ??
     null;
 
-  const user = dependencies.authenticateWebSocket(token);
-  if (!user) {
-    console.log('[WARN] WebSocket authentication failed');
-    return false;
-  }
+  dependencies.authenticateWebSocket(token).then((user) => {
+    if (!user) {
+      console.log('[WARN] WebSocket authentication failed');
+      callback(false);
+      return;
+    }
 
-  request.user = user;
-  console.log('[OK] WebSocket authenticated for user:', user.username);
-  return true;
+    request.user = user;
+    console.log('[OK] WebSocket authenticated for user:', user.username);
+    callback(true);
+  });
 }
