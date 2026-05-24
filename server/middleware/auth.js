@@ -20,25 +20,17 @@ const validateApiKey = (req, res, next) => {
   next();
 };
 
-// Track whether we've warned about unset PLATFORM_SHARED_SECRET
-let platformSecretWarningShown = false;
-
 /**
  * Validates the platform shared secret from a request.
  * Returns null on success, or an error message string on failure.
+ *
+ * Note: When IS_PLATFORM=true, config.js fatally exits at startup if
+ * PLATFORM_SHARED_SECRET is unset, so this function without a secret
+ * only applies in OSS mode where platform auth is not active.
  */
 function validatePlatformSecret(reqOrSecret) {
   if (!PLATFORM_SHARED_SECRET) {
-    if (!platformSecretWarningShown) {
-      console.warn(
-        '[WARN] PLATFORM_SHARED_SECRET is not set. ' +
-        'Platform mode auth is DISABLED — anyone reaching the backend ' +
-        'will be authenticated as the first DB user. ' +
-        'Set PLATFORM_SHARED_SECRET in production.'
-      );
-      platformSecretWarningShown = true;
-    }
-    return null; // no secret configured — allow (backward compat)
+    return null; // OSS mode — no platform secret expected
   }
 
   const provided = typeof reqOrSecret === 'string'
