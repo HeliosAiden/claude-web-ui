@@ -1063,7 +1063,7 @@ router.post('/', authenticateToken, validateExternalApiKey, async (req, res) => 
                 // Branch might already exist locally, try to checkout
                 if (stderr.includes('already exists')) {
                   console.log(`ℹ️ Branch '${finalBranchName}' already exists locally, checking out...`);
-                  const checkoutExisting = spawn('git', ['checkout', finalBranchName], {
+                  const checkoutExisting = spawn('git', ['checkout', finalBranchName, '--'], {
                     cwd: finalProjectPath,
                     stdio: 'pipe'
                   });
