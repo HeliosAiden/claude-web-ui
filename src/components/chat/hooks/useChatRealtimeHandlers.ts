@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 
 import { usePaletteOps } from '../../../contexts/PaletteOpsContext';
+import { useSessionStore } from '../../../stores/useSessionStore';
 import type { PendingPermissionRequest, SessionNavigationOptions } from '../types/types';
 import type { ProjectSession, LLMProvider } from '../../../types/app';
-import type { SessionStore, NormalizedMessage } from '../../../stores/useSessionStore';
+import type { NormalizedMessage } from '../../../stores/useSessionStore';
 
 type PendingViewSession = {
   sessionId: string | null;
@@ -69,7 +70,6 @@ interface UseChatRealtimeHandlersArgs {
   onNavigateToSession?: (sessionId: string, options?: SessionNavigationOptions) => void;
   onSessionError?: (sessionId?: string | null) => void;
   onWebSocketReconnect?: () => void;
-  sessionStore: SessionStore;
 }
 
 /* ------------------------------------------------------------------ */
@@ -97,7 +97,6 @@ export function useChatRealtimeHandlers({
   onNavigateToSession,
   onSessionError,
   onWebSocketReconnect,
-  sessionStore,
 }: UseChatRealtimeHandlersArgs) {
   const paletteOps = usePaletteOps();
   const lastProcessedMessageRef = useRef<LatestChatMessage | null>(null);
@@ -199,13 +198,13 @@ export function useChatRealtimeHandlers({
         streamTimerRef.current = window.setTimeout(() => {
           streamTimerRef.current = null;
           if (sid) {
-            sessionStore.updateStreaming(sid, accumulatedStreamRef.current, provider);
+            useSessionStore.getState().updateStreaming(sid, accumulatedStreamRef.current, provider);
           }
         }, 100);
       }
       // Also route to store for non-active sessions
       if (sid && sid !== activeViewSessionId) {
-        sessionStore.appendRealtime(sid, msg as NormalizedMessage);
+        useSessionStore.getState().appendRealtime(sid, msg as NormalizedMessage);
       }
       return;
     }
@@ -217,9 +216,9 @@ export function useChatRealtimeHandlers({
       }
       if (sid) {
         if (accumulatedStreamRef.current) {
-          sessionStore.updateStreaming(sid, accumulatedStreamRef.current, provider);
+          useSessionStore.getState().updateStreaming(sid, accumulatedStreamRef.current, provider);
         }
-        sessionStore.finalizeStreaming(sid);
+        useSessionStore.getState().finalizeStreaming(sid);
       }
       accumulatedStreamRef.current = '';
       return;
@@ -234,7 +233,7 @@ export function useChatRealtimeHandlers({
       && msg.kind !== 'permission_cancelled';
 
     if (sid && shouldPersist) {
-      sessionStore.appendRealtime(sid, msg as NormalizedMessage);
+      useSessionStore.getState().appendRealtime(sid, msg as NormalizedMessage);
     }
 
     // --- UI side effects for specific kinds ---
@@ -268,8 +267,8 @@ export function useChatRealtimeHandlers({
           streamTimerRef.current = null;
         }
         if (sid && accumulatedStreamRef.current) {
-          sessionStore.updateStreaming(sid, accumulatedStreamRef.current, provider);
-          sessionStore.finalizeStreaming(sid);
+          useSessionStore.getState().updateStreaming(sid, accumulatedStreamRef.current, provider);
+          useSessionStore.getState().finalizeStreaming(sid);
         }
         accumulatedStreamRef.current = '';
 
@@ -316,7 +315,7 @@ export function useChatRealtimeHandlers({
           );
 
         if (actualSessionId && sid && actualSessionId !== sid) {
-          sessionStore.replaceSessionId(sid, actualSessionId);
+          useSessionStore.getState().replaceSessionId(sid, actualSessionId);
 
           if (isVisibleSession) {
             setCurrentSessionId(actualSessionId);
@@ -430,7 +429,6 @@ export function useChatRealtimeHandlers({
     onNavigateToSession,
     onSessionError,
     onWebSocketReconnect,
-    sessionStore,
     paletteOps,
   ]);
 }

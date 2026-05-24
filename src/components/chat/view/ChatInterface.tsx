@@ -52,7 +52,6 @@ function ChatInterface({
 }: ChatInterfaceProps) {
   const { t } = useTranslation('chat');
 
-  const sessionStore = useSessionStore();
   const streamTimerRef = useRef<number | null>(null);
   const accumulatedStreamRef = useRef('');
   const pendingViewSessionRef = useRef<PendingViewSession | null>(null);
@@ -107,7 +106,6 @@ function ChatInterface({
     processingSessions,
     resetStreamingState,
     pendingViewSessionRef,
-    sessionStore,
     pagination,
   });
 
@@ -115,7 +113,6 @@ function ChatInterface({
   const scrollState = useChatScrollPaginationState({
     selectedSession,
     selectedProject,
-    sessionStore,
     chatMessagesLength: sessionState.chatMessages.length,
     autoScrollToBottom,
     pagination,
@@ -287,7 +284,7 @@ function ChatInterface({
   const handleWebSocketReconnect = useCallback(async () => {
     if (!selectedProject || !selectedSession) return;
     const providerVal = (localStorage.getItem('selected-provider') as LLMProvider) || 'claude';
-    await sessionStore.refreshFromServer(selectedSession.id, {
+    await useSessionStore.getState().refreshFromServer(selectedSession.id, {
       provider: (selectedSession.__provider || providerVal) as LLMProvider,
       // Use DB projectId; legacy folder-derived projectName is no longer accepted here.
       projectId: selectedProject.projectId,
@@ -295,7 +292,7 @@ function ChatInterface({
     });
     setIsLoading(false);
     setCanAbortSession(false);
-  }, [selectedProject, selectedSession, sessionStore, setIsLoading, setCanAbortSession]);
+  }, [selectedProject, selectedSession, setIsLoading, setCanAbortSession]);
 
   // When the Shell PTY takes over a session, switch the chat to follower
   // mode so both interfaces show the same session.
@@ -330,7 +327,6 @@ function ChatInterface({
     onNavigateToSession,
     onSessionError,
     onWebSocketReconnect: handleWebSocketReconnect,
-    sessionStore,
   });
 
   useEffect(() => {

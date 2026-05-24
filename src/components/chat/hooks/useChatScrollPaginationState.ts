@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { useSessionStore } from '../../../stores/useSessionStore';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
-import type { SessionStore } from '../../../stores/useSessionStore';
 import type { ChatPaginationPrimitives } from './useChatPaginationPrimitives';
 
 interface ScrollRestoreState {
@@ -12,7 +12,6 @@ interface ScrollRestoreState {
 export interface UseChatScrollPaginationStateArgs {
   selectedSession: ProjectSession | null;
   selectedProject: Project | null;
-  sessionStore: SessionStore;
   chatMessagesLength: number;
   autoScrollToBottom?: boolean;
   pagination: ChatPaginationPrimitives;
@@ -21,7 +20,6 @@ export interface UseChatScrollPaginationStateArgs {
 export function useChatScrollPaginationState({
   selectedSession,
   selectedProject,
-  sessionStore,
   chatMessagesLength,
   autoScrollToBottom,
   pagination,
@@ -97,7 +95,7 @@ export function useChatScrollPaginationState({
       const previousScrollTop = container.scrollTop;
 
       try {
-        const slot = await sessionStore.fetchMore(selectedSession.id, {
+        const slot = await useSessionStore.getState().fetchMore(selectedSession.id, {
           provider: sessionProvider as LLMProvider,
           projectId: selectedProject.projectId,
           projectPath: selectedProject.fullPath || selectedProject.path || '',
@@ -120,7 +118,6 @@ export function useChatScrollPaginationState({
       isLoadingMoreMessages,
       selectedProject,
       selectedSession,
-      sessionStore,
       allMessagesLoadedRef,
       setHasMoreMessages,
       setTotalMessages,
@@ -266,7 +263,7 @@ export function useChatScrollPaginationState({
     const previousScrollTop = container ? container.scrollTop : 0;
 
     try {
-      const slot = await sessionStore.fetchFromServer(requestSessionId, {
+      const slot = await useSessionStore.getState().fetchFromServer(requestSessionId, {
         provider: sessionProvider as LLMProvider,
         projectId: selectedProject.projectId,
         projectPath: selectedProject.fullPath || selectedProject.path || '',
@@ -305,7 +302,7 @@ export function useChatScrollPaginationState({
     }
   }, [
     selectedSession, selectedProject, isLoadingMoreRef, allMessagesLoadedRef,
-    messagesOffsetRef, sessionStore, loadAllFinishedTimerRef,
+    messagesOffsetRef, loadAllFinishedTimerRef,
     setHasMoreMessages, setTotalMessages, setVisibleMessageCount,
     setAllMessagesLoaded, setIsLoadingAllMessages, setLoadAllJustFinished, setShowLoadAllOverlay,
   ]);

@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 
 import { authenticatedFetch } from '../../../utils/api';
+import { useSessionStore } from '../../../stores/useSessionStore';
+import type { NormalizedMessage } from '../../../stores/useSessionStore';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
-import type { SessionStore, NormalizedMessage } from '../../../stores/useSessionStore';
 import type { ChatMessage, Provider } from '../types/types';
 import { createCachedDiffCalculator, type DiffCalculator } from '../utils/messageTransforms';
 import type { ChatPaginationPrimitives } from './useChatPaginationPrimitives';
 
 import { normalizedToChatMessages } from './useChatMessages';
+
+const EMPTY_MESSAGES: NormalizedMessage[] = [];
 
 type PendingViewSession = {
   sessionId: string | null;
@@ -25,7 +28,6 @@ interface UseChatSessionStateArgs {
   processingSessions?: Set<string>;
   resetStreamingState: () => void;
   pendingViewSessionRef: MutableRefObject<PendingViewSession | null>;
-  sessionStore: SessionStore;
   pagination: ChatPaginationPrimitives;
 }
 
@@ -96,7 +98,6 @@ export function useChatSessionState({
   processingSessions,
   resetStreamingState,
   pendingViewSessionRef,
-  sessionStore,
   pagination,
 }: UseChatSessionStateArgs) {
   const {
@@ -166,7 +167,7 @@ export function useChatSessionState({
   const prevActiveForStoreRef = useRef<string | null>(null);
   if (activeSessionId !== prevActiveForStoreRef.current) {
     prevActiveForStoreRef.current = activeSessionId;
-    sessionStore.setActiveSession(activeSessionId);
+    useSessionStore.getState().setActiveSession(activeSessionId);
   }
 
   // Flush pending user message once session becomes active
@@ -183,14 +184,20 @@ export function useChatSessionState({
     const prov = (localStorage.getItem('selected-provider') as LLMProvider) || 'claude';
     const normalized = chatMessageToNormalized(pendingUserMessage, activeSessionId, prov);
     if (normalized) {
-      sessionStore.appendRealtime(activeSessionId, normalized);
+      useSessionStore.getState().appendRealtime(activeSessionId, normalized);
     }
 
     flushedPendingUserMessageRef.current = pendingUserMessage;
     setPendingUserMessage(null);
-  }, [activeSessionId, pendingUserMessage, sessionStore]);
+  }, [activeSessionId, pendingUserMessage]);
 
-  const storeMessages = activeSessionId ? sessionStore.getMessages(activeSessionId) : [];
+  const storeMessages = useSessionStore(
+    (s) => {
+      if (!activeSessionId) return EMPTY_MESSAGES;
+      const resolved = s._resolveSessionId(activeSessionId) ?? activeSessionId;
+      return s.slots[resolved]?.merged ?? EMPTY_MESSAGES;
+    }
+  );
 
   // Reset viewHiddenCount when store messages change
   const prevStoreLenRef = useRef(0);
@@ -248,14 +255,14 @@ export function useChatSessionState({
     const prov = (localStorage.getItem('selected-provider') as LLMProvider) || 'claude';
     const normalized = chatMessageToNormalized(msg, activeSessionId, prov);
     if (normalized) {
-      sessionStore.appendRealtime(activeSessionId, normalized);
+      useSessionStore.getState().appendRealtime(activeSessionId, normalized);
     }
-  }, [activeSessionId, sessionStore]);
+  }, [activeSessionId]);
 
   const clearMessages = useCallback(() => {
     if (!activeSessionId) return;
-    sessionStore.clearAllMessages(activeSessionId);
-  }, [activeSessionId, sessionStore]);
+    useSessionStore.getState().clearAllMessages(activeSessionId);
+  }, [activeSessionId]);
 
   const rewindMessages = useCallback((count: number) => setViewHiddenCount(count), []);
 
@@ -280,7 +287,8 @@ export function useChatSessionState({
     const provider = (selectedSession.__provider || localStorage.getItem('selected-provider') as Provider) || 'claude';
     const sessionKey = `${selectedSession.id}:${selectedProject.projectId}:${provider}`;
 
-    if (lastLoadedSessionKeyRef.current === sessionKey && sessionStore.has(selectedSession.id) && !sessionStore.isStale(selectedSession.id)) {
+    const store = useSessionStore.getState();
+    if (lastLoadedSessionKeyRef.current === sessionKey && store.has(selectedSession.id) && !store.isStale(selectedSession.id)) {
       return;
     }
 
@@ -312,7 +320,7 @@ export function useChatSessionState({
     lastLoadedSessionKeyRef.current = sessionKey;
 
     setIsLoadingSessionMessages(true);
-    sessionStore.fetchFromServer(selectedSession.id, {
+    useSessionStore.getState().fetchFromServer(selectedSession.id, {
       provider: (selectedSession.__provider || provider) as LLMProvider,
       projectId: selectedProject.projectId,
       projectPath: selectedProject.fullPath || selectedProject.path || '',
@@ -336,7 +344,6 @@ export function useChatSessionState({
     selectedSession?.id,
     sendMessage,
     ws,
-    sessionStore,
     messagesOffsetRef,
     currentSessionId,
   ]);
@@ -349,7 +356,7 @@ export function useChatSessionState({
       try {
         // Skip store refresh during active streaming
         if (!isLoading) {
-          await sessionStore.refreshFromServer(selectedSession.id, {
+          await useSessionStore.getState().refreshFromServer(selectedSession.id, {
             provider: (selectedSession.__provider || localStorage.getItem('selected-provider') as Provider) as LLMProvider,
             projectId: selectedProject.projectId,
             projectPath: selectedProject.fullPath || selectedProject.path || '',
@@ -365,7 +372,6 @@ export function useChatSessionState({
     externalMessageUpdate,
     selectedProject,
     selectedSession,
-    sessionStore,
     isLoading,
   ]);
 
@@ -398,7 +404,7 @@ export function useChatSessionState({
       if (!allMessagesLoadedRef.current && selectedSession && selectedProject) {
         const sessionProvider = selectedSession.__provider || 'claude';
           try {
-            const slot = await sessionStore.fetchFromServer(selectedSession.id, {
+            const slot = await useSessionStore.getState().fetchFromServer(selectedSession.id, {
               provider: sessionProvider as LLMProvider,
               projectId: selectedProject.projectId,
               projectPath: selectedProject.fullPath || selectedProject.path || '',
