@@ -5,7 +5,7 @@ import { Folder } from 'lucide-react';
 import Sidebar from '../sidebar/view/Sidebar';
 import MainContent from '../main-content/view/MainContent';
 import DesktopWorkspaceShell from './DesktopWorkspaceShell';
-import MobileWorkspaceShell from './MobileWorkspaceShell';
+import MobileAppShell from '../mobile/MobileAppShell';
 import { useKeyboardViewport } from '../../hooks/useKeyboardViewport';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { PaletteOpsProvider, usePaletteOpsRegister } from '../../contexts/PaletteOpsContext';
@@ -274,5 +274,22 @@ function AppContentInner() {
     mainContent,
   };
 
-  return isMobile ? <MobileWorkspaceShell {...shellProps} /> : <DesktopWorkspaceShell {...shellProps} />;
+  return isMobile ? (
+    <MobileAppShell
+      activeActivity={activeActivity}
+      onShowSettings={handleShowSettings}
+      flyoutOpen={flyoutOpen}
+      setFlyoutOpen={setFlyoutOpen}
+      sidebarContent={sidebarContent}
+      mainContent={mainContent}
+      selectedProject={selectedProject}
+      selectedSession={selectedSession}
+      onNavigateToSession={handleNavigateToSession}
+      onFileOpen={handleFileOpen}
+      onOpenGitPanel={handleOpenGitPanel}
+      onNewSession={handleNewSession}
+    />
+  ) : (
+    <DesktopWorkspaceShell {...shellProps} />
+  );
 }

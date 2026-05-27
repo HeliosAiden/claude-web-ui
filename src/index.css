@@ -1039,9 +1039,9 @@
 
   /* ── Phase 2: Mobile workspace grid layout ── */
 
-  [data-layout="mobile"] .mobile-workspace {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+  [data-layout="mobile"].mobile-workspace {
+    display: flex;
+    flex-direction: column;
     height: 100dvh;
     height: 100vh; /* fallback for browsers without dvh */
   }
@@ -1062,6 +1062,47 @@
 
   /* Hide bottom nav when keyboard is open on mobile */
   html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  /* ── Phase 2: Mobile route slide animations ── */
+
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-out-left {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+  @keyframes slide-in-left {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-out-right {
+    from { transform: translateX(0); }
+    to { transform: translateX(100%); }
+  }
+
+  [data-layout="mobile"] .animate-slide-in-right {
+    animation: slide-in-right 250ms ease-out forwards;
+    will-change: transform;
+  }
+  [data-layout="mobile"] .animate-slide-out-left {
+    animation: slide-out-left 250ms ease-out forwards;
+    will-change: transform;
+  }
+  [data-layout="mobile"] .animate-slide-in-left {
+    animation: slide-in-left 250ms ease-out forwards;
+    will-change: transform;
+  }
+  [data-layout="mobile"] .animate-slide-out-right {
+    animation: slide-out-right 250ms ease-out forwards;
+    will-change: transform;
+  }
+
+  /* Hide floating chat hub when keyboard is open on mobile */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .floating-chat-hub {
     display: none !important;
   }
 }
