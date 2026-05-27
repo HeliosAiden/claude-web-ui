@@ -453,14 +453,22 @@ export function handleShellConnection(
 
       if (data.type === 'input') {
         if (shellProcess) {
-          shellProcess.write(readString(data.data));
+          try {
+            shellProcess.write(readString(data.data));
+          } catch {
+            // PTY already closed — ignore
+          }
         }
         return;
       }
 
       if (data.type === 'resize') {
         if (shellProcess) {
-          shellProcess.resize(readNumber(data.cols, 80), readNumber(data.rows, 24));
+          try {
+            shellProcess.resize(readNumber(data.cols, 80), readNumber(data.rows, 24));
+          } catch {
+            // PTY already closed — ignore
+          }
         }
         return;
       }
@@ -476,7 +484,11 @@ export function handleShellConnection(
             if (session.sessionId) {
               dependencies.unregisterPtyOwnedSession?.(session.sessionId);
             }
-            session.pty.kill();
+            try {
+              session.pty.kill();
+            } catch {
+              // PTY already exited — ignore
+            }
             ptySessionsMap.delete(ptySessionKey);
           }
           shellProcess = null;
@@ -510,7 +522,11 @@ export function handleShellConnection(
 
     session.ws = null;
     session.timeoutId = setTimeout(() => {
-      session.pty.kill();
+      try {
+        session.pty.kill();
+      } catch {
+        // PTY already exited — ignore
+      }
       ptySessionsMap.delete(ptySessionKey as string);
     }, PTY_SESSION_TIMEOUT);
   });
