@@ -1015,4 +1015,31 @@
       transition: none;
     }
   }
+
+  /* ── Mobile workspace scope (Phase 1 Foundation) ── */
+  /* All mobile-specific tokens are scoped under [data-layout="mobile"]
+     so desktop can never be accidentally styled. */
+
+  [data-layout="mobile"] {
+    --mobile-topbar-height: 0px;
+    --mobile-nav-height: 52px;
+    --mobile-composer-min-height: 44px;
+    --mobile-scroll-bottom-inset: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
+    --mobile-touch-min: 44px;
+  }
+
+  /* Touch target baseline — 44x44pt per Apple HIG / Material Design */
+  .mobile-touch-target {
+    min-height: var(--mobile-touch-min, 44px);
+    min-width: var(--mobile-touch-min, 44px);
+  }
+
+  /* Focus ring — visible on all devices, respects reduced motion */
+  .mobile-focus-ring:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 }

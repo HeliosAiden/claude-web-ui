@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Folder } from 'lucide-react';
 
 import Sidebar from '../sidebar/view/Sidebar';
 import MainContent from '../main-content/view/MainContent';
-import ActivityBar from '../activity-bar/ActivityBar';
-import ProjectsFlyout from '../projects-flyout/ProjectsFlyout';
+import DesktopWorkspaceShell from './DesktopWorkspaceShell';
+import MobileWorkspaceShell from './MobileWorkspaceShell';
+import { useKeyboardViewport } from '../../hooks/useKeyboardViewport';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { PaletteOpsProvider, usePaletteOpsRegister } from '../../contexts/PaletteOpsContext';
 import { useDeviceSettings } from '../../hooks/useDeviceSettings';
@@ -30,7 +30,6 @@ export default function AppContent() {
 function AppContentInner() {
   const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId?: string }>();
-  const { t } = useTranslation('common');
   const { isMobile } = useDeviceSettings({ trackPWA: false });
   const { ws, sendMessage, latestMessage, isConnected } = useWebSocket();
   const wasConnectedRef = useRef(false);
@@ -86,6 +85,8 @@ function AppContentInner() {
     openSettings,
     refreshProjects: refreshProjectsSilently,
   });
+
+  useKeyboardViewport();
 
   const pluginActivities = useMemo<ActivityBarItemDef[]>(() => {
     return plugins
@@ -153,18 +154,6 @@ function AppContentInner() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleActivitySelect]);
 
-  // Adjust the app container to stay above the virtual keyboard on iOS Safari.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      const kb = Math.max(0, window.innerHeight - vv.height);
-      document.documentElement.style.setProperty('--keyboard-height', `${kb}px`);
-    };
-    vv.addEventListener('resize', update);
-    return () => vv.removeEventListener('resize', update);
-  }, []);
-
   // Keep tab titles up to date when the selected session's metadata arrives
   useEffect(() => {
     if (selectedSession?.id && (selectedSession.summary || selectedSession.name)) {
@@ -228,90 +217,62 @@ function AppContentInner() {
     handleResizeStart,
   } = useEditorSidebar({ selectedProject, isMobile });
 
-  return (
-    <div className="fixed inset-0 flex bg-background" style={{ bottom: 'var(--keyboard-height, 0px)' }}>
-      {/* Desktop Activity Bar (left rail) */}
-      {!isMobile && (
-        <ActivityBar
-          activeActivity={activeActivity}
-          onActivitySelect={handleActivitySelect}
-          isMobile={false}
-          onShowSettings={handleShowSettings}
-          pluginActivities={pluginActivities}
-        />
-      )}
+  const sidebarContent = useMemo(() => (
+    <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} onFileOpen={handleFileOpen} onOpenGitPanel={handleOpenGitPanel} />
+  ), [sidebarSharedProps, activeSidebarPanel, setActiveTab, handleFileOpen, handleOpenGitPanel]);
 
-      {/* Desktop sidebar (always in document flow) */}
-      {!isMobile && (
-        <ProjectsFlyout
-          mode="sidebar"
-          isOpen={flyoutOpen}
-        >
-          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} onFileOpen={handleFileOpen} onOpenGitPanel={handleOpenGitPanel} />
-        </ProjectsFlyout>
-      )}
+  const mainContent = useMemo(() => (
+    <MainContent
+      selectedProject={selectedProject}
+      selectedSession={selectedSession}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      ws={ws}
+      sendMessage={sendMessage}
+      latestMessage={latestMessage}
+      isMobile={isMobile}
+      onMenuClick={() => setFlyoutOpen(true)}
+      isLoading={isLoadingProjects}
+      onInputFocusChange={setIsInputFocused}
+      onSessionActive={markSessionAsActive}
+      onSessionInactive={markSessionAsInactive}
+      onSessionProcessing={markSessionAsProcessing}
+      onSessionNotProcessing={markSessionAsNotProcessing}
+      processingSessions={processingSessions}
+      onNavigateToSession={handleNavigateToSession}
+      onShowSettings={() => setShowSettings(true)}
+      externalMessageUpdate={externalMessageUpdate}
+      newSessionTrigger={newSessionTrigger}
+      onSessionError={markSessionError}
+      activeActivity={activeActivity}
+      projects={projects}
+      onProjectSelect={sidebarSharedProps.onProjectSelect}
+      onNewSession={handleNewSession}
+      editingFile={editingFile}
+      gitPanelOpen={gitPanelOpen}
+      editorWidth={editorWidth}
+      editorExpanded={editorExpanded}
+      hasManualWidth={hasManualWidth}
+      resizeHandleRef={resizeHandleRef}
+      onFileOpen={handleFileOpen}
+      onCloseEditor={handleCloseEditor}
+      onCloseGitPanel={handleCloseGitPanel}
+      onToggleEditorExpand={handleToggleEditorExpand}
+      onResizeStart={handleResizeStart}
+    />
+  ), [selectedProject, selectedSession, activeTab, setActiveTab, ws, sendMessage, latestMessage, isMobile, isLoadingProjects, setIsInputFocused, markSessionAsActive, markSessionAsInactive, markSessionAsProcessing, markSessionAsNotProcessing, processingSessions, handleNavigateToSession, externalMessageUpdate, newSessionTrigger, markSessionError, activeActivity, projects, sidebarSharedProps.onProjectSelect, handleNewSession, editingFile, gitPanelOpen, editorWidth, editorExpanded, hasManualWidth, resizeHandleRef, handleFileOpen, handleCloseEditor, handleCloseGitPanel, handleToggleEditorExpand, handleResizeStart]);
 
-      {/* Mobile overlay flyout */}
-      {isMobile && (
-        <ProjectsFlyout
-          mode="overlay"
-          isOpen={flyoutOpen}
-          onClose={() => setFlyoutOpen(false)}
-        >
-          <Sidebar {...sidebarSharedProps} activePanel={activeSidebarPanel} onNavigateToTab={setActiveTab} onFileOpen={handleFileOpen} onOpenGitPanel={handleOpenGitPanel} />
-        </ProjectsFlyout>
-      )}
+  const shellProps = {
+    isMobile,
+    activeActivity,
+    onActivitySelect: handleActivitySelect,
+    onShowSettings: handleShowSettings,
+    pluginActivities,
+    flyoutOpen,
+    setFlyoutOpen,
+    sidebarContent,
+    mainContent,
+  };
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <MainContent
-          selectedProject={selectedProject}
-          selectedSession={selectedSession}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          ws={ws}
-          sendMessage={sendMessage}
-          latestMessage={latestMessage}
-          isMobile={isMobile}
-          onMenuClick={() => setFlyoutOpen(true)}
-          isLoading={isLoadingProjects}
-          onInputFocusChange={setIsInputFocused}
-          onSessionActive={markSessionAsActive}
-          onSessionInactive={markSessionAsInactive}
-          onSessionProcessing={markSessionAsProcessing}
-          onSessionNotProcessing={markSessionAsNotProcessing}
-          processingSessions={processingSessions}
-          onNavigateToSession={handleNavigateToSession}
-          onShowSettings={() => setShowSettings(true)}
-          externalMessageUpdate={externalMessageUpdate}
-          newSessionTrigger={newSessionTrigger}
-          onSessionError={markSessionError}
-          activeActivity={activeActivity}
-          projects={projects}
-          onProjectSelect={sidebarSharedProps.onProjectSelect}
-          onNewSession={handleNewSession}
-          editingFile={editingFile}
-          gitPanelOpen={gitPanelOpen}
-          editorWidth={editorWidth}
-          editorExpanded={editorExpanded}
-          hasManualWidth={hasManualWidth}
-          resizeHandleRef={resizeHandleRef}
-          onFileOpen={handleFileOpen}
-          onCloseEditor={handleCloseEditor}
-          onCloseGitPanel={handleCloseGitPanel}
-          onToggleEditorExpand={handleToggleEditorExpand}
-          onResizeStart={handleResizeStart}
-        />
-      </div>
-      {isMobile && (
-        <ActivityBar
-          activeActivity={activeActivity}
-          onActivitySelect={handleActivitySelect}
-          isMobile={true}
-          onShowSettings={handleShowSettings}
-          pluginActivities={pluginActivities}
-        />
-      )}
-
-    </div>
-  );
+  return isMobile ? <MobileWorkspaceShell {...shellProps} /> : <DesktopWorkspaceShell {...shellProps} />;
 }
