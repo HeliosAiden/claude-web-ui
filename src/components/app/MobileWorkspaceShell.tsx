@@ -14,7 +14,7 @@ function MobileWorkspaceShell({
   mainContent,
 }: WorkspaceShellProps) {
   return (
-    <div className="fixed inset-0 flex bg-background" style={{ bottom: 'var(--keyboard-height, 0px)' }}>
+    <div data-layout="mobile" className="mobile-workspace fixed inset-0 bg-background">
       <ProjectsFlyout
         mode="overlay"
         isOpen={flyoutOpen}

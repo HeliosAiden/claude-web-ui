@@ -64,7 +64,7 @@ function ActivityBar({
         'flex bg-card border-border/50',
         isMobile
           ? cn(
-              'fixed bottom-0 inset-x-0 flex-row items-center justify-around',
+              'mobile-bottom-nav fixed bottom-0 inset-x-0 flex-row items-center justify-around',
               'h-[52px]',
               'border-t',
               'pb-[env(safe-area-inset-bottom,0px)]',

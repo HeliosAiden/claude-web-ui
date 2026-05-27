@@ -723,12 +723,6 @@
     }
   }
   
-  @media screen and (max-width: 768px) {
-    .chat-input-mobile {
-      padding-bottom: calc(60px + env(safe-area-inset-bottom));
-    }
-  }
-
   /* Text wrapping improvements */
   .chat-message {
     word-wrap: break-word;
@@ -1041,5 +1035,33 @@
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
     border-radius: 6px;
+  }
+
+  /* ── Phase 2: Mobile workspace grid layout ── */
+
+  [data-layout="mobile"] .mobile-workspace {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100dvh;
+    height: 100vh; /* fallback for browsers without dvh */
+  }
+
+  /* ── Phase 2: Mobile scroll padding ── */
+
+  [data-layout="mobile"] .chat-messages-scroll-container {
+    padding-bottom: var(--mobile-scroll-bottom-inset);
+  }
+
+  /* ── Phase 2: Keyboard open overrides ── */
+
+  /* Collapse composer secondary chrome when keyboard is open on mobile */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-header,
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-tools {
+    display: none !important;
+  }
+
+  /* Hide bottom nav when keyboard is open on mobile */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-bottom-nav {
+    display: none !important;
   }
 }

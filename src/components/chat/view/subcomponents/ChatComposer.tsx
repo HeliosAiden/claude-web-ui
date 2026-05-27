@@ -284,7 +284,7 @@ export default function ChatComposer({
           )}
 
           {/* Settings bar — model, permission mode, thinking, token usage */}
-          <PromptInputHeader>
+          <PromptInputHeader className="mobile-composer-header">
             <div className="flex items-center gap-2 flex-wrap">
               <ModelSelectorButton
                 provider={provider as LLMProvider}
@@ -403,7 +403,7 @@ export default function ChatComposer({
         </PromptInputBody>
 
         <PromptInputFooter>
-          <PromptInputTools>
+          <PromptInputTools className="mobile-composer-tools">
             <PromptInputButton
               tooltip={{ content: t('input.attachImages') }}
               onClick={openImagePicker}
