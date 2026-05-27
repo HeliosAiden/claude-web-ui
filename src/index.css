@@ -1042,4 +1042,32 @@
     outline-offset: 2px;
     border-radius: 6px;
   }
+
+  /* ── Phase 2: Mobile workspace grid layout ── */
+
+  [data-layout="mobile"].mobile-workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    height: 100vh; /* fallback for browsers without dvh */
+  }
+
+  /* ── Phase 2: Mobile scroll padding ── */
+
+  [data-layout="mobile"] .chat-messages-scroll-container {
+    padding-bottom: var(--mobile-scroll-bottom-inset);
+  }
+
+  /* ── Phase 2: Keyboard open overrides ── */
+
+  /* Collapse composer secondary chrome when keyboard is open on mobile */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-header,
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-tools {
+    display: none !important;
+  }
+
+  /* Hide bottom nav when keyboard is open on mobile */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-bottom-nav {
+    display: none !important;
+  }
 }
