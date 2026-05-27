@@ -103,7 +103,7 @@ router.post('/login', async (req, res) => {
     }
     
     // Generate token
-    const token = generateToken(user);
+    const token = await generateToken(user);
     
     // Update last login
     userDb.updateLastLogin(user.id);
