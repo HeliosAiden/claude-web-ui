@@ -31,8 +31,8 @@ const PERMISSION_MODES = [
   { value: 'default', label: 'Default' },
   { value: 'auto', label: 'Auto' },
   { value: 'plan', label: 'Plan' },
-  { value: 'accept', label: 'Accept edits' },
-  { value: 'bypass', label: 'Bypass permissions' },
+  { value: 'acceptEdits', label: 'Accept edits' },
+  { value: 'bypassPermissions', label: 'Bypass permissions' },
 ];
 
 function getProviderDisplayName(p: string) {

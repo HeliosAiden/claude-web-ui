@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import type { Project, ProjectSession, LLMProvider } from '../../types/app';
 import type { NormalizedMessage } from '../../stores/useSessionStore';
+import type { PermissionMode } from '../../components/chat/types/types';
 import { useMobileNavigation } from '../../hooks/useMobileNavigation';
 import { useFileTreeData } from '../file-tree/hooks/useFileTreeData';
 import { useGitPanelController } from '../git-panel/hooks/useGitPanelController';
@@ -41,7 +42,24 @@ export default function MobileAppShell({
   const location = useLocation();
 
   const [composerActive, setComposerActive] = useState(false);
+  const [selectedEffort, setSelectedEffort] = useState<string>(() => localStorage.getItem('effort') || 'medium');
+  const [permissionMode, setPermissionMode] = useState<PermissionMode>(() => {
+    const saved = selectedSession?.id ? localStorage.getItem(`permissionMode-${selectedSession.id}`) : null;
+    return (saved as PermissionMode) || 'default';
+  });
   const { sendMessage } = useWebSocket();
+
+  // Persist effort on change
+  useEffect(() => {
+    localStorage.setItem('effort', selectedEffort);
+  }, [selectedEffort]);
+
+  // Persist permission mode on change
+  useEffect(() => {
+    if (selectedSession?.id) {
+      localStorage.setItem(`permissionMode-${selectedSession.id}`, permissionMode);
+    }
+  }, [permissionMode, selectedSession?.id]);
 
   const {
     activeTab,
@@ -80,8 +98,17 @@ export default function MobileAppShell({
     navigateToTab('conversations');
   }, [navigateToTab]);
 
-  const handleEffortChange = useCallback((_effort: string) => {
-    // Effort setting — will be wired to a future context/hook
+  const handleEffortChange = useCallback((effort: string) => {
+    setSelectedEffort(effort);
+  }, []);
+
+  const handleCyclePermissionMode = useCallback(() => {
+    setPermissionMode((prev) => {
+      const modes: PermissionMode[] = ['default', 'auto', 'acceptEdits', 'bypassPermissions', 'plan'];
+      const idx = modes.indexOf(prev);
+      const next = modes[(idx + 1) % modes.length];
+      return next;
+    });
   }, []);
 
   const handleStartComposing = useCallback(() => {
@@ -127,10 +154,11 @@ export default function MobileAppShell({
         clientMessageId,
         resume: false,
         model,
-        permissionMode: 'default',
+        effort: selectedEffort,
+        permissionMode,
       },
     });
-  }, [sendMessage, selectedProject, selectedSession]);
+  }, [sendMessage, selectedProject, selectedSession, selectedEffort, permissionMode]);
 
   // Transition key changes on both URL navigation and override tab switches,
   // so AnimatedRouteTransitions animates in both cases
@@ -191,9 +219,10 @@ export default function MobileAppShell({
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)}>
         <BottomSheetContent
           onClose={() => setSheetOpen(false)}
+          selectedEffort={selectedEffort}
           onEffortChange={handleEffortChange}
-          permissionMode="default"
-          cyclePermissionMode={() => {}}
+          permissionMode={permissionMode}
+          cyclePermissionMode={handleCyclePermissionMode}
           onStartComposing={handleStartComposing}
         />
       </BottomSheet>
