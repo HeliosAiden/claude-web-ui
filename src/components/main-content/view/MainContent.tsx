@@ -83,6 +83,7 @@ function MainContent({
           <div className={`h-full ${activeTab === 'chat' || isMobile ? 'block' : 'hidden'}`}>
             <ErrorBoundary showDetails>
               <ChatInterface
+                isMobile={isMobile}
                 selectedProject={selectedProject}
                 selectedSession={selectedSession}
                 ws={ws}

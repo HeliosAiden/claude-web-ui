@@ -88,13 +88,14 @@ export default function BottomSheet({ isOpen, onClose, children }: BottomSheetPr
         style={{
           transform: `translateY(${translateY})`,
           maxHeight: SHEET_TARGET,
+          marginBottom: 'var(--keyboard-height, 0px)',
           transitionTimingFunction: isDragging ? 'linear' : 'cubic-bezier(0.32, 0.72, 0, 1)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
         <div
-          className="flex items-center justify-center py-3 touch-none"
+          className="flex items-center justify-center py-3 touch-none bottom-sheet-drag-handle"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

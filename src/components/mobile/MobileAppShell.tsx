@@ -1,16 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
-import type { Project, ProjectSession } from '../../types/app';
+import type { Project, ProjectSession, LLMProvider } from '../../types/app';
+import type { NormalizedMessage } from '../../stores/useSessionStore';
 import { useMobileNavigation } from '../../hooks/useMobileNavigation';
 import { useFileTreeData } from '../file-tree/hooks/useFileTreeData';
 import { useGitPanelController } from '../git-panel/hooks/useGitPanelController';
+import { useWebSocket } from '../../contexts/WebSocketContext';
+import { useSessionStore } from '../../stores/useSessionStore';
 
 import AnimatedRouteTransitions from './AnimatedRouteTransitions';
 import BottomNavigation, { TAB_ORDER } from './BottomNavigation';
 import BottomSheet from './BottomSheet';
 import BottomSheetContent from './BottomSheetContent';
+import ChatComposerBar from './ChatComposerBar';
 import ChatPage from './pages/ChatPage';
 import ConversationsPage from './pages/ConversationsPage';
 import FileBrowserPage from './pages/FileBrowserPage';
@@ -35,6 +39,9 @@ export default function MobileAppShell({
   onOpenGitPanel,
 }: MobileAppShellProps) {
   const location = useLocation();
+
+  const [composerActive, setComposerActive] = useState(false);
+  const { sendMessage } = useWebSocket();
 
   const {
     activeTab,
@@ -76,6 +83,54 @@ export default function MobileAppShell({
   const handleEffortChange = useCallback((_effort: string) => {
     // Effort setting — will be wired to a future context/hook
   }, []);
+
+  const handleStartComposing = useCallback(() => {
+    setSheetOpen(false);
+    setComposerActive(true);
+  }, []);
+
+  const handleComposerBlur = useCallback(() => {
+    setComposerActive(false);
+  }, []);
+
+  const handleSendMessage = useCallback((text: string) => {
+    if (!text.trim() || !selectedProject) return;
+
+    const provider = (localStorage.getItem('selected-provider') as LLMProvider) || 'claude';
+    const modelKey = `${provider}-model`;
+    const model = localStorage.getItem(modelKey) || undefined;
+    const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+    // Add user message locally so it appears immediately
+    const sessionId = selectedSession?.id || '';
+    if (sessionId) {
+      const ts = new Date().toISOString();
+      const normalized: NormalizedMessage = {
+        id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        sessionId,
+        timestamp: ts,
+        provider,
+        kind: 'text',
+        role: 'user',
+        content: text.trim(),
+      };
+      useSessionStore.getState().appendRealtime(sessionId, normalized);
+    }
+
+    sendMessage({
+      type: `${provider}-command`,
+      command: text.trim(),
+      options: {
+        projectPath: selectedProject.fullPath,
+        cwd: selectedProject.fullPath,
+        sessionId: sessionId || null,
+        clientMessageId,
+        resume: false,
+        model,
+        permissionMode: 'default',
+      },
+    });
+  }, [sendMessage, selectedProject, selectedSession]);
 
   // Transition key changes on both URL navigation and override tab switches,
   // so AnimatedRouteTransitions animates in both cases
@@ -139,8 +194,12 @@ export default function MobileAppShell({
           onEffortChange={handleEffortChange}
           permissionMode="default"
           cyclePermissionMode={() => {}}
+          onStartComposing={handleStartComposing}
         />
       </BottomSheet>
+
+      {/* Floating composer bar — appears above bottom nav */}
+      {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} />}
 
       {/* Bottom navigation */}
       <BottomNavigation

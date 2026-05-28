@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
@@ -9,7 +9,15 @@ import {
   Shield,
   ChevronRight,
 } from 'lucide-react';
+import {
+  CLAUDE_MODELS,
+  CURSOR_MODELS,
+  CODEX_MODELS,
+  GEMINI_MODELS,
+} from '../../../shared/modelConstants';
+import SessionProviderLogo from '../llm-logo-provider/SessionProviderLogo';
 import { cn } from '../../lib/utils';
+import type { LLMProvider } from '../../types/app';
 
 const EFFORT_LEVELS = [
   { value: 'low', label: 'Low' },
@@ -27,16 +35,84 @@ const PERMISSION_MODES = [
   { value: 'bypass', label: 'Bypass permissions' },
 ];
 
+function getProviderDisplayName(p: string) {
+  if (p === 'claude') return 'Claude';
+  if (p === 'cursor') return 'Cursor';
+  if (p === 'codex') return 'Codex';
+  return 'Gemini';
+}
+
+function AskModelHero({
+  provider,
+  providerName,
+  modelLabel,
+  onTap,
+}: {
+  provider: LLMProvider;
+  providerName: string;
+  modelLabel: string;
+  onTap: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      className="flex items-center gap-3 w-full px-3 py-4 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 hover:bg-primary/15 active:bg-primary/20 transition-all duration-150"
+    >
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/15 shrink-0">
+        <SessionProviderLogo provider={provider} className="w-5 h-5" />
+      </div>
+      <div className="flex-1 text-left">
+        <div className="text-sm font-semibold text-foreground">
+          Ask <span className="text-primary">{providerName}</span> anything
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5">{modelLabel}</div>
+      </div>
+      <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+    </button>
+  );
+}
+
 interface BottomSheetContentProps {
   onClose: () => void;
   selectedEffort?: string;
   onEffortChange?: (effort: string) => void;
   permissionMode: string;
   cyclePermissionMode: () => void;
+  onStartComposing: () => void;
 }
 
-export default function BottomSheetContent({ onClose, selectedEffort, onEffortChange, permissionMode, cyclePermissionMode }: BottomSheetContentProps) {
+export default function BottomSheetContent({ onClose, selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing }: BottomSheetContentProps) {
   const navigate = useNavigate();
+
+  const modelInfo = useMemo(() => {
+    const storedProvider = (typeof window !== 'undefined'
+      ? localStorage.getItem('selected-provider')
+      : null) ?? 'claude';
+    const providerName = getProviderDisplayName(storedProvider);
+
+    const modelKey = `${storedProvider}-model`;
+    const modelMap: Record<string, { value: string; label: string }[]> = {
+      'claude-model': CLAUDE_MODELS.OPTIONS,
+      'cursor-model': CURSOR_MODELS.OPTIONS,
+      'codex-model': CODEX_MODELS.OPTIONS,
+      'gemini-model': GEMINI_MODELS.OPTIONS,
+    };
+    const storedModel = typeof window !== 'undefined'
+      ? localStorage.getItem(modelKey)
+      : null;
+    const defaultModel: Record<string, string> = {
+      claude: CLAUDE_MODELS.DEFAULT,
+      cursor: CURSOR_MODELS.DEFAULT,
+      codex: CODEX_MODELS.DEFAULT,
+      gemini: GEMINI_MODELS.DEFAULT,
+    };
+
+    const modelValue = storedModel ?? defaultModel[storedProvider] ?? 'opus';
+    const found = modelMap[modelKey]?.find((m) => m.value === modelValue);
+
+    return { provider: storedProvider as LLMProvider, providerName, modelLabel: found?.label ?? modelValue };
+  }, []);
 
   const handleSearch = useCallback(() => {
     navigate('/conversations');
@@ -102,6 +178,17 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
 
   return (
     <div className="flex flex-col gap-2">
+      {/* 1. Ask Model hero section */}
+      <AskModelHero
+        provider={modelInfo.provider}
+        providerName={modelInfo.providerName}
+        modelLabel={modelInfo.modelLabel}
+        onTap={onStartComposing}
+      />
+
+      <div className="h-px bg-border/50" />
+
+      {/* 2. Existing quick actions */}
       <SectionHeader label="Quick Actions" icon={Zap} />
       <div className="flex flex-col gap-0.5">
         <ActionRow icon={Search} label="Search" description="Search all conversations" onClick={handleSearch} />

@@ -1065,6 +1065,20 @@
     display: none !important;
   }
 
+  /* Composer bar positioning: above nav when closed, flush above keyboard when open */
+  [data-layout="mobile"] .mobile-composer-bar {
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  }
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-bar {
+    bottom: var(--keyboard-height, 0px);
+  }
+
+  /* Prevent drag handle interaction when keyboard is open */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .bottom-sheet-drag-handle {
+    pointer-events: none;
+    opacity: 0.3;
+  }
+
   /* ── Phase 2: Mobile route slide animations ── */
 
   @keyframes slide-in-right {
