@@ -1101,8 +1101,4 @@
     will-change: transform;
   }
 
-  /* Hide floating chat hub when keyboard is open on mobile */
-  html[data-keyboard-open="true"] [data-layout="mobile"] .floating-chat-hub {
-    display: none !important;
-  }
 }

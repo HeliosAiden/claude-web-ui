@@ -82,31 +82,33 @@ function ContextHeader({
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Tab switcher — VSCode panel-style */}
-      <div className="flex items-center" role="tablist" aria-label="Workspace mode">
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => onTabSelect(tab.id)}
-              className={cn(
-                'flex items-center gap-1.5 h-7 px-2 text-xs font-medium transition-colors',
-                'border-b-2 -mb-[1px]',
-                isActive
-                  ? 'border-foreground/80 text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30',
-              )}
-            >
-              <tab.icon className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Tab switcher — hidden on mobile, chat-only by default */}
+      {!isMobile && (
+        <div className="flex items-center" role="tablist" aria-label="Workspace mode">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => onTabSelect(tab.id)}
+                className={cn(
+                  'flex items-center gap-1.5 h-7 px-2 text-xs font-medium transition-colors',
+                  'border-b-2 -mb-[1px]',
+                  isActive
+                    ? 'border-foreground/80 text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30',
+                )}
+              >
+                <tab.icon className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

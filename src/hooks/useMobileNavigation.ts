@@ -30,17 +30,6 @@ export function useMobileNavigation({
     [],
   );
 
-  const isForwardNavigation = useCallback(
-    (nextTab: MobileTabId): boolean => {
-      const history = historyRef.current;
-      if (history.length < 1) return true;
-      const prev = history[history.length - 1];
-      const order: MobileTabId[] = ['conversations', 'chat', 'files', 'git', 'settings'];
-      return order.indexOf(nextTab) >= order.indexOf(prev as MobileTabId);
-    },
-    [],
-  );
-
   const navigateToTab = useCallback(
     (tab: MobileTabId) => {
       trackHistory(tab);
@@ -104,7 +93,6 @@ export function useMobileNavigation({
     handleChatHubTap,
     sheetOpen,
     setSheetOpen,
-    isForwardNavigation,
     goBack,
     currentPath: location.pathname,
   };

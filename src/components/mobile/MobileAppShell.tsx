@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import type { Project, ProjectSession } from '../../types/app';
@@ -7,8 +7,7 @@ import type { ActivityBarItemDef } from '../activity-bar/types';
 import { useMobileNavigation } from '../../hooks/useMobileNavigation';
 import ProjectsFlyout from '../projects-flyout/ProjectsFlyout';
 import AnimatedRouteTransitions from './AnimatedRouteTransitions';
-import BottomNavigation from './BottomNavigation';
-import FloatingChatHub from './FloatingChatHub';
+import BottomNavigation, { TAB_ORDER } from './BottomNavigation';
 import BottomSheet from './BottomSheet';
 import BottomSheetContent from './BottomSheetContent';
 import ChatPage from './pages/ChatPage';
@@ -59,10 +58,16 @@ export default function MobileAppShell({
     onNavigateToSession,
   });
 
-  const hasActiveSession = Boolean(selectedSession);
-  const isKeyboardOpen = typeof document !== 'undefined' && document.documentElement.getAttribute('data-keyboard-open') === 'true';
+  const prevTabIndexRef = useRef(-1);
+  const currentTabIndex = TAB_ORDER.indexOf(activeTab);
+  const direction = currentTabIndex >= prevTabIndexRef.current ? 'forward' : 'backward';
 
-  const handleOpenGitPanel = useCallback(() => {
+  useEffect(() => {
+    prevTabIndexRef.current = currentTabIndex;
+  });
+
+  const hasActiveSession = Boolean(selectedSession);
+const handleOpenGitPanel = useCallback(() => {
     onOpenGitPanel?.();
   }, [onOpenGitPanel]);
 
@@ -125,7 +130,7 @@ export default function MobileAppShell({
 
       {/* Animated route content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <AnimatedRouteTransitions locationKey={pathname}>
+        <AnimatedRouteTransitions locationKey={pathname} direction={direction}>
           {renderPage}
         </AnimatedRouteTransitions>
       </div>
@@ -139,13 +144,6 @@ export default function MobileAppShell({
           cyclePermissionMode={() => {}}
         />
       </BottomSheet>
-
-      {/* Floating Chat Hub button */}
-      <FloatingChatHub
-        onClick={handleChatHubTap}
-        isActive={activeTab === 'chat'}
-        hidden={isKeyboardOpen}
-      />
 
       {/* Bottom navigation */}
       <BottomNavigation

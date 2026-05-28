@@ -26,6 +26,8 @@ const TABS: TabDefinition[] = [
   { id: 'settings', icon: Settings, label: 'Settings', requiresSession: false },
 ];
 
+export const TAB_ORDER: MobileTabId[] = TABS.map((t) => t.id);
+
 interface BottomNavigationProps {
   activeTab: MobileTabId;
   onTabSelect: (tab: MobileTabId) => void;
