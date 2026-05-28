@@ -4,7 +4,6 @@ import { Folder } from 'lucide-react';
 
 import Sidebar from '../sidebar/view/Sidebar';
 import MainContent from '../main-content/view/MainContent';
-import DesktopWorkspaceShell from './DesktopWorkspaceShell';
 import MobileAppShell from '../mobile/MobileAppShell';
 import { useKeyboardViewport } from '../../hooks/useKeyboardViewport';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -18,6 +17,8 @@ import PluginIcon from '../plugins/view/PluginIcon';
 import { useEditorSidebar } from '../code-editor/hooks/useEditorSidebar';
 import type { ActivityBarItemDef } from '../activity-bar/types';
 import type { ActivityId } from '../../types/app';
+
+import DesktopWorkspaceShell from './DesktopWorkspaceShell';
 
 export default function AppContent() {
   return (
@@ -231,7 +232,6 @@ function AppContentInner() {
       sendMessage={sendMessage}
       latestMessage={latestMessage}
       isMobile={isMobile}
-      onMenuClick={() => setFlyoutOpen(true)}
       isLoading={isLoadingProjects}
       onInputFocusChange={setIsInputFocused}
       onSessionActive={markSessionAsActive}
@@ -276,18 +276,12 @@ function AppContentInner() {
 
   return isMobile ? (
     <MobileAppShell
-      activeActivity={activeActivity}
-      onShowSettings={handleShowSettings}
-      flyoutOpen={flyoutOpen}
-      setFlyoutOpen={setFlyoutOpen}
       sidebarContent={sidebarContent}
       mainContent={mainContent}
       selectedProject={selectedProject}
       selectedSession={selectedSession}
-      onNavigateToSession={handleNavigateToSession}
       onFileOpen={handleFileOpen}
       onOpenGitPanel={handleOpenGitPanel}
-      onNewSession={handleNewSession}
     />
   ) : (
     <DesktopWorkspaceShell {...shellProps} />

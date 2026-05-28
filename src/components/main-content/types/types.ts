@@ -14,7 +14,6 @@ export type MainContentProps = {
   sendMessage: (message: unknown) => void;
   latestMessage: unknown;
   isMobile: boolean;
-  onMenuClick: () => void;
   isLoading: boolean;
   onInputFocusChange: (focused: boolean) => void;
   onSessionActive: SessionLifecycleHandler;
@@ -47,8 +46,5 @@ export type MainContentProps = {
 
 export type MainContentStateViewProps = {
   mode: 'loading' | 'empty';
-  isMobile: boolean;
-  onMenuClick: () => void;
-  activeActivity?: import('../../../types/app').ActivityId;
 };
 

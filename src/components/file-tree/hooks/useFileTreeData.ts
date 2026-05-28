@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+
 import { api } from '../../../utils/api';
 import type { Project } from '../../../types/app';
 import type { FileTreeNode } from '../types/types';
 
-type UseFileTreeDataResult = {
+export type UseFileTreeDataResult = {
   files: FileTreeNode[];
   loading: boolean;
   refreshFiles: () => void;

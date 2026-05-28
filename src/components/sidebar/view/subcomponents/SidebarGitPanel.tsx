@@ -1,22 +1,36 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowDownToLine,
   ChevronRight,
   ExternalLink,
   GitBranch,
-  GitCommit,
   RefreshCw,
 } from 'lucide-react';
+
 import type { Project } from '../../../../types/app';
 import { useGitPanelController } from '../../../git-panel/hooks/useGitPanelController';
 import { parseCommitFiles } from '../../../git-panel/utils/gitPanelUtils';
-import type { GitCommitSummary } from '../../../git-panel/types/types';
+import type { GitCommitSummary, GitStatusResponse, GitRemoteStatus } from '../../../git-panel/types/types';
 import { cn } from '../../../../lib/utils';
 
 type SidebarGitPanelProps = {
   selectedProject: Project | null;
   onOpenGitPanel?: () => void;
   onFileOpen?: (filePath: string) => void;
+  preloadedGitController?: {
+    gitStatus: GitStatusResponse | null;
+    currentBranch: string;
+    branches: string[];
+    localBranches: string[];
+    remoteStatus: GitRemoteStatus | null;
+    recentCommits: GitCommitSummary[];
+    commitDiffs: Record<string, string>;
+    isLoading: boolean;
+    refreshAll: () => void;
+    handleFetch: () => void;
+    switchBranch: (branch: string) => Promise<boolean>;
+    fetchCommitDiff: (hash: string) => void;
+  };
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -79,18 +93,18 @@ function CommitDetail({
     <div>
       <button
         type="button"
-        className="flex w-full items-center gap-1 text-left text-[11px] hover:bg-accent/50 rounded px-0.5 py-0.5 -mx-0.5 transition-colors"
+        className="-mx-0.5 flex w-full items-center gap-1 rounded px-0.5 py-0.5 text-left text-[11px] transition-colors hover:bg-accent/50"
         onClick={handleToggle}
       >
         <ChevronRight
           className={cn('h-3 w-3 flex-shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-90')}
         />
-        <span className="font-mono text-[10px] text-muted-foreground/60 flex-shrink-0">{shortHash}</span>
-        <span className="truncate text-muted-foreground flex-1">{commit.message.split('\n')[0]}</span>
-        <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{formatRelativeTime(commit.date)}</span>
+        <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/60">{shortHash}</span>
+        <span className="flex-1 truncate text-muted-foreground">{commit.message.split('\n')[0]}</span>
+        <span className="flex-shrink-0 text-[10px] text-muted-foreground/50">{formatRelativeTime(commit.date)}</span>
       </button>
       {expanded && (
-        <div className="ml-5 mt-0.5 mb-1 text-[10px] text-muted-foreground/70 space-y-0.5">
+        <div className="mb-1 ml-5 mt-0.5 space-y-0.5 text-[10px] text-muted-foreground/70">
           <div>
             <span className="font-medium">{commit.author}</span>
           </div>
@@ -127,13 +141,18 @@ function CommitDetail({
   );
 }
 
-function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: SidebarGitPanelProps) {
+function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen, preloadedGitController }: SidebarGitPanelProps) {
   const projectId = selectedProject?.projectId ?? null;
 
+  const hookController = useGitPanelController({
+    selectedProject,
+    activeView: 'history',
+    onFileOpen: undefined,
+  });
+  const controller = preloadedGitController ?? hookController;
   const {
     gitStatus,
     currentBranch,
-    branches,
     localBranches,
     remoteStatus,
     recentCommits,
@@ -143,18 +162,14 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
     handleFetch,
     switchBranch,
     fetchCommitDiff,
-  } = useGitPanelController({
-    selectedProject,
-    activeView: 'history',
-    onFileOpen: undefined,
-  });
+  } = controller;
 
   const [showChanges, setShowChanges] = useState(true);
   const [showCommits, setShowCommits] = useState(false);
   const [showBranches, setShowBranches] = useState(false);
 
   useEffect(() => {
-    if (projectId) {
+    if (projectId && !preloadedGitController) {
       refreshAll();
     }
   }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -176,10 +191,10 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center gap-1 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+      className="flex w-full items-center gap-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
     >
       <ChevronRight className={cn('h-3 w-3 flex-shrink-0 transition-transform', expanded && 'rotate-90')} />
-      <span className="font-medium uppercase tracking-wide text-[10px]">{label}</span>
+      <span className="text-[10px] font-medium uppercase tracking-wide">{label}</span>
       {count !== undefined && <span className="text-[10px] text-muted-foreground/60">({count})</span>}
     </button>
   );
@@ -202,28 +217,28 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/40">
+      <div className="flex items-center justify-between border-b border-border/40 px-3 py-2">
         <span className="text-xs font-medium text-foreground">Source Control</span>
         <button
           type="button"
           onClick={() => refreshAll()}
-          className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           aria-label="Refresh"
         >
           <RefreshCw className="h-3 w-3" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 text-xs">
+      <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-2 text-xs">
         {/* Branch info */}
         {currentBranch && (
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <GitBranch className="h-3 w-3 flex-shrink-0" />
-            <span className="font-mono text-[11px] truncate">{currentBranch}</span>
+            <span className="truncate font-mono text-[11px]">{currentBranch}</span>
             {remoteStatus && (
-              <span className="text-[10px] text-muted-foreground/60 flex-shrink-0">
+              <span className="flex-shrink-0 text-[10px] text-muted-foreground/60">
                 {(remoteStatus.ahead ?? 0) > 0 && `↑${remoteStatus.ahead} `}
                 {(remoteStatus.behind ?? 0) > 0 && `↓${remoteStatus.behind}`}
               </span>
@@ -235,7 +250,7 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
         <div className="flex items-center gap-1">
           <button
             type="button"
-            className="flex items-center gap-1 rounded-md bg-accent/40 px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="flex items-center gap-1 rounded-md bg-accent/40 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={() => handleFetch()}
           >
             <ArrowDownToLine className="h-3 w-3" />
@@ -248,7 +263,7 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
         {showChanges && (
           <div className="space-y-0.5">
             {totalChanges > 0 && (
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground pl-4">
+              <div className="flex items-center gap-2 pl-4 text-[11px] text-muted-foreground">
                 {counts.M ? <span className={cn('font-medium', STATUS_COLORS.M)}>{counts.M}M</span> : null}
                 {counts.A ? <span className={cn('font-medium', STATUS_COLORS.A)}>{counts.A}A</span> : null}
                 {counts.D ? <span className={cn('font-medium', STATUS_COLORS.D)}>{counts.D}D</span> : null}
@@ -256,13 +271,13 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
               </div>
             )}
             {totalChanges === 0 && (
-              <p className="text-[11px] text-muted-foreground/60 pl-4">No changes</p>
+              <p className="pl-4 text-[11px] text-muted-foreground/60">No changes</p>
             )}
             {changedFiles.slice(0, 10).map((file) => (
               <button
                 key={file.path}
                 type="button"
-                className="flex items-center gap-1.5 truncate text-[11px] w-full text-left hover:bg-accent/50 rounded px-0.5 py-0.5 -mx-0.5 transition-colors pl-4"
+                className="-mx-0.5 flex w-full items-center gap-1.5 truncate rounded px-0.5 py-0.5 pl-4 text-left text-[11px] transition-colors hover:bg-accent/50"
                 onClick={() => onFileOpen?.(file.path)}
               >
                 <span className={cn('flex-shrink-0 font-mono text-[10px] w-3', STATUS_COLORS[file.status] ?? STATUS_COLORS.M)}>
@@ -272,7 +287,7 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
               </button>
             ))}
             {changedFiles.length > 10 && (
-              <p className="text-[10px] text-muted-foreground/50 pl-4">
+              <p className="pl-4 text-[10px] text-muted-foreground/50">
                 +{changedFiles.length - 10} more files
               </p>
             )}
@@ -319,7 +334,7 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
                   {!isCurrent && (
                     <button
                       type="button"
-                      className="text-[10px] text-primary hover:underline flex-shrink-0"
+                      className="flex-shrink-0 text-[10px] text-primary hover:underline"
                       onClick={() => { void switchBranch(branch); }}
                     >
                       Switch
@@ -342,7 +357,7 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen }: Sideba
         <button
           type="button"
           onClick={() => onOpenGitPanel?.()}
-          className="flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          className="flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <ExternalLink className="h-3 w-3" />
           Open Full Panel

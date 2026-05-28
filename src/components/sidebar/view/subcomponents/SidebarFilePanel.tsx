@@ -10,8 +10,10 @@ import {
   X,
   Check,
 } from 'lucide-react';
+
 import type { Project } from '../../../../types/app';
 import type { FileTreeNode } from '../../../file-tree/types/types';
+import type { UseFileTreeDataResult } from '../../../file-tree/hooks/useFileTreeData';
 import { useFileTreeData } from '../../../file-tree/hooks/useFileTreeData';
 import { useExpandedDirectories } from '../../../file-tree/hooks/useExpandedDirectories';
 import { useFileTreeOperations } from '../../../file-tree/hooks/useFileTreeOperations';
@@ -22,6 +24,7 @@ import { Button, Input } from '../../../../shared/view/ui';
 type SidebarFilePanelProps = {
   selectedProject: Project | null;
   onFileOpen?: (filePath: string) => void;
+  preloadedFileTree?: UseFileTreeDataResult;
 };
 
 function FileTreeRow({
@@ -94,9 +97,10 @@ function FileTreeRow({
   );
 }
 
-function SidebarFilePanel({ selectedProject, onFileOpen }: SidebarFilePanelProps) {
+function SidebarFilePanel({ selectedProject, onFileOpen, preloadedFileTree }: SidebarFilePanelProps) {
   const projectId = selectedProject?.projectId ?? null;
-  const { files, loading, refreshFiles } = useFileTreeData(selectedProject);
+  const hookFiles = useFileTreeData(selectedProject);
+  const { files, loading, refreshFiles } = preloadedFileTree ?? hookFiles;
   const { expandedDirs, toggleDirectory, collapseAll } = useExpandedDirectories();
   const [searchFilter, setSearchFilter] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -168,9 +172,9 @@ function SidebarFilePanel({ selectedProject, onFileOpen }: SidebarFilePanelProps
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Header with toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/40">
+      <div className="flex items-center justify-between border-b border-border/40 px-3 py-2">
         <span className="text-xs font-medium text-foreground">Files</span>
         <div className="flex items-center gap-0.5">
           {operations && (
@@ -223,19 +227,19 @@ function SidebarFilePanel({ selectedProject, onFileOpen }: SidebarFilePanelProps
       </div>
 
       {/* Search */}
-      <div className="px-3 py-1.5 border-b border-border/30">
+      <div className="border-b border-border/30 px-3 py-1.5">
         <input
           type="text"
           placeholder="Filter files..."
           value={searchFilter}
           onChange={(e) => setSearchFilter(e.target.value)}
-          className="w-full rounded-md border border-border/40 bg-background px-2 py-1 text-[11px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-border"
+          className="w-full rounded-md border border-border/40 bg-background px-2 py-1 text-[11px] text-foreground placeholder:text-muted-foreground/50 focus:border-border focus:outline-none"
         />
       </div>
 
       {/* Inline creation input */}
       {operations.isCreating && (
-        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-border/30">
+        <div className="flex items-center gap-1.5 border-b border-border/30 px-3 py-1">
           {operations.newItemType === 'directory' ? (
             <Folder className="h-3.5 w-3.5 flex-shrink-0 text-blue-500" />
           ) : (

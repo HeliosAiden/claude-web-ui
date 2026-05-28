@@ -1,27 +1,33 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
 import type { MobileTabId } from '../types/mobile';
+
+function tabFromPathname(pathname: string): MobileTabId {
+  if (pathname === '/conversations') return 'conversations';
+  if (pathname === '/settings') return 'settings';
+  return 'chat';
+}
 
 export function useMobileNavigation({
   selectedSessionId,
-  onNavigateToSession,
 }: {
   selectedSessionId?: string;
-  onNavigateToSession?: (id: string) => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const historyRef = useRef<string[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [overrideTab, setOverrideTab] = useState<MobileTabId | null>(null);
+
+  // Clear override when the URL changes externally (e.g. direct navigation)
+  useEffect(() => {
+    setOverrideTab(null);
+  }, [location.pathname]);
 
   const activeTab = useMemo((): MobileTabId => {
-    const path = location.pathname;
-    if (path === '/conversations') return 'conversations';
-    if (/^\/session\/[^/]+\/files$/.test(path)) return 'files';
-    if (/^\/session\/[^/]+\/git$/.test(path)) return 'git';
-    if (path === '/settings') return 'settings';
-    return 'chat';
-  }, [location.pathname]);
+    return overrideTab ?? tabFromPathname(location.pathname);
+  }, [overrideTab, location.pathname]);
 
   const trackHistory = useCallback(
     (tab: MobileTabId) => {
@@ -37,16 +43,14 @@ export function useMobileNavigation({
 
       switch (tab) {
         case 'conversations':
+          setOverrideTab(null);
           navigate('/conversations');
           break;
         case 'files':
-          if (selectedSessionId) {
-            navigate(`/session/${selectedSessionId}/files`);
-          } else {
-            navigate('/conversations');
-          }
+          setOverrideTab('files');
           break;
         case 'chat':
+          setOverrideTab(null);
           if (selectedSessionId) {
             navigate(`/session/${selectedSessionId}`);
           } else {
@@ -54,13 +58,10 @@ export function useMobileNavigation({
           }
           break;
         case 'git':
-          if (selectedSessionId) {
-            navigate(`/session/${selectedSessionId}/git`);
-          } else {
-            navigate('/conversations');
-          }
+          setOverrideTab('git');
           break;
         case 'settings':
+          setOverrideTab(null);
           navigate('/settings');
           break;
       }
@@ -69,13 +70,12 @@ export function useMobileNavigation({
   );
 
   const handleChatHubTap = useCallback(() => {
-    const inChatSession = /^\/session\/[^/]+$/.test(location.pathname);
-    if (inChatSession) {
+    if (activeTab === 'chat') {
       setSheetOpen((prev) => !prev);
     } else {
       navigateToTab('chat');
     }
-  }, [location.pathname, navigateToTab]);
+  }, [activeTab, navigateToTab]);
 
   const goBack = useCallback(() => {
     const history = historyRef.current;
@@ -95,5 +95,6 @@ export function useMobileNavigation({
     setSheetOpen,
     goBack,
     currentPath: location.pathname,
+    overrideTab,
   };
 }

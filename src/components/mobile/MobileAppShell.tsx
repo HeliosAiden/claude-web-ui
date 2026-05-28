@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
+
 import type { Project, ProjectSession } from '../../types/app';
-import type { ActivityId } from '../../types/app';
-import type { ActivityBarItemDef } from '../activity-bar/types';
 import { useMobileNavigation } from '../../hooks/useMobileNavigation';
-import ProjectsFlyout from '../projects-flyout/ProjectsFlyout';
+import { useFileTreeData } from '../file-tree/hooks/useFileTreeData';
+import { useGitPanelController } from '../git-panel/hooks/useGitPanelController';
+
 import AnimatedRouteTransitions from './AnimatedRouteTransitions';
 import BottomNavigation, { TAB_ORDER } from './BottomNavigation';
 import BottomSheet from './BottomSheet';
@@ -17,34 +18,23 @@ import GitPage from './pages/GitPage';
 import SettingsPage from './pages/SettingsPage';
 
 interface MobileAppShellProps {
-  activeActivity: ActivityId;
-  onShowSettings: () => void;
-  flyoutOpen: boolean;
-  setFlyoutOpen: (open: boolean) => void;
   sidebarContent: ReactNode;
   mainContent: ReactNode;
   selectedProject: Project | null;
   selectedSession: ProjectSession | null;
-  onNavigateToSession: (sessionId: string) => void;
   onFileOpen: (filePath: string) => void;
   onOpenGitPanel: () => void;
-  onNewSession: (project: Project) => void;
 }
 
 export default function MobileAppShell({
-  flyoutOpen,
-  setFlyoutOpen,
   sidebarContent,
   mainContent,
   selectedProject,
   selectedSession,
-  onNavigateToSession,
   onFileOpen,
   onOpenGitPanel,
-  onNewSession,
 }: MobileAppShellProps) {
   const location = useLocation();
-  const pathname = location.pathname;
 
   const {
     activeTab,
@@ -52,10 +42,18 @@ export default function MobileAppShell({
     handleChatHubTap,
     sheetOpen,
     setSheetOpen,
-    goBack,
+    overrideTab,
   } = useMobileNavigation({
     selectedSessionId: selectedSession?.id,
-    onNavigateToSession,
+  });
+
+  // Preload file tree and git data when a project is selected,
+  // so they're available before the user taps the Files or Git tab.
+  const fileTreeData = useFileTreeData(selectedProject);
+  const gitController = useGitPanelController({
+    selectedProject,
+    activeView: 'history',
+    onFileOpen: undefined,
   });
 
   const prevTabIndexRef = useRef(-1);
@@ -67,7 +65,7 @@ export default function MobileAppShell({
   });
 
   const hasActiveSession = Boolean(selectedSession);
-const handleOpenGitPanel = useCallback(() => {
+  const handleOpenGitPanel = useCallback(() => {
     onOpenGitPanel?.();
   }, [onOpenGitPanel]);
 
@@ -79,58 +77,57 @@ const handleOpenGitPanel = useCallback(() => {
     // Effort setting — will be wired to a future context/hook
   }, []);
 
+  // Transition key changes on both URL navigation and override tab switches,
+  // so AnimatedRouteTransitions animates in both cases
+  const transitionKey = location.pathname + (overrideTab ? `:${overrideTab}` : '');
+
   const renderPage = useMemo(() => {
-    if (pathname === '/conversations') {
+    if (activeTab === 'conversations') {
       return <ConversationsPage sidebarContent={sidebarContent} />;
     }
-    if (/^\/session\/[^/]+\/files$/.test(pathname)) {
+    if (activeTab === 'files') {
       return (
         <FileBrowserPage
           selectedProject={selectedProject}
           onFileOpen={onFileOpen}
           onNavigateToConversations={handleNavigateToConversations}
+          preloadedFileTree={fileTreeData}
         />
       );
     }
-    if (/^\/session\/[^/]+\/git$/.test(pathname)) {
+    if (activeTab === 'git') {
       return (
         <GitPage
           selectedProject={selectedProject}
           onOpenGitPanel={handleOpenGitPanel}
           onFileOpen={onFileOpen}
           onNavigateToConversations={handleNavigateToConversations}
+          preloadedGitController={gitController}
         />
       );
     }
-    if (pathname === '/settings') {
+    if (activeTab === 'settings') {
       return <SettingsPage onClose={handleNavigateToConversations} />;
     }
-    // Default: /session/:id or / — show chat
+    // Default: chat — activeTab is 'chat'
     return <ChatPage mainContent={mainContent} />;
   }, [
-    pathname,
+    activeTab,
     sidebarContent,
     selectedProject,
     onFileOpen,
     handleNavigateToConversations,
     handleOpenGitPanel,
     mainContent,
+    fileTreeData,
+    gitController,
   ]);
 
   return (
     <div data-layout="mobile" className="mobile-workspace fixed inset-0 bg-background">
-      {/* Mobile sidebar overlay */}
-      <ProjectsFlyout
-        mode="overlay"
-        isOpen={flyoutOpen}
-        onClose={() => setFlyoutOpen(false)}
-      >
-        {sidebarContent}
-      </ProjectsFlyout>
-
       {/* Animated route content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <AnimatedRouteTransitions locationKey={pathname} direction={direction}>
+        <AnimatedRouteTransitions locationKey={transitionKey} direction={direction}>
           {renderPage}
         </AnimatedRouteTransitions>
       </div>
