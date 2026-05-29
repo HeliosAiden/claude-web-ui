@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import type { Project, ProjectSession, LLMProvider } from '../../types/app';
+import { authenticatedFetch } from '../../utils/api';
+import type { Project, ProjectSession, LLMProvider, ModelAvailabilityMap } from '../../types/app';
 import type { NormalizedMessage } from '../../stores/useSessionStore';
 import type { PermissionMode } from '../../components/chat/types/types';
 import type { MobileTabId } from '../../types/mobile';
@@ -21,6 +22,7 @@ import ConversationsPage from './pages/ConversationsPage';
 import FileBrowserPage from './pages/FileBrowserPage';
 import GitPage from './pages/GitPage';
 import SettingsPage from './pages/SettingsPage';
+import MobileClaudeStatusBar from './MobileClaudeStatusBar';
 
 interface MobileAppShellProps {
   sidebarContent: ReactNode;
@@ -51,7 +53,39 @@ export default function MobileAppShell({
     const saved = selectedSession?.id ? localStorage.getItem(`permissionMode-${selectedSession.id}`) : null;
     return (saved as PermissionMode) || 'default';
   });
+  const [fccModels, setFccModels] = useState<{ value: string; label: string }[]>([]);
+  const [modelAvailability, setModelAvailability] = useState<ModelAvailabilityMap>({});
   const { sendMessage } = useWebSocket();
+
+  // Fetch FCC-discovered models to augment mobile Claude model options (deepseek, etc.)
+  useEffect(() => {
+    let cancelled = false;
+    authenticatedFetch('/api/fcc/models')
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return;
+        if (data.models?.length > 0) {
+          setFccModels(data.models);
+        }
+      })
+      .catch(() => { /* FCC not available — use hardcoded models */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch per-model availability for standard Claude models
+  useEffect(() => {
+    let cancelled = false;
+    authenticatedFetch('/api/models/availability')
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return;
+        if (data.availability) {
+          setModelAvailability(data.availability);
+        }
+      })
+      .catch(() => { /* availability endpoint not available — fall back to all available */ });
+    return () => { cancelled = true; };
+  }, []);
 
   // Persist effort on change
   useEffect(() => {
@@ -213,6 +247,8 @@ export default function MobileAppShell({
       data-sheet-open={sheetOpen ? '' : undefined}
       className="mobile-workspace fixed inset-0 bg-background"
     >
+      {/* Mobile status bar — appears while provider is generating a response */}
+      <MobileClaudeStatusBar />
       {/* Swipeable page content */}
       <SwipeAnimatedPageView
         activeTab={activeTab}
@@ -234,11 +270,13 @@ export default function MobileAppShell({
           onModelSelect={handleModelSelect}
           selectedProvider={selectedProvider}
           onProviderSelect={handleProviderSelect}
+          fccModels={fccModels}
+          modelAvailability={modelAvailability}
         />
       </BottomSheet>
 
       {/* Floating composer bar — appears above bottom nav */}
-      {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} />}
+      {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} fccModels={fccModels} modelAvailability={modelAvailability} />}
 
       {/* Bottom navigation */}
       <BottomNavigation
