@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../lib/utils';
@@ -31,18 +31,12 @@ function formatElapsedTime(totalSeconds: number) {
 export default function MobileClaudeStatusBar() {
   const { t } = useTranslation('chat');
 
-  // Subscribe to store with selector — minimal re-renders
-  const storeState = useSyncExternalStore(
-    useMobileStatusStore.subscribe,
-    () => ({
-      isLoading: useMobileStatusStore.getState().isLoading,
-      status: useMobileStatusStore.getState().status,
-      provider: useMobileStatusStore.getState().provider,
-      onAbort: useMobileStatusStore.getState().onAbort,
-    }),
-  );
-
-  const { isLoading, status, provider, onAbort } = storeState;
+  // Read store values individually so React only re-renders when a field actually changes.
+  // Zustand does shallow === comparison on selectors to prevent unnecessary re-renders.
+  const isLoading = useMobileStatusStore((s) => s.isLoading);
+  const status = useMobileStatusStore((s) => s.status);
+  const provider = useMobileStatusStore((s) => s.provider);
+  const onAbort = useMobileStatusStore((s) => s.onAbort);
 
   // Local animation state (independent of store — no sync needed)
   const [elapsedTime, setElapsedTime] = useState(0);
