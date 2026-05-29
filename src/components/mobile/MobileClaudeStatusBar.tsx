@@ -14,103 +14,149 @@ const ACTION_KEYS = [
 ];
 const DEFAULT_ACTION_WORDS = ['Thinking', 'Processing', 'Analyzing', 'Working', 'Computing', 'Reasoning'];
 
-// Provider → Tailwind accent classes for the brand-forward tint
-const ACCENT_MAP: Record<string, { bg: string; border: string; dot: string }> = {
-  claude:  { bg: 'bg-amber-50/60', border: 'border-amber-200/40', dot: 'bg-amber-500' },
-  codex:   { bg: 'bg-emerald-50/60', border: 'border-emerald-200/40', dot: 'bg-emerald-500' },
-  gemini:  { bg: 'bg-sky-50/60', border: 'border-sky-200/40', dot: 'bg-sky-500' },
-  cursor:  { bg: 'bg-violet-50/60', border: 'border-violet-200/40', dot: 'bg-violet-500' },
+// Provider → refined accent palette: a tinted blur hue + a vibrant accent for the pulse
+const ACCENT_MAP: Record<string, { pill: string; pulse: string; glow: string }> = {
+  claude:  { pill: 'bg-amber-500/8', pulse: 'bg-amber-500', glow: 'shadow-amber-500/20' },
+  codex:   { pill: 'bg-emerald-500/8', pulse: 'bg-emerald-500', glow: 'shadow-emerald-500/20' },
+  gemini:  { pill: 'bg-sky-500/8', pulse: 'bg-sky-500', glow: 'shadow-sky-500/20' },
+  cursor:  { pill: 'bg-indigo-500/8', pulse: 'bg-indigo-500', glow: 'shadow-indigo-500/20' },
 };
 
 function formatElapsedTime(totalSeconds: number) {
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
-  return mins < 1 ? `${secs}s` : `${mins}m ${secs}s`;
+  if (mins < 1) return `${secs}s`;
+  const m = mins < 10 ? `0${mins}` : `${mins}`;
+  const s = secs < 10 ? `0${secs}` : `${secs}`;
+  return `${m}:${s}`;
 }
 
+/**
+ * MobileClaudeStatusBar — a floating pill at the top of the viewport that appears
+ * while a provider is generating a response.
+ *
+ * Visual treatment: iOS‑style frosted glass with a vibrant accent pulse,
+ * breathing dot, and a filled stop button.
+ */
 export default function MobileClaudeStatusBar() {
   const { t } = useTranslation('chat');
 
-  // Read store values individually so React only re-renders when a field actually changes.
-  // Zustand does shallow === comparison on selectors to prevent unnecessary re-renders.
   const isLoading = useMobileStatusStore((s) => s.isLoading);
   const status = useMobileStatusStore((s) => s.status);
   const provider = useMobileStatusStore((s) => s.provider);
   const onAbort = useMobileStatusStore((s) => s.onAbort);
 
-  // Local animation state (independent of store — no sync needed)
+  // ── local animation timers ──────────────────────────────────────────────
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [dots, setDots] = useState('');
 
   useEffect(() => {
-    if (!isLoading) {
-      setElapsedTime(0);
-      return;
-    }
-    const startTime = Date.now();
-    const timer = setInterval(() => {
-      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
-    const dotTimer = setInterval(() => {
-      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
-    }, 500);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(dotTimer);
-    };
+    if (!isLoading) { setElapsedTime(0); return; }
+    const start = Date.now();
+    const tmr = setInterval(() => setElapsedTime(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(tmr);
   }, [isLoading]);
 
   if (!isLoading) return null;
 
-  const accent = ACCENT_MAP[provider] || ACCENT_MAP.claude;
-  const actionWords = ACTION_KEYS.map((key, i) =>
-    t(key, { defaultValue: DEFAULT_ACTION_WORDS[i] }),
-  );
+  const a = ACCENT_MAP[provider] || ACCENT_MAP.claude;
+
+  const actionWords = ACTION_KEYS.map((key, i) => t(key, { defaultValue: DEFAULT_ACTION_WORDS[i] }));
   const statusText = (
-    status?.text ||
+    status?.text ??
     actionWords[Math.floor(elapsedTime / 3) % actionWords.length]
   ).replace(/[.]+$/, '');
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-[env(safe-area-inset-top,8px)]">
+    <div
+      className={cn(
+        'pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center',
+        'px-4 pt-[calc(env(safe-area-inset-top,8px)+6px)]',
+        // entry animation
+        'animate-in fade-in slide-in-from-top-3 duration-[400ms] ease-out',
+      )}
+    >
+      {/* ── frosted glass pill ─────────────────────────────────────────── */}
       <div
         className={cn(
-          'pointer-events-auto flex items-center gap-3 px-3.5 py-2 rounded-full border shadow-sm backdrop-blur-md transition-colors duration-300',
-          accent.bg,
-          accent.border,
+          'pointer-events-auto relative isolate overflow-hidden',
+          'flex items-center gap-2.5 pl-1.5 pr-1 py-1',
+          'rounded-2xl',
+          // frosted glass base — dark tint in light mode, light tint in dark
+          'bg-white/75 dark:bg-gray-950/80',
+          'shadow-[0_8px_32px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)]',
+          'backdrop-blur-2xl saturate-[1.8]',
+          // subtle inner border
+          'ring-1 ring-inset ring-white/40 dark:ring-white/10',
+          a.glow,
         )}
       >
-        {/* Animated dots */}
-        <div className="flex items-center gap-1">
-          <span className="flex h-2 w-2">
-            <span className={cn('absolute inline-flex h-2 w-2 rounded-full animate-ping opacity-75', accent.dot)} />
-            <span className={cn('relative inline-flex h-2 w-2 rounded-full', accent.dot)} />
-          </span>
-        </div>
+        {/* ── soft accent tint layer ─────────────────────────────────── */}
+        <span
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute inset-0 -z-10',
+            'opacity-[0.06] dark:opacity-[0.10]',
+            a.pill,
+          )}
+        />
 
-        {/* Status text */}
-        <p className="whitespace-nowrap text-xs font-medium text-foreground">
-          {statusText}
-          <span className="inline-block w-4 text-primary">{dots}</span>
+        {/* ── breathing dot ────────────────────────────────────────────── */}
+        <span className="relative flex h-[18px] w-[18px] items-center justify-center">
+          {/* glow ring */}
+          <span
+            className={cn(
+              'absolute inset-0 rounded-full',
+              'animate-[status-breath_2s_ease-in-out_infinite]',
+              a.pulse,
+              'opacity-30',
+            )}
+          />
+          {/* solid core */}
+          <span
+            className={cn(
+              'relative h-[10px] w-[10px] rounded-full',
+              a.pulse,
+              'shadow-[0_0_8px] shadow-current',
+            )}
+          />
+        </span>
+
+        {/* ── status text + animated ellipsis ─────────────────────────── */}
+        <p className="flex items-baseline gap-0 text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <span>{statusText}</span>
+          <span className="inline-flex w-[1.2em] overflow-hidden">
+            <span className="animate-[status-ellipsis_1.4s_steps(4,infinite)]">
+              &nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;
+            </span>
+          </span>
         </p>
 
-        {/* Elapsed time */}
-        <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+        {/* ── elapsed time ─────────────────────────────────────────────── */}
+        <span className="min-w-[3.2em] text-center font-mono text-[11px] font-medium tabular-nums tracking-tight text-gray-400 dark:text-gray-500">
           {formatElapsedTime(elapsedTime)}
         </span>
 
-        {/* STOP button */}
+        {/* ── separator ────────────────────────────────────────────────── */}
+        <span className="h-5 w-px bg-gray-200/70 dark:bg-gray-700/50" />
+
+        {/* ── STOP button ──────────────────────────────────────────────── */}
         {onAbort && (
           <button
             type="button"
             onClick={onAbort}
-            className="flex h-[44px] min-w-[44px] items-center justify-center rounded-full bg-destructive/10 text-destructive transition-all duration-150 hover:bg-destructive hover:text-destructive-foreground active:scale-95"
+            className={cn(
+              'flex items-center justify-center',
+              'h-8 w-8 rounded-full',
+              'bg-red-600 text-white',
+              'shadow-[0_2px_8px_rgba(220,38,38,0.35)]',
+              'transition-[transform,box-shadow] duration-150',
+              'active:scale-90 active:shadow-[0_1px_4px_rgba(220,38,38,0.25)]',
+              'hover:bg-red-500',
+            )}
             aria-label={t('claudeStatus.controls.stopGeneration', 'Stop generation')}
           >
-            <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M6 6h12v12H6z" />
-            </svg>
+            {/* square stop icon */}
+            <span className="h-3.5 w-3.5 rounded-[2px] bg-current" />
           </button>
         )}
       </div>

@@ -63,6 +63,14 @@ export default {
           '0%': { backgroundPosition: '200% 0' },
           '100%': { backgroundPosition: '-200% 0' },
         },
+        'status-breath': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.3' },
+          '50%': { transform: 'scale(2.8)', opacity: '0' },
+        },
+        'status-ellipsis': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
         'dialog-overlay-show': {
           from: { opacity: '0' },
           to: { opacity: '1' },
