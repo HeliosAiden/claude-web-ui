@@ -1018,9 +1018,7 @@
     --mobile-topbar-height: 0px;
     --mobile-nav-height: 52px;
     --mobile-composer-min-height: 44px;
-    --mobile-scroll-bottom-inset: calc(
-      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
-    );
+    --mobile-scroll-bottom-inset: 8px;
     --mobile-touch-min: 44px;
   }
 
@@ -1044,18 +1042,30 @@
     flex-direction: column;
     height: 100dvh;
     height: 100vh; /* fallback for browsers without dvh */
+
+    /* BottomNavigation is position:fixed and removed from flow, so the flex-1
+       SwipeAnimatedPageView would otherwise fill the full 100dvh and extend
+       behind the nav bar. This padding constrains the flex children to the
+       visible area above the nav. */
+    padding-bottom: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   /* ── Phase 2: Mobile scroll padding ── */
 
   [data-layout="mobile"] .chat-messages-scroll-container {
-    padding-bottom: var(--mobile-scroll-bottom-inset);
+    padding-bottom: var(--mobile-scroll-bottom-inset) !important;
   }
 
   /* When the Ask Model bottom sheet is open, reserve space so the last
      messages aren't hidden behind the sheet (max-height: 40vh). */
   [data-layout="mobile"][data-sheet-open] .chat-messages-scroll-container {
-    padding-bottom: calc(40vh + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    /* The workspace already reserves var(--mobile-nav-height) + safe-area for
+       the fixed nav. The sheet (max-height: 40vh) sits above the nav, so we
+       only need to add 40vh + breathing room to keep the last messages visible
+       above the sheet. */
+    padding-bottom: calc(40vh + 1rem) !important;
   }
 
   /* ── Phase 2: Keyboard open overrides ── */
