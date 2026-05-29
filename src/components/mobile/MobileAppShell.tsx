@@ -23,6 +23,7 @@ import FileBrowserPage from './pages/FileBrowserPage';
 import GitPage from './pages/GitPage';
 import SettingsPage from './pages/SettingsPage';
 import MobileClaudeStatusBar from './MobileClaudeStatusBar';
+import { useMobileStatusStore } from '../../stores/useMobileStatusStore';
 
 interface MobileAppShellProps {
   sidebarContent: ReactNode;
@@ -182,6 +183,17 @@ export default function MobileAppShell({
     const modelKey = `${provider}-model`;
     const model = localStorage.getItem(modelKey) || undefined;
     const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+    // Immediately show the status banner — mirrors desktop useChatComposerState.handleSubmit.
+    // Without this, the banner would rely on a WebSocket round-trip that may skip
+    // setIsLoading(true) due to session-matching checks (selectedSession may be null
+    // for a first message in a new session).
+    useMobileStatusStore.getState().sync({
+      isLoading: true,
+      status: { text: 'Processing', tokens: 0, can_interrupt: true },
+      provider,
+      onAbort: null, // ChatInterface's sync effect will set the real onAbort once canAbortSession is true
+    });
 
     // Add user message locally so it appears immediately
     const sessionId = selectedSession?.id || '';
