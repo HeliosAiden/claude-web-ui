@@ -496,7 +496,7 @@ function ChatInterface({
         )}
       </div>
 
-      <QuickSettingsPanel />
+      {!isMobile && <QuickSettingsPanel />}
 
       <TemplatePlaceholderDialog
         open={pendingTemplate !== null}
