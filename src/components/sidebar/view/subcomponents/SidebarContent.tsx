@@ -300,6 +300,7 @@ export default function SidebarContent({
             selectedProject={projectListProps.selectedProject}
             onOpenGitPanel={onOpenGitPanel}
             onFileOpen={onFileOpen}
+            isMobile={isMobile}
           />
         ) : searchMode === 'templates' ? (
           <SidebarTemplatesPanel />

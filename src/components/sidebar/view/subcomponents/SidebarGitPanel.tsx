@@ -17,6 +17,7 @@ type SidebarGitPanelProps = {
   selectedProject: Project | null;
   onOpenGitPanel?: () => void;
   onFileOpen?: (filePath: string) => void;
+  isMobile?: boolean;
   preloadedGitController?: {
     gitStatus: GitStatusResponse | null;
     currentBranch: string;
@@ -141,7 +142,7 @@ function CommitDetail({
   );
 }
 
-function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen, preloadedGitController }: SidebarGitPanelProps) {
+function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen, isMobile, preloadedGitController }: SidebarGitPanelProps) {
   const projectId = selectedProject?.projectId ?? null;
 
   const hookController = useGitPanelController({
@@ -355,17 +356,19 @@ function SidebarGitPanel({ selectedProject, onOpenGitPanel, onFileOpen, preloade
         )}
       </div>
 
-      {/* Open full panel link */}
-      <div className="flex-shrink-0 border-t border-border/40 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => onOpenGitPanel?.()}
-          className="flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <ExternalLink className="h-3 w-3" />
-          Open Full Panel
-        </button>
-      </div>
+      {/* Open full panel link — desktop only */}
+      {!isMobile && (
+        <div className="flex-shrink-0 border-t border-border/40 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => onOpenGitPanel?.()}
+            className="flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Open Full Panel
+          </button>
+        </div>
+      )}
     </div>
   );
 }

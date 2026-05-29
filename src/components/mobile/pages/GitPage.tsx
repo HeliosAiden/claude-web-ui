@@ -48,6 +48,7 @@ export default function GitPage({
           selectedProject={selectedProject}
           onOpenGitPanel={onOpenGitPanel}
           onFileOpen={onFileOpen}
+          isMobile={true}
           preloadedGitController={preloadedGitController}
         />
       </div>

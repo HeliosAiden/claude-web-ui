@@ -21,6 +21,7 @@ import {
 import SessionProviderLogo from '../llm-logo-provider/SessionProviderLogo';
 import { cn } from '../../lib/utils';
 import type { LLMProvider } from '../../types/app';
+import type { ModelAvailabilityMap } from '../../types/app';
 import type { PermissionMode } from '../chat/types/types';
 
 const EFFORT_LEVELS = [
@@ -117,9 +118,11 @@ interface BottomSheetContentProps {
   onModelSelect?: (model: string) => void;
   selectedProvider: string;
   onProviderSelect: (provider: string) => void;
+  fccModels?: { value: string; label: string }[];
+  modelAvailability?: ModelAvailabilityMap;
 }
 
-export default function BottomSheetContent({ onClose, selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, selectedModel, onModelSelect, selectedProvider, onProviderSelect }: BottomSheetContentProps) {
+export default function BottomSheetContent({ onClose, selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, selectedModel, onModelSelect, selectedProvider, onProviderSelect, fccModels, modelAvailability }: BottomSheetContentProps) {
   const navigate = useNavigate();
 
   const modelInfo = useMemo(() => {
@@ -140,6 +143,15 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
       gemini: GEMINI_MODELS.DEFAULT,
     };
 
+    // Merge FCC-discovered models into the claude model options (like desktop does)
+    if (fccModels?.length && storedProvider === 'claude') {
+      const fccValues = new Set(fccModels.map(m => m.value));
+      modelMap['claude-model'] = [
+        ...fccModels,
+        ...modelMap['claude-model'].filter(m => !fccValues.has(m.value)),
+      ];
+    }
+
     // Use selectedModel prop if available, otherwise fall back to localStorage, then default
     const modelValue = selectedModel
       || (typeof window !== 'undefined' ? localStorage.getItem(modelKey) : null)
@@ -147,14 +159,29 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
       || 'opus';
     const found = modelMap[modelKey]?.find((m) => m.value === modelValue);
 
+    // Build per-model availability: FCC models are always available (pre-filtered),
+    // standard Claude models check the availability map; missing entries default to available.
+    const modelsAvailability: Record<string, boolean> = {};
+    if (storedProvider === 'claude') {
+      const fccValues = new Set(fccModels?.map(m => m.value) || []);
+      for (const opt of modelMap[modelKey] || []) {
+        if (fccValues.has(opt.value)) {
+          modelsAvailability[opt.value] = true;
+        } else {
+          modelsAvailability[opt.value] = modelAvailability?.[opt.value]?.available !== false;
+        }
+      }
+    }
+
     return {
       provider: storedProvider as LLMProvider,
       providerName,
       modelLabel: found?.label ?? modelValue,
       modelOptions: modelMap[modelKey] ?? [],
       currentModelValue: modelValue,
+      modelsAvailability,
     };
-  }, [selectedProvider, selectedModel]);
+  }, [selectedProvider, selectedModel, fccModels, modelAvailability]);
 
   const handleSearch = useCallback(() => {
     navigate('/conversations');
@@ -264,17 +291,27 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
       <div className="flex flex-wrap gap-1.5 px-1">
         {modelInfo.modelOptions.map((m) => {
           const isSelected = (selectedModel || modelInfo.currentModelValue) === m.value;
+          const isAvailable = modelInfo.modelsAvailability?.[m.value] !== false;
+          const isDisabled = !isAvailable;
           const brandColor = PROVIDER_BRAND_COLORS[selectedProvider];
           return (
             <button
               key={m.value}
               type="button"
-              onClick={() => onModelSelect?.(m.value)}
+              onClick={() => isAvailable && onModelSelect?.(m.value)}
+              disabled={isDisabled}
+              title={isDisabled ? (modelAvailability?.[m.value]?.error || 'Model not available') : m.label}
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-150',
-                isSelected ? 'text-white' : 'bg-accent text-foreground hover:bg-accent/80',
+                isSelected && isAvailable
+                  ? 'text-white'
+                  : isSelected && !isAvailable
+                    ? 'text-muted-foreground/40 bg-accent/30 cursor-not-allowed border border-dashed border-muted-foreground/20'
+                    : !isAvailable
+                      ? 'text-muted-foreground/40 bg-accent/30 cursor-not-allowed'
+                      : 'bg-accent text-foreground hover:bg-accent/80',
               )}
-              style={isSelected ? { backgroundColor: brandColor } : undefined}
+              style={isSelected && isAvailable ? { backgroundColor: brandColor } : undefined}
             >
               {m.label}
             </button>

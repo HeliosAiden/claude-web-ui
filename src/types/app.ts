@@ -1,5 +1,13 @@
 export type LLMProvider = 'claude' | 'cursor' | 'codex' | 'gemini';
 
+export interface ModelAvailabilityEntry {
+  available: boolean;
+  reason?: string;
+  error?: string;
+}
+
+export type ModelAvailabilityMap = Record<string, ModelAvailabilityEntry>;
+
 export type AppTab = 'chat' | 'files' | 'shell' | 'git' | 'preview' | `plugin:${string}`;
 
 export type ActivityId = 'explorer' | 'bookmarks' | 'search' | 'files' | 'git' | 'templates' | 'settings' | `plugin:${string}`;

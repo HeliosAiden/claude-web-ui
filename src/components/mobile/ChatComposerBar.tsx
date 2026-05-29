@@ -50,12 +50,16 @@ function AttachmentsPanel() {
   );
 }
 
+import type { ModelAvailabilityMap } from '../../types/app';
+
 interface ChatComposerBarProps {
   onBlur: () => void;
   onSend: (text: string) => void;
+  fccModels?: { value: string; label: string }[];
+  modelAvailability?: ModelAvailabilityMap;
 }
 
-export default function ChatComposerBar({ onBlur, onSend }: ChatComposerBarProps) {
+export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, modelAvailability }: ChatComposerBarProps) {
   const [showAttachments, setShowAttachments] = useState(false);
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -85,10 +89,19 @@ export default function ChatComposerBar({ onBlur, onSend }: ChatComposerBarProps
     };
 
     const modelValue = storedModel ?? defaultModel[storedProvider] ?? 'opus';
-    const found = modelMap[modelKey]?.find((m) => m.value === modelValue);
 
-    return { providerName, modelLabel: found?.label ?? modelValue };
-  }, []);
+    // Try hardcoded options first, then FCC models (for deepseek, etc.)
+    let found = modelMap[modelKey]?.find((m) => m.value === modelValue);
+    if (!found && storedProvider === 'claude' && fccProp?.length) {
+      found = fccProp.find(m => m.value === modelValue);
+    }
+
+    // Determine if the current model is available
+    const isFccModel = storedProvider === 'claude' && fccProp?.some(fm => fm.value === modelValue);
+    const isAvailable = isFccModel || modelAvailability?.[modelValue]?.available !== false;
+
+    return { providerName, modelLabel: found?.label ?? modelValue, isAvailable };
+  }, [fccProp, modelAvailability]);
 
   // Auto-focus textarea on mount
   useEffect(() => {
@@ -183,7 +196,7 @@ export default function ChatComposerBar({ onBlur, onSend }: ChatComposerBarProps
               }
             }}
             rows={1}
-            placeholder={`Ask ${modelInfo.providerName} anything...`}
+            placeholder={modelInfo.isAvailable ? `Ask ${modelInfo.providerName} anything...` : 'Current model unavailable — change in settings'}
             className="flex-1 min-h-[36px] max-h-[80px] bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 resize-none outline-none py-1.5 leading-tight"
           />
 

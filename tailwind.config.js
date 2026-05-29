@@ -63,13 +63,9 @@ export default {
           '0%': { backgroundPosition: '200% 0' },
           '100%': { backgroundPosition: '-200% 0' },
         },
-        'status-breath': {
-          '0%, 100%': { transform: 'scale(1)', opacity: '0.3' },
-          '50%': { transform: 'scale(2.8)', opacity: '0' },
-        },
-        'status-ellipsis': {
-          '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(-50%)' },
+        'dot-pulse': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.35' },
         },
         'dialog-overlay-show': {
           from: { opacity: '0' },
@@ -82,6 +78,7 @@ export default {
       },
       animation: {
         shimmer: 'shimmer 2s linear infinite',
+        'dot-pulse': 'dot-pulse 1.8s ease-in-out infinite',
         'dialog-overlay-show': 'dialog-overlay-show 150ms ease-out',
         'dialog-content-show': 'dialog-content-show 150ms ease-out',
       },

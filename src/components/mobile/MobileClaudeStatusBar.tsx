@@ -1,8 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../lib/utils';
 import { useMobileStatusStore } from '../../stores/useMobileStatusStore';
+import SessionProviderLogo from '../llm-logo-provider/SessionProviderLogo';
+import {
+  CLAUDE_MODELS,
+  CURSOR_MODELS,
+  CODEX_MODELS,
+  GEMINI_MODELS,
+} from '../../../shared/modelConstants';
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                         */
+/* ------------------------------------------------------------------ */
 
 const ACTION_KEYS = [
   'claudeStatus.actions.thinking',
@@ -12,15 +23,53 @@ const ACTION_KEYS = [
   'claudeStatus.actions.computing',
   'claudeStatus.actions.reasoning',
 ];
-const DEFAULT_ACTION_WORDS = ['Thinking', 'Processing', 'Analyzing', 'Working', 'Computing', 'Reasoning'];
 
-// Provider → refined accent palette: a tinted blur hue + a vibrant accent for the pulse
-const ACCENT_MAP: Record<string, { pill: string; pulse: string; glow: string }> = {
-  claude:  { pill: 'bg-amber-500/8', pulse: 'bg-amber-500', glow: 'shadow-amber-500/20' },
-  codex:   { pill: 'bg-emerald-500/8', pulse: 'bg-emerald-500', glow: 'shadow-emerald-500/20' },
-  gemini:  { pill: 'bg-sky-500/8', pulse: 'bg-sky-500', glow: 'shadow-sky-500/20' },
-  cursor:  { pill: 'bg-indigo-500/8', pulse: 'bg-indigo-500', glow: 'shadow-indigo-500/20' },
+const DEFAULT_ACTION_WORDS = [
+  'Thinking',
+  'Processing',
+  'Analyzing',
+  'Working',
+  'Computing',
+  'Reasoning',
+];
+
+/**
+ * Per-provider dot color — a single 8px dot identifies which provider
+ * is generating. No glass overlays, no glow rings, no background tints.
+ */
+const DOT_COLORS: Record<string, string> = {
+  claude: 'bg-amber-500',
+  codex:  'bg-emerald-500',
+  gemini: 'bg-sky-500',
+  cursor: 'bg-indigo-500',
 };
+
+/** Resolve the human-readable model label from localStorage + central constants. */
+function resolveModelLabel(provider: string): string {
+  const modelKey = `${provider}-model`;
+  const modelMaps: Record<string, { value: string; label: string }[]> = {
+    'claude-model': CLAUDE_MODELS.OPTIONS,
+    'cursor-model': CURSOR_MODELS.OPTIONS,
+    'codex-model': CODEX_MODELS.OPTIONS,
+    'gemini-model': GEMINI_MODELS.OPTIONS,
+  };
+  const defaults: Record<string, string> = {
+    claude: CLAUDE_MODELS.DEFAULT,
+    cursor: CURSOR_MODELS.DEFAULT,
+    codex: CODEX_MODELS.DEFAULT,
+    gemini: GEMINI_MODELS.DEFAULT,
+  };
+  const modelValue =
+    (typeof window !== 'undefined'
+      ? localStorage.getItem(modelKey)
+      : null) ?? defaults[provider] ?? 'opus';
+  const found = modelMaps[modelKey]?.find((m) => m.value === modelValue);
+  return found?.label ?? modelValue;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
 
 function formatElapsedTime(totalSeconds: number) {
   const mins = Math.floor(totalSeconds / 60);
@@ -31,132 +80,185 @@ function formatElapsedTime(totalSeconds: number) {
   return `${m}:${s}`;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
+
 /**
- * MobileClaudeStatusBar — a floating pill at the top of the viewport that appears
- * while a provider is generating a response.
+ * MobileClaudeStatusBar — a compact floating pill below the mobile
+ * header that appears while a provider is generating a response.
  *
- * Visual treatment: iOS‑style frosted glass with a vibrant accent pulse,
- * breathing dot, and a filled stop button.
+ * Design philosophy
+ * ─────────────────
+ * System notification, not decoration. Follows the same language as
+ * ChatGPT / Perplexity mobile status bars:
+ *   – solid, opaque background (no glassmorphism)
+ *   – one slim animated element (the provider dot)
+ *   – agent identity (logo + model name) on the left
+ *   – dynamic status (text + timer + stop) on the right
+ *   – neutral stop action (not destructive‑red)
+ *   – smooth 200 ms enter / exit fade+slide
  */
 export default function MobileClaudeStatusBar() {
   const { t } = useTranslation('chat');
 
+  /* ── store selectors (contract — must keep exact) ───────────── */
   const isLoading = useMobileStatusStore((s) => s.isLoading);
-  const status = useMobileStatusStore((s) => s.status);
-  const provider = useMobileStatusStore((s) => s.provider);
-  const onAbort = useMobileStatusStore((s) => s.onAbort);
+  const status    = useMobileStatusStore((s) => s.status);
+  const provider  = useMobileStatusStore((s) => s.provider);
+  const onAbort   = useMobileStatusStore((s) => s.onAbort);
 
-  // ── local animation timers ──────────────────────────────────────────────
+  /* ── resolved model label ───────────────────────────────────── */
+  const modelLabel = useMemo(() => resolveModelLabel(provider), [provider]);
+
+  /* ── entry / exit animation ──────────────────────────────────── */
+  const [mounted, setMounted] = useState(false);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      setMounted(true);
+      setEntered(false);
+      const raf = requestAnimationFrame(() => setEntered(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setEntered(false);
+    const timer = setTimeout(() => setMounted(false), 200);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  /* ── elapsed-time ticker ─────────────────────────────────────── */
   const [elapsedTime, setElapsedTime] = useState(0);
 
   useEffect(() => {
     if (!isLoading) { setElapsedTime(0); return; }
     const start = Date.now();
-    const tmr = setInterval(() => setElapsedTime(Math.floor((Date.now() - start) / 1000)), 1000);
+    const tmr = setInterval(
+      () => setElapsedTime(Math.floor((Date.now() - start) / 1000)),
+      1000,
+    );
     return () => clearInterval(tmr);
   }, [isLoading]);
 
-  if (!isLoading) return null;
+  /* ── early exit ──────────────────────────────────────────────── */
+  if (!mounted) return null;
 
-  const a = ACCENT_MAP[provider] || ACCENT_MAP.claude;
+  /* ── derived values ──────────────────────────────────────────── */
+  const dotColor = DOT_COLORS[provider] || DOT_COLORS.claude;
 
-  const actionWords = ACTION_KEYS.map((key, i) => t(key, { defaultValue: DEFAULT_ACTION_WORDS[i] }));
+  const actionWords = ACTION_KEYS.map(
+    (key, i) => t(key, { defaultValue: DEFAULT_ACTION_WORDS[i] }),
+  );
   const statusText = (
     status?.text ??
     actionWords[Math.floor(elapsedTime / 3) % actionWords.length]
   ).replace(/[.]+$/, '');
 
+  /* ── render ──────────────────────────────────────────────────── */
   return (
     <div
       className={cn(
-        'pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center',
-        'px-4 pt-[calc(env(safe-area-inset-top,8px)+6px)]',
-        // entry animation
-        'animate-in fade-in slide-in-from-top-3 duration-[400ms] ease-out',
+        'pointer-events-none',
+        'fixed inset-x-0 top-0 z-50 flex justify-center',
+        /* sit below the mobile header bar (~48 px of header + safe area) */
+        'px-4 pt-[calc(env(safe-area-inset-top,8px)+48px)]',
       )}
     >
-      {/* ── frosted glass pill ─────────────────────────────────────────── */}
       <div
         className={cn(
-          'pointer-events-auto relative isolate overflow-hidden',
-          'flex items-center gap-2.5 pl-1.5 pr-1 py-1',
-          'rounded-2xl',
-          // frosted glass base — dark tint in light mode, light tint in dark
-          'bg-white/75 dark:bg-gray-950/80',
-          'shadow-[0_8px_32px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)]',
-          'backdrop-blur-2xl saturate-[1.8]',
-          // subtle inner border
-          'ring-1 ring-inset ring-white/40 dark:ring-white/10',
-          a.glow,
+          'pointer-events-auto',
+          'flex items-center gap-3 h-11 rounded-full',
+          'pl-2.5 pr-2.5',
+          /* solid card */
+          'bg-white dark:bg-gray-950',
+          /* subtle edge */
+          'ring-1 ring-black/[0.06] dark:ring-white/[0.08]',
+          /* soft float shadow */
+          'shadow-[0_2px_12px_rgba(0,0,0,0.08)]',
+          'dark:shadow-[0_2px_12px_rgba(0,0,0,0.32)]',
+          /* entry / exit */
+          'transition-all duration-200 ease-out',
+          entered
+            ? 'opacity-100 translate-y-0 scale-100'
+            : 'opacity-0 -translate-y-2 scale-[0.96]',
         )}
       >
-        {/* ── soft accent tint layer ─────────────────────────────────── */}
-        <span
-          aria-hidden
+        {/* ── agent logo ─────────────────────────────────────────── */}
+        <div
           className={cn(
-            'pointer-events-none absolute inset-0 -z-10',
-            'opacity-[0.06] dark:opacity-[0.10]',
-            a.pill,
+            'flex items-center justify-center',
+            'h-6 w-6 rounded-full',
+            'bg-gray-100 dark:bg-gray-800/60',
+          )}
+        >
+          <SessionProviderLogo
+            provider={provider}
+            className="h-3.5 w-3.5"
+          />
+        </div>
+
+        {/* ── model name ─────────────────────────────────────────── */}
+        <span
+          className={cn(
+            'shrink-0',
+            'text-[11px] font-medium leading-none tracking-tight',
+            'text-gray-500 dark:text-gray-400',
+          )}
+        >
+          {modelLabel}
+        </span>
+
+        {/* ── pulsing separator dot ────────────────────────────── */}
+        <span
+          className={cn(
+            'h-[5px] w-[5px] shrink-0 rounded-full',
+            'animate-dot-pulse',
+            dotColor,
           )}
         />
 
-        {/* ── breathing dot ────────────────────────────────────────────── */}
-        <span className="relative flex h-[18px] w-[18px] items-center justify-center">
-          {/* glow ring */}
-          <span
-            className={cn(
-              'absolute inset-0 rounded-full',
-              'animate-[status-breath_2s_ease-in-out_infinite]',
-              a.pulse,
-              'opacity-30',
-            )}
-          />
-          {/* solid core */}
-          <span
-            className={cn(
-              'relative h-[10px] w-[10px] rounded-full',
-              a.pulse,
-              'shadow-[0_0_8px] shadow-current',
-            )}
-          />
+        {/* ── status text ───────────────────────────────────────── */}
+        <span
+          className={cn(
+            'truncate max-w-[40vw]',
+            'text-[11px] font-medium leading-none',
+            'text-gray-800 dark:text-gray-200',
+          )}
+        >
+          {statusText}
         </span>
 
-        {/* ── status text + animated ellipsis ─────────────────────────── */}
-        <p className="flex items-baseline gap-0 text-sm font-semibold text-gray-900 dark:text-gray-100">
-          <span>{statusText}</span>
-          <span className="inline-flex w-[1.2em] overflow-hidden">
-            <span className="animate-[status-ellipsis_1.4s_steps(4,infinite)]">
-              &nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;
-            </span>
-          </span>
-        </p>
-
-        {/* ── elapsed time ─────────────────────────────────────────────── */}
-        <span className="min-w-[3.2em] text-center font-mono text-[11px] font-medium tabular-nums tracking-tight text-gray-400 dark:text-gray-500">
+        {/* ── elapsed time ──────────────────────────────────────── */}
+        <span
+          className={cn(
+            'shrink-0',
+            'text-[11px] font-mono leading-none',
+            'tabular-nums tracking-tighter',
+            'text-gray-400 dark:text-gray-500',
+          )}
+        >
           {formatElapsedTime(elapsedTime)}
         </span>
 
-        {/* ── separator ────────────────────────────────────────────────── */}
-        <span className="h-5 w-px bg-gray-200/70 dark:bg-gray-700/50" />
-
-        {/* ── STOP button ──────────────────────────────────────────────── */}
+        {/* ── stop button ───────────────────────────────────────── */}
         {onAbort && (
           <button
             type="button"
             onClick={onAbort}
             className={cn(
               'flex items-center justify-center',
-              'h-8 w-8 rounded-full',
-              'bg-red-600 text-white',
-              'shadow-[0_2px_8px_rgba(220,38,38,0.35)]',
-              'transition-[transform,box-shadow] duration-150',
-              'active:scale-90 active:shadow-[0_1px_4px_rgba(220,38,38,0.25)]',
-              'hover:bg-red-500',
+              'h-7 w-7 shrink-0 rounded-full',
+              'bg-gray-100 dark:bg-gray-800',
+              'text-gray-400 dark:text-gray-500',
+              'active:bg-gray-200 dark:active:bg-gray-700',
+              'transition-colors duration-150 ease-out',
             )}
-            aria-label={t('claudeStatus.controls.stopGeneration', 'Stop generation')}
+            aria-label={t(
+              'claudeStatus.controls.stopGeneration',
+              'Stop generation',
+            )}
           >
-            {/* square stop icon */}
-            <span className="h-3.5 w-3.5 rounded-[2px] bg-current" />
+            <span className="h-2.5 w-2.5 rounded-[1.5px] bg-current" />
           </button>
         )}
       </div>
