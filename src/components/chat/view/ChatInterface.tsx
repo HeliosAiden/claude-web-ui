@@ -15,6 +15,7 @@ import { useChatPaginationPrimitives } from '../hooks/useChatPaginationPrimitive
 import { useChatRealtimeHandlers } from '../hooks/useChatRealtimeHandlers';
 import { useChatComposerState } from '../hooks/useChatComposerState';
 import { useSessionStore } from '../../../stores/useSessionStore';
+import { useMobileStatusStore } from '../../../stores/useMobileStatusStore';
 
 import ChatMessagesPane from './subcomponents/ChatMessagesPane';
 import ChatComposer from './subcomponents/ChatComposer';
@@ -349,6 +350,18 @@ function ChatInterface({
       document.removeEventListener('keydown', handleGlobalEscape, { capture: true });
     };
   }, [canAbortSession, handleAbortSession, isLoading]);
+
+  // Sync status state into the mobile bridge store so MobileClaudeStatusBar
+  // can display it from outside the ChatInterface component tree.
+  useEffect(() => {
+    if (!isMobile) return;
+    useMobileStatusStore.getState().sync({
+      isLoading,
+      status: claudeStatus,
+      provider,
+      onAbort: isLoading && canAbortSession ? handleAbortSession : null,
+    });
+  }, [isMobile, isLoading, claudeStatus, provider, canAbortSession, handleAbortSession]);
 
   useEffect(() => {
     return () => {
