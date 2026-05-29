@@ -208,7 +208,11 @@ export default function MobileAppShell({
   ]);
 
   return (
-    <div data-layout="mobile" className="mobile-workspace fixed inset-0 bg-background">
+    <div
+      data-layout="mobile"
+      data-sheet-open={sheetOpen ? '' : undefined}
+      className="mobile-workspace fixed inset-0 bg-background"
+    >
       {/* Swipeable page content */}
       <SwipeAnimatedPageView
         activeTab={activeTab}

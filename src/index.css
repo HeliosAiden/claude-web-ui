@@ -1052,6 +1052,12 @@
     padding-bottom: var(--mobile-scroll-bottom-inset);
   }
 
+  /* When the Ask Model bottom sheet is open, reserve space so the last
+     messages aren't hidden behind the sheet (max-height: 40vh). */
+  [data-layout="mobile"][data-sheet-open] .chat-messages-scroll-container {
+    padding-bottom: calc(40vh + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+
   /* ── Phase 2: Keyboard open overrides ── */
 
   /* Collapse composer secondary chrome when keyboard is open on mobile */
