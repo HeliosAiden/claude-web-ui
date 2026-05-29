@@ -319,15 +319,6 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
         })}
       </div>
 
-      <div className="h-px bg-border/50" />
-
-      {/* 2. Existing quick actions */}
-      <SectionHeader label="Quick Actions" icon={Zap} />
-      <div className="flex flex-col gap-0.5">
-        <ActionRow icon={Search} label="Search" description="Search all conversations" onClick={handleSearch} />
-        <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" onClick={handleBookmarks} />
-        <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" onClick={handleTemplates} />
-      </div>
 
       {selectedProvider === 'claude' && (
         <>
@@ -357,7 +348,7 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
         </>
       )}
 
-      <div className="my-1 h-px bg-border/50" />
+      <div className="h-px bg-border/50" />
 
       {/* Mode selection — full-width tap target with color-coded chips + description */}
       <SectionHeader label="Mode" icon={Shield} />
@@ -390,6 +381,16 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
           <ChevronRight className="h-3.5 w-3.5" />
         </div>
       </button>
+
+      <div className="h-px bg-border/50" />
+
+      {/* Other Actions at the bottom */}
+      <SectionHeader label="Other Actions" icon={Zap} />
+      <div className="flex flex-col gap-0.5">
+        <ActionRow icon={Search} label="Search" description="Search all conversations" onClick={handleSearch} />
+        <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" onClick={handleBookmarks} />
+        <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" onClick={handleTemplates} />
+      </div>
     </div>
   );
 }
