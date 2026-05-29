@@ -14,7 +14,7 @@ import { useSessionStore } from '../../stores/useSessionStore';
 import AnimatedRouteTransitions from './AnimatedRouteTransitions';
 import BottomNavigation, { TAB_ORDER } from './BottomNavigation';
 import BottomSheet from './BottomSheet';
-import BottomSheetContent from './BottomSheetContent';
+import BottomSheetContent, { PROVIDER_MODE_ORDER } from './BottomSheetContent';
 import ChatComposerBar from './ChatComposerBar';
 import ChatPage from './pages/ChatPage';
 import ConversationsPage from './pages/ConversationsPage';
@@ -43,6 +43,11 @@ export default function MobileAppShell({
 
   const [composerActive, setComposerActive] = useState(false);
   const [selectedEffort, setSelectedEffort] = useState<string>(() => localStorage.getItem('effort') || 'medium');
+  const [selectedProvider, setSelectedProvider] = useState<string>(() => localStorage.getItem('selected-provider') || 'claude');
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    const provider = localStorage.getItem('selected-provider') || 'claude';
+    return localStorage.getItem(`${provider}-model`) || '';
+  });
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(() => {
     const saved = selectedSession?.id ? localStorage.getItem(`permissionMode-${selectedSession.id}`) : null;
     return (saved as PermissionMode) || 'default';
@@ -102,14 +107,40 @@ export default function MobileAppShell({
     setSelectedEffort(effort);
   }, []);
 
+  const handleModelSelect = useCallback((model: string) => {
+    const provider = selectedProvider;
+    localStorage.setItem(`${provider}-model`, model);
+    setSelectedModel(model);
+  }, [selectedProvider]);
+
+  const handleProviderSelect = useCallback((provider: string) => {
+    localStorage.setItem('selected-provider', provider);
+    setSelectedProvider(provider);
+    // Restore this provider's last-selected model
+    const savedModel = localStorage.getItem(`${provider}-model`);
+    if (savedModel) {
+      setSelectedModel(savedModel);
+    } else {
+      // Default model will be picked up by modelInfo compute on next render
+      setSelectedModel('');
+    }
+    // Reset permission mode if current mode isn't supported by new provider
+    setPermissionMode((prev) => {
+      const modes = PROVIDER_MODE_ORDER[provider] || PROVIDER_MODE_ORDER.claude;
+      return modes.includes(prev) ? prev : modes[0];
+    });
+  }, []);
+
   const handleCyclePermissionMode = useCallback(() => {
     setPermissionMode((prev) => {
-      const modes: PermissionMode[] = ['default', 'auto', 'acceptEdits', 'bypassPermissions', 'plan'];
+      const modes = PROVIDER_MODE_ORDER[selectedProvider] || PROVIDER_MODE_ORDER.claude;
       const idx = modes.indexOf(prev);
+      // If current mode isn't valid for this provider, start from default
+      if (idx === -1) return modes[0];
       const next = modes[(idx + 1) % modes.length];
       return next;
     });
-  }, []);
+  }, [selectedProvider]);
 
   const handleStartComposing = useCallback(() => {
     setSheetOpen(false);
@@ -224,6 +255,10 @@ export default function MobileAppShell({
           permissionMode={permissionMode}
           cyclePermissionMode={handleCyclePermissionMode}
           onStartComposing={handleStartComposing}
+          selectedModel={selectedModel}
+          onModelSelect={handleModelSelect}
+          selectedProvider={selectedProvider}
+          onProviderSelect={handleProviderSelect}
         />
       </BottomSheet>
 

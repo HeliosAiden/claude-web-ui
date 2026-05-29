@@ -673,10 +673,10 @@
     }
     
     /* Only disable hover states for interactive elements, not containers */
-    button:hover,
-    [role="button"]:hover,
-    .cursor-pointer:hover,
-    a:hover,
+    button:not([style*="background-color"]):hover,
+    [role="button"]:not([style*="background-color"]):hover,
+    .cursor-pointer:not([style*="background-color"]):hover,
+    a:not([style*="background-color"]):hover,
     .hover\:bg-gray-50:hover,
     .hover\:bg-gray-100:hover,
     .hover\:text-gray-900:hover,
