@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { Project, ProjectSession, LLMProvider } from '../../types/app';
 import type { NormalizedMessage } from '../../stores/useSessionStore';
 import type { PermissionMode } from '../../components/chat/types/types';
+import type { MobileTabId } from '../../types/mobile';
 import { useMobileNavigation } from '../../hooks/useMobileNavigation';
 import { useFileTreeData } from '../file-tree/hooks/useFileTreeData';
 import { useGitPanelController } from '../git-panel/hooks/useGitPanelController';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useSessionStore } from '../../stores/useSessionStore';
 
-import AnimatedRouteTransitions from './AnimatedRouteTransitions';
+import SwipeAnimatedPageView from './SwipeAnimatedPageView';
 import BottomNavigation, { TAB_ORDER } from './BottomNavigation';
 import BottomSheet from './BottomSheet';
 import BottomSheetContent, { PROVIDER_MODE_ORDER } from './BottomSheetContent';
@@ -39,7 +39,6 @@ export default function MobileAppShell({
   onFileOpen,
   onOpenGitPanel,
 }: MobileAppShellProps) {
-  const location = useLocation();
 
   const [composerActive, setComposerActive] = useState(false);
   const [selectedEffort, setSelectedEffort] = useState<string>(() => localStorage.getItem('effort') || 'medium');
@@ -72,7 +71,6 @@ export default function MobileAppShell({
     handleChatHubTap,
     sheetOpen,
     setSheetOpen,
-    overrideTab,
   } = useMobileNavigation({
     selectedSessionId: selectedSession?.id,
   });
@@ -84,14 +82,6 @@ export default function MobileAppShell({
     selectedProject,
     activeView: 'history',
     onFileOpen: undefined,
-  });
-
-  const prevTabIndexRef = useRef(-1);
-  const currentTabIndex = TAB_ORDER.indexOf(activeTab);
-  const direction = currentTabIndex >= prevTabIndexRef.current ? 'forward' : 'backward';
-
-  useEffect(() => {
-    prevTabIndexRef.current = currentTabIndex;
   });
 
   const hasActiveSession = Boolean(selectedSession);
@@ -191,60 +181,41 @@ export default function MobileAppShell({
     });
   }, [sendMessage, selectedProject, selectedSession, selectedEffort, permissionMode]);
 
-  // Transition key changes on both URL navigation and override tab switches,
-  // so AnimatedRouteTransitions animates in both cases
-  const transitionKey = location.pathname + (overrideTab ? `:${overrideTab}` : '');
-
-  const renderPage = useMemo(() => {
-    if (activeTab === 'conversations') {
-      return <ConversationsPage sidebarContent={sidebarContent} />;
-    }
-    if (activeTab === 'files') {
-      return (
-        <FileBrowserPage
-          selectedProject={selectedProject}
-          onFileOpen={onFileOpen}
-          onNavigateToConversations={handleNavigateToConversations}
-          preloadedFileTree={fileTreeData}
-        />
-      );
-    }
-    if (activeTab === 'git') {
-      return (
-        <GitPage
-          selectedProject={selectedProject}
-          onOpenGitPanel={handleOpenGitPanel}
-          onFileOpen={onFileOpen}
-          onNavigateToConversations={handleNavigateToConversations}
-          preloadedGitController={gitController}
-        />
-      );
-    }
-    if (activeTab === 'settings') {
-      return <SettingsPage onClose={handleNavigateToConversations} />;
-    }
-    // Default: chat — activeTab is 'chat'
-    return <ChatPage mainContent={mainContent} />;
-  }, [
-    activeTab,
-    sidebarContent,
-    selectedProject,
-    onFileOpen,
-    handleNavigateToConversations,
-    handleOpenGitPanel,
-    mainContent,
-    fileTreeData,
-    gitController,
+  const pageComponents: Record<MobileTabId, ReactNode> = useMemo(() => ({
+    conversations: <ConversationsPage sidebarContent={sidebarContent} />,
+    files: (
+      <FileBrowserPage
+        selectedProject={selectedProject}
+        onFileOpen={onFileOpen}
+        onNavigateToConversations={handleNavigateToConversations}
+        preloadedFileTree={fileTreeData}
+      />
+    ),
+    chat: <ChatPage mainContent={mainContent} />,
+    git: (
+      <GitPage
+        selectedProject={selectedProject}
+        onOpenGitPanel={handleOpenGitPanel}
+        onFileOpen={onFileOpen}
+        onNavigateToConversations={handleNavigateToConversations}
+        preloadedGitController={gitController}
+      />
+    ),
+    settings: <SettingsPage onClose={handleNavigateToConversations} />,
+  }), [
+    sidebarContent, selectedProject, onFileOpen, handleNavigateToConversations,
+    handleOpenGitPanel, mainContent, fileTreeData, gitController,
   ]);
 
   return (
     <div data-layout="mobile" className="mobile-workspace fixed inset-0 bg-background">
-      {/* Animated route content */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <AnimatedRouteTransitions locationKey={transitionKey} direction={direction}>
-          {renderPage}
-        </AnimatedRouteTransitions>
-      </div>
+      {/* Swipeable page content */}
+      <SwipeAnimatedPageView
+        activeTab={activeTab}
+        onTabChange={navigateToTab}
+        pages={pageComponents}
+        tabOrder={TAB_ORDER}
+      />
 
       {/* Chat Hub action sheet */}
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)}>
