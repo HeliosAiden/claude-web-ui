@@ -55,8 +55,11 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
 
       <SettingsSidebar activeTab={activeTab} onChange={setActiveTab} />
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="space-y-6 p-4 pb-safe-area-inset-bottom">
+      <main
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: 'var(--mobile-scroll-bottom-inset)' }}
+      >
+        <div className="space-y-6 p-4">
           {activeTab === 'appearance' && (
             <AppearanceSettingsTab
               projectSortOrder={projectSortOrder}

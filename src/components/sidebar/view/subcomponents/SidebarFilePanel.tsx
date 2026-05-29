@@ -267,7 +267,10 @@ function SidebarFilePanel({ selectedProject, onFileOpen, preloadedFileTree }: Si
       )}
 
       {/* File tree */}
-      <div className="flex-1 overflow-y-auto px-1 py-1">
+      <div
+        className="flex-1 overflow-y-auto px-1 py-1"
+        style={{ paddingBottom: 'calc(4px + var(--mobile-scroll-bottom-inset, env(safe-area-inset-bottom, 0px)))' }}
+      >
         {filteredFiles.length === 0 ? (
           <p className="px-3 py-4 text-center text-[11px] text-muted-foreground/60">
             {files.length === 0 ? 'No files found' : 'No files match your filter'}
