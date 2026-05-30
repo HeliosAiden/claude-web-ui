@@ -7,6 +7,7 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react';
+
 import { cn } from '../../lib/utils';
 import type { MobileTabId } from '../../types/mobile';
 
@@ -57,7 +58,7 @@ export default function BottomNavigation({
 
   return (
     <nav
-      className="mobile-bottom-nav fixed bottom-0 inset-x-0 z-30 flex items-center justify-around h-[52px] border-t border-border/50 bg-card/95 backdrop-blur-lg pb-[env(safe-area-inset-bottom,0px)]"
+      className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 flex h-[52px] items-center justify-around border-t border-border/50 bg-card/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-lg"
       role="navigation"
       aria-label="Mobile navigation"
     >
@@ -73,7 +74,7 @@ export default function BottomNavigation({
               key={tab.id}
               type="button"
               onClick={() => handleTabClick(tab)}
-              className="relative flex items-center justify-center -mt-4"
+              className="relative -mt-4 flex items-center justify-center"
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
             >
@@ -86,7 +87,7 @@ export default function BottomNavigation({
                     : 'bg-muted text-muted-foreground',
                 )}
               >
-                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
               </span>
             </button>
           );
@@ -112,10 +113,10 @@ export default function BottomNavigation({
             aria-current={isActive ? 'page' : undefined}
           >
             {isActive && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-sm bg-primary" />
+              <span className="absolute left-1/2 top-0 h-[3px] w-8 -translate-x-1/2 rounded-b-sm bg-primary" />
             )}
-            <Icon className="w-5 h-5" strokeWidth={isActive ? 2.25 : 2} />
-            <span className="text-[10px] leading-none font-medium truncate max-w-full">
+            <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 2} />
+            <span className="max-w-full truncate text-[10px] font-medium leading-none">
               {tab.label}
             </span>
           </button>

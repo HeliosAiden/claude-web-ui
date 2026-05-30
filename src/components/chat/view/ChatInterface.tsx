@@ -6,7 +6,7 @@ import PermissionContext from '../../../contexts/PermissionContext';
 import ChatSessionContext from '../../../contexts/ChatSessionContext';
 import ChatProviderContext from '../../../contexts/ChatProviderContext';
 import { QuickSettingsPanel } from '../../quick-settings-panel';
-import type { ChatInterfaceProps, Provider  } from '../types/types';
+import type { ChatInterfaceProps  } from '../types/types';
 import type { LLMProvider } from '../../../types/app';
 import { useChatProviderState } from '../hooks/useChatProviderState';
 import { useChatSessionState } from '../hooks/useChatSessionState';

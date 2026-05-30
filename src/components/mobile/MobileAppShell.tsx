@@ -11,6 +11,7 @@ import { useFileTreeData } from '../file-tree/hooks/useFileTreeData';
 import { useGitPanelController } from '../git-panel/hooks/useGitPanelController';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useSessionStore } from '../../stores/useSessionStore';
+import { useMobileStatusStore } from '../../stores/useMobileStatusStore';
 
 import SwipeAnimatedPageView from './SwipeAnimatedPageView';
 import BottomNavigation, { TAB_ORDER } from './BottomNavigation';
@@ -23,7 +24,7 @@ import FileBrowserPage from './pages/FileBrowserPage';
 import GitPage from './pages/GitPage';
 import SettingsPage from './pages/SettingsPage';
 import MobileClaudeStatusBar from './MobileClaudeStatusBar';
-import { useMobileStatusStore } from '../../stores/useMobileStatusStore';
+
 
 interface MobileAppShellProps {
   sidebarContent: ReactNode;
@@ -272,7 +273,6 @@ export default function MobileAppShell({
       {/* Chat Hub action sheet */}
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)}>
         <BottomSheetContent
-          onClose={() => setSheetOpen(false)}
           selectedEffort={selectedEffort}
           onEffortChange={handleEffortChange}
           permissionMode={permissionMode}
@@ -284,10 +284,10 @@ export default function MobileAppShell({
           onProviderSelect={handleProviderSelect}
           fccModels={fccModels}
           modelAvailability={modelAvailability}
+          onClose={() => setSheetOpen(false)}
         />
       </BottomSheet>
 
-      {/* Floating composer bar — appears above bottom nav */}
       {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} fccModels={fccModels} modelAvailability={modelAvailability} />}
 
       {/* Bottom navigation */}

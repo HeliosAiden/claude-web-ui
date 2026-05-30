@@ -5,6 +5,7 @@ import { Button } from '../../../../shared/view/ui';
 import { cn } from '../../../../lib/utils';
 import type { Project, ProjectSession, LLMProvider } from '../../../../types/app';
 import type { SessionWithProvider } from '../../types/types';
+
 import SidebarProjectSessions from './SidebarProjectSessions';
 
 type SidebarProjectItemProps = {

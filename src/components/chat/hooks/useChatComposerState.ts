@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   ChangeEvent,
-  ClipboardEvent,
   Dispatch,
   FormEvent,
   KeyboardEvent,

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, type CSSProperties } from 're
 import { createPortal } from 'react-dom';
 import { Brain, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { thinkingModes } from '../../constants/thinkingModes';
 import { PromptInputButton } from '../../../../shared/view/ui';
 

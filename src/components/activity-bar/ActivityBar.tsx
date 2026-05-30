@@ -8,7 +8,9 @@ import {
   Search,
   Settings,
 } from 'lucide-react';
+
 import type { ActivityId } from '../../types/app';
+
 import ActivityBarItem from './ActivityBarItem';
 import type { ActivityBarItemDef, ActivityBarProps } from './types';
 
@@ -58,7 +60,7 @@ function ActivityBar({
 
   return (
     <div
-      className="flex flex-col h-full w-12 flex-shrink-0 bg-card border-r border-border/50"
+      className="flex h-full w-12 flex-shrink-0 flex-col border-r border-border/50 bg-card"
       role="navigation"
       aria-label="Workspace navigation"
     >

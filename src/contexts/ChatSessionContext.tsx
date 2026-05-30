@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { RefObject } from 'react';
+
 import type { ChatMessage } from '../components/chat/types/types';
 import type { DiffLine } from '../components/chat/utils/messageTransforms';
 import type { Project, ProjectSession } from '../types/app';

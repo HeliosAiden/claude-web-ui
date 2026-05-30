@@ -1,8 +1,8 @@
 import { FolderPlus, Plus, RefreshCw, Search, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
-import { Button, Input, Tooltip } from '../../../../shared/view/ui';
+
+import { Button, Input } from '../../../../shared/view/ui';
 import { IS_PLATFORM } from '../../../../constants/config';
-import { cn } from '../../../../lib/utils';
 import type { SidebarPanel } from '../../types/types';
 
 const MOD_KEY =

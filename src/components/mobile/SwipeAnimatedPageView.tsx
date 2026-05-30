@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+
 import type { MobileTabId } from '../../types/mobile';
 
 interface SwipeAnimatedPageViewProps {
@@ -179,7 +180,7 @@ export default function SwipeAnimatedPageView({
       >
         {/* Previous page */}
         <div
-          className="absolute top-0 bottom-0"
+          className="absolute bottom-0 top-0"
           style={{
             left: '-100%',
             width: '100%',
@@ -191,13 +192,13 @@ export default function SwipeAnimatedPageView({
         </div>
 
         {/* Current page */}
-        <div className="absolute top-0 bottom-0 left-0 w-full">
+        <div className="absolute bottom-0 left-0 top-0 w-full">
           {pages[activeTab]}
         </div>
 
         {/* Next page */}
         <div
-          className="absolute top-0 bottom-0"
+          className="absolute bottom-0 top-0"
           style={{
             left: '100%',
             width: '100%',

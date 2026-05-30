@@ -1,6 +1,8 @@
 import React from 'react';
+
 import ActivityBar from '../activity-bar/ActivityBar';
 import ProjectsFlyout from '../projects-flyout/ProjectsFlyout';
+
 import type { WorkspaceShellProps } from './workspaceShellTypes';
 
 function DesktopWorkspaceShell({

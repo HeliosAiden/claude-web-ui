@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
+
 import {
   Dialog,
   DialogContent,
@@ -64,13 +65,13 @@ export default function TemplatePlaceholderDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[80vh] w-full max-w-lg flex-col p-0 overflow-hidden"
+        className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden p-0"
         onPointerDownOutside={() => onOpenChange(false)}
         onEscapeKeyDown={() => onOpenChange(false)}
       >
         <DialogTitle>Fill Template Placeholders</DialogTitle>
 
-        <div className="shrink-0 px-6 pt-6 pb-2">
+        <div className="shrink-0 px-6 pb-2 pt-6">
           <h3 className="text-sm font-medium text-foreground">Fill in the placeholders</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Fill in the values below and they will be inserted into the template.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SendHorizontal,
   Plus,
@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   FileText,
 } from 'lucide-react';
+
 import {
   CLAUDE_MODELS,
   CURSOR_MODELS,
@@ -29,17 +30,17 @@ function getProviderDisplayName(p: string) {
 
 function AttachmentsPanel() {
   return (
-    <div className="px-1 py-2 space-y-1 animate-in slide-in-from-bottom-2 duration-200">
-      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
+    <div className="animate-in slide-in-from-bottom-2 space-y-1 px-1 py-2 duration-200">
+      <div className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         Attach to message
       </div>
       {ATTACHMENT_OPTIONS.map((opt) => (
         <button
           key={opt.label}
           type="button"
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-accent/50 active:bg-accent transition-colors duration-150 cursor-pointer"
+          className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-colors duration-150 hover:bg-accent/50 active:bg-accent"
         >
-          <opt.icon className="w-4 h-4 text-muted-foreground shrink-0" />
+          <opt.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="text-left">
             <div className="text-sm text-foreground">{opt.label}</div>
             <div className="text-xs text-muted-foreground">{opt.description}</div>
@@ -159,25 +160,25 @@ export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, mo
   return (
     <div
       ref={containerRef}
-      className="mobile-composer-bar fixed inset-x-0 z-20 bg-card/95 backdrop-blur-lg border-t border-border/50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+      className="mobile-composer-bar fixed inset-x-0 z-20 border-t border-border/50 bg-card/95 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-lg"
     >
-      <div className="px-3 pt-2 pb-3">
+      <div className="px-3 pb-3 pt-2">
         {/* Attachment options panel (shown when + toggled) */}
         {showAttachments && <AttachmentsPanel />}
 
         {/* Composer bar */}
-        <div className="flex items-end gap-2 px-3 py-2 rounded-xl bg-accent/40 border border-border/50">
+        <div className="flex items-end gap-2 rounded-xl border border-border/50 bg-accent/40 px-3 py-2">
           {/* + / x toggle button */}
           <button
             type="button"
             onClick={() => setShowAttachments((v) => !v)}
-            className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 hover:bg-accent active:bg-accent/80 transition-colors"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent active:bg-accent/80"
             aria-label={showAttachments ? 'Close attachments' : 'Add attachments'}
           >
             {showAttachments ? (
-              <X className="w-5 h-5 text-muted-foreground" />
+              <X className="h-5 w-5 text-muted-foreground" />
             ) : (
-              <Plus className="w-5 h-5 text-muted-foreground" />
+              <Plus className="h-5 w-5 text-muted-foreground" />
             )}
           </button>
 
@@ -197,7 +198,7 @@ export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, mo
             }}
             rows={1}
             placeholder={modelInfo.isAvailable ? `Ask ${modelInfo.providerName} anything...` : 'Current model unavailable — change in settings'}
-            className="flex-1 min-h-[36px] max-h-[80px] bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 resize-none outline-none py-1.5 leading-tight"
+            className="max-h-[80px] min-h-[36px] flex-1 resize-none bg-transparent py-1.5 text-sm leading-tight text-foreground outline-none placeholder:text-muted-foreground/50"
           />
 
           {/* Telegram-style send button */}
@@ -209,10 +210,10 @@ export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, mo
                 setInputText('');
               }
             }}
-            className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground shrink-0 hover:bg-primary/90 active:scale-95 transition-all duration-150 shadow-sm"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all duration-150 hover:bg-primary/90 active:scale-95"
             aria-label="Send message"
           >
-            <SendHorizontal className="w-4 h-4" />
+            <SendHorizontal className="h-4 w-4" />
           </button>
         </div>
       </div>

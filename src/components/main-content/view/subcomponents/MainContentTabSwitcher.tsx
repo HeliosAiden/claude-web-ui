@@ -1,5 +1,6 @@
 import React from 'react';
 import { MessageSquare, Terminal, FolderOpen, GitBranch } from 'lucide-react';
+
 import { cn } from '../../../../lib/utils';
 import type { AppTab } from '../../../../types/app';
 
@@ -17,7 +18,7 @@ const TABS: { id: AppTab; icon: typeof MessageSquare; label: string }[] = [
 
 function MainContentTabSwitcher({ activeTab, onTabSelect }: MainContentTabSwitcherProps) {
   return (
-    <div className="flex items-center gap-1 h-11 px-3 border-b border-border/40 bg-card/50 flex-shrink-0" role="tablist" aria-label="Workspace mode">
+    <div className="flex h-11 flex-shrink-0 items-center gap-1 border-b border-border/40 bg-card/50 px-3" role="tablist" aria-label="Workspace mode">
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id || (tab.id === 'git' && activeTab === 'git');
         return (

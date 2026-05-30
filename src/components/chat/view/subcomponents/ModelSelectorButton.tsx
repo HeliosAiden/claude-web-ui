@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
+
 import { authenticatedFetch } from "../../../../utils/api";
 import { useServerPlatform } from "../../../../hooks/useServerPlatform";
 import SessionProviderLogo from "../../../llm-logo-provider/SessionProviderLogo";
@@ -268,7 +269,7 @@ export default function ModelSelectorButton({
               }}
             >
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                <span className="flex items-center gap-1 whitespace-nowrap text-xs font-medium text-muted-foreground">
                   <SessionProviderLogo provider={provider} className="h-3.5 w-3.5 shrink-0" />
                   {getProviderDisplayName(provider)}
                 </span>
@@ -289,10 +290,10 @@ export default function ModelSelectorButton({
         <div
           className={
             toast.type === 'success'
-              ? 'fixed bottom-4 right-4 z-[9999] px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 bg-green-600 text-white animate-in slide-in-from-bottom-2'
+              ? 'animate-in slide-in-from-bottom-2 fixed bottom-4 right-4 z-[9999] flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white shadow-lg'
               : toast.type === 'not_configured'
-                ? 'fixed bottom-4 right-4 z-[9999] px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 bg-amber-500 text-white animate-in slide-in-from-bottom-2'
-                : 'fixed bottom-4 right-4 z-[9999] px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 bg-red-600 text-white animate-in slide-in-from-bottom-2'
+                ? 'animate-in slide-in-from-bottom-2 fixed bottom-4 right-4 z-[9999] flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-white shadow-lg'
+                : 'animate-in slide-in-from-bottom-2 fixed bottom-4 right-4 z-[9999] flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white shadow-lg'
           }
         >
           {toast.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
