@@ -22,6 +22,7 @@ import { cn } from '../../lib/utils';
 import type { LLMProvider, ModelAvailabilityMap  } from '../../types/app';
 import type { PermissionMode } from '../chat/types/types';
 import { triggerConversationSearch } from '../../stores/useConversationSearchStore';
+import { triggerBookmarksOverlay } from '../../stores/useBookmarksOverlayStore';
 
 const EFFORT_LEVELS = [
   { value: 'low', label: 'Low' },
@@ -370,7 +371,7 @@ export default function BottomSheetContent({ selectedEffort, onEffortChange, per
       <SectionHeader label="Other Actions" icon={Zap} />
       <div className="flex flex-col gap-0.5">
         <ActionRow icon={Search} label="Search" description="Search this conversation" onClick={() => { onClose?.(); triggerConversationSearch(); }} trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} />
-        <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" />
+        <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" onClick={() => { onClose?.(); triggerBookmarksOverlay(); }} />
         <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" />
       </div>
     </div>
