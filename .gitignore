@@ -105,6 +105,7 @@ temp/
 
 # AI specific
 .claude/
+docs/superpowers/
 .codex
 .cursor/
 .roo/
