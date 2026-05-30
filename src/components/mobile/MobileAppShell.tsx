@@ -272,7 +272,6 @@ export default function MobileAppShell({
       {/* Chat Hub action sheet */}
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)}>
         <BottomSheetContent
-          onClose={() => setSheetOpen(false)}
           selectedEffort={selectedEffort}
           onEffortChange={handleEffortChange}
           permissionMode={permissionMode}
@@ -287,7 +286,6 @@ export default function MobileAppShell({
         />
       </BottomSheet>
 
-      {/* Floating composer bar — appears above bottom nav */}
       {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} fccModels={fccModels} modelAvailability={modelAvailability} />}
 
       {/* Bottom navigation */}

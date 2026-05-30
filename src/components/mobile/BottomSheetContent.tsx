@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   FileText,
@@ -108,7 +107,6 @@ function AskModelHero({
 }
 
 interface BottomSheetContentProps {
-  onClose: () => void;
   selectedEffort?: string;
   onEffortChange?: (effort: string) => void;
   permissionMode: string;
@@ -122,9 +120,7 @@ interface BottomSheetContentProps {
   modelAvailability?: ModelAvailabilityMap;
 }
 
-export default function BottomSheetContent({ onClose, selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, selectedModel, onModelSelect, selectedProvider, onProviderSelect, fccModels, modelAvailability }: BottomSheetContentProps) {
-  const navigate = useNavigate();
-
+export default function BottomSheetContent({ selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, selectedModel, onModelSelect, selectedProvider, onProviderSelect, fccModels, modelAvailability }: BottomSheetContentProps) {
   const modelInfo = useMemo(() => {
     const storedProvider = selectedProvider;
     const providerName = getProviderDisplayName(storedProvider);
@@ -183,21 +179,6 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
     };
   }, [selectedProvider, selectedModel, fccModels, modelAvailability]);
 
-  const handleSearch = useCallback(() => {
-    navigate('/conversations');
-    onClose();
-  }, [navigate, onClose]);
-
-  const handleBookmarks = useCallback(() => {
-    navigate('/conversations');
-    onClose();
-  }, [navigate, onClose]);
-
-  const handleTemplates = useCallback(() => {
-    navigate('/conversations');
-    onClose();
-  }, [navigate, onClose]);
-
   const handleEffortChange = useCallback(
     (effort: string) => {
       onEffortChange?.(effort);
@@ -226,7 +207,7 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
     icon: typeof Search;
     label: string;
     description?: string;
-    onClick: () => void;
+    onClick?: () => void;
     trailing?: React.ReactNode;
   }) => (
     <button
@@ -384,12 +365,12 @@ export default function BottomSheetContent({ onClose, selectedEffort, onEffortCh
 
       <div className="h-px bg-border/50" />
 
-      {/* Other Actions at the bottom */}
+      {/* Other Actions — stubs for future mobile features */}
       <SectionHeader label="Other Actions" icon={Zap} />
       <div className="flex flex-col gap-0.5">
-        <ActionRow icon={Search} label="Search" description="Search all conversations" onClick={handleSearch} />
-        <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" onClick={handleBookmarks} />
-        <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" onClick={handleTemplates} />
+        <ActionRow icon={Search} label="Search" description="Search all conversations" />
+        <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" />
+        <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" />
       </div>
     </div>
   );
