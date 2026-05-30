@@ -1,5 +1,6 @@
 import { Bot, GitBranch, Key, Palette, Puzzle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { cn } from '../../../lib/utils';
 import { PillBar, Pill } from '../../../shared/view/ui';
 import type { SettingsMainTab } from '../types/types';

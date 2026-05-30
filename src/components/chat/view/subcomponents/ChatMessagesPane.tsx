@@ -2,15 +2,16 @@ import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bookmark, ChevronDown, ChevronUp, X } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
+
 import type { ChatMessage } from '../../types/types';
-import type { LLMProvider } from '../../../../types/app';
 import { getIntrinsicMessageKey } from '../../utils/messageKeys';
 import { authenticatedFetch } from '../../../../utils/api';
+import { useChatSessionContext } from '../../../../contexts/ChatSessionContext';
+import { useChatProviderContext } from '../../../../contexts/ChatProviderContext';
+
 import MessageComponent from './MessageComponent';
 import ChatFindWidget from './ChatFindWidget';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
-import { useChatSessionContext } from '../../../../contexts/ChatSessionContext';
-import { useChatProviderContext } from '../../../../contexts/ChatProviderContext';
 
 function getMessageSearchText(message: ChatMessage): string {
   return [
@@ -391,7 +392,7 @@ export default function ChatMessagesPane({
           {/* Pinned bookmarked messages */}
           {pinnedBookmarks.length > 0 && (
             <div className="sticky top-0 z-10 mx-3 transition-all duration-300 ease-in-out sm:mx-0">
-              <div className="rounded-lg border border-yellow-200/60 bg-yellow-50/80 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300 dark:border-yellow-800/30 dark:bg-yellow-950/40">
+              <div className="animate-in fade-in slide-in-from-top-2 rounded-lg border border-yellow-200/60 bg-yellow-50/80 shadow-sm backdrop-blur-sm duration-300 dark:border-yellow-800/30 dark:bg-yellow-950/40">
                 <div className="flex items-center justify-between px-3 py-1.5">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
                     <Bookmark className="h-3.5 w-3.5 fill-current" />

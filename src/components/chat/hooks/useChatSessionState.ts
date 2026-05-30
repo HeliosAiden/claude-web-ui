@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { MutableRefObject } from 'react';
 
 import { authenticatedFetch } from '../../../utils/api';
 import { useSessionStore } from '../../../stores/useSessionStore';
@@ -7,8 +7,8 @@ import type { NormalizedMessage } from '../../../stores/useSessionStore';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
 import type { ChatMessage, Provider } from '../types/types';
 import { createCachedDiffCalculator, type DiffCalculator } from '../utils/messageTransforms';
-import type { ChatPaginationPrimitives } from './useChatPaginationPrimitives';
 
+import type { ChatPaginationPrimitives } from './useChatPaginationPrimitives';
 import { normalizedToChatMessages } from './useChatMessages';
 
 const EMPTY_MESSAGES: NormalizedMessage[] = [];

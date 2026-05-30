@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 import { useSessionStore } from '../../../stores/useSessionStore';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
+
 import type { ChatPaginationPrimitives } from './useChatPaginationPrimitives';
 
 interface ScrollRestoreState {

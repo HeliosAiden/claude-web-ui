@@ -3,7 +3,6 @@ import {
   Bot,
   GitBranch,
   KeyRound,
-  ListChecks,
   Palette,
   Plug,
 } from 'lucide-react';

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+
 import { getConnection } from '@/modules/database/connection.js';
 
 type PromptTemplateRow = {

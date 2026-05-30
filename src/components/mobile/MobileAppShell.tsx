@@ -11,6 +11,8 @@ import { useFileTreeData } from '../file-tree/hooks/useFileTreeData';
 import { useGitPanelController } from '../git-panel/hooks/useGitPanelController';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useSessionStore } from '../../stores/useSessionStore';
+import { useMobileCommandPalette } from '../../hooks/useMobileCommandPalette';
+import { useMobileStatusStore } from '../../stores/useMobileStatusStore';
 
 import SwipeAnimatedPageView from './SwipeAnimatedPageView';
 import BottomNavigation, { TAB_ORDER } from './BottomNavigation';
@@ -23,7 +25,8 @@ import FileBrowserPage from './pages/FileBrowserPage';
 import GitPage from './pages/GitPage';
 import SettingsPage from './pages/SettingsPage';
 import MobileClaudeStatusBar from './MobileClaudeStatusBar';
-import { useMobileStatusStore } from '../../stores/useMobileStatusStore';
+import MobileCommandPalette from './MobileCommandPalette';
+
 
 interface MobileAppShellProps {
   sidebarContent: ReactNode;
@@ -108,6 +111,16 @@ export default function MobileAppShell({
     setSheetOpen,
   } = useMobileNavigation({
     selectedSessionId: selectedSession?.id,
+  });
+
+  const palette = useMobileCommandPalette({
+    selectedProject,
+    navigateToTab,
+    onOpenSettings: () => navigateToTab('settings'),
+    onStartNewChat: (_project: Project) => {
+      setSheetOpen(false);
+      navigateToTab('conversations');
+    },
   });
 
   // Preload file tree and git data when a project is selected,
@@ -283,8 +296,46 @@ export default function MobileAppShell({
           onProviderSelect={handleProviderSelect}
           fccModels={fccModels}
           modelAvailability={modelAvailability}
+          onOpenSearch={() => {
+            setSheetOpen(false);
+            palette.openPalette();
+          }}
         />
       </BottomSheet>
+
+      <MobileCommandPalette
+        open={palette.open}
+        onClose={palette.close}
+        search={palette.search}
+        onSearchChange={palette.setSearch}
+        page={palette.page}
+        pages={palette.pages}
+        onPushPage={palette.pushPage}
+        onPopPage={palette.popPage}
+        onKeyDown={palette.handleKeyDown}
+        sessions={palette.sessions}
+        files={palette.files}
+        commits={palette.commits}
+        branches={palette.branches}
+        sessionsShown={palette.sessionsShown}
+        filesShown={palette.filesShown}
+        commitsShown={palette.commitsShown}
+        branchesShown={palette.branchesShown}
+        showActions={palette.showActions}
+        showSessions={palette.showSessions}
+        showFiles={palette.showFiles}
+        showCommits={palette.showCommits}
+        showBranches={palette.showBranches}
+        projectId={palette.projectId}
+        selectedProject={palette.selectedProject}
+        navigate={palette.navigate}
+        navigateToTab={palette.navigateToTab}
+        toggleDarkMode={palette.toggleDarkMode}
+        onOpenSettings={palette.onOpenSettings}
+        onStartNewChat={palette.onStartNewChat}
+        ops={palette.ops}
+        git={palette.git}
+      />
 
       {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} fccModels={fccModels} modelAvailability={modelAvailability} />}
 

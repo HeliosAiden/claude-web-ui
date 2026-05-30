@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { FileText, Pencil, Plus, Trash2 } from 'lucide-react';
+
 import { usePromptTemplatesSettings } from '../../../../hooks/usePromptTemplatesSettings';
 import type { PromptTemplate } from '../../../../hooks/usePromptTemplatesSettings';
 import TemplateEditorModal from '../../../settings/view/tabs/templates/TemplateEditorModal';

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
+
 import { cn } from '../../../../lib/utils';
 
 type ChatFindWidgetProps = {
@@ -36,7 +37,7 @@ function ChatFindWidget({
         'px-2 py-1.5',
       )}
     >
-      <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+      <Search className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
 
       <input
         ref={inputRef}
@@ -58,12 +59,12 @@ function ChatFindWidget({
           }
         }}
         placeholder="Find in conversation"
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 min-w-0"
+        className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
       />
 
       {query.length > 0 && (
         <>
-          <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums">
+          <span className="flex-shrink-0 text-xs tabular-nums text-muted-foreground">
             {matchCount > 0 ? `${currentMatch + 1}/${matchCount}` : '0/0'}
           </span>
 

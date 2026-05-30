@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import type { PromptTemplate } from '../../../hooks/usePromptTemplatesSettings';
 
 type TemplateEditorModalProps = {
@@ -101,7 +102,7 @@ export default function TemplateEditorModal({
 
       {/* Content */}
       <div className="relative z-10 flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl border bg-popover text-popover-foreground shadow-lg">
-        <div className="flex flex-col gap-4 p-6 overflow-y-auto">
+        <div className="flex flex-col gap-4 overflow-y-auto p-6">
           <h3 className="text-lg font-semibold text-foreground">
             {isEditing ? 'Edit Template' : 'New Template'}
           </h3>
@@ -164,7 +165,7 @@ export default function TemplateEditorModal({
                   <button
                     type="button"
                     onClick={() => setShowAllCategories(true)}
-                    className="rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 transition-colors"
+                    className="rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted-foreground/10 hover:text-foreground"
                   >
                     +{existingCategories.length - MAX_VISIBLE_CHIPS} more
                   </button>
@@ -173,7 +174,7 @@ export default function TemplateEditorModal({
                   <button
                     type="button"
                     onClick={() => setShowAllCategories(false)}
-                    className="rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 transition-colors"
+                    className="rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted-foreground/10 hover:text-foreground"
                   >
                     show less
                   </button>

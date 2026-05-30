@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ChevronDown, Folder, Search } from 'lucide-react';
+
 import { cn } from '../../lib/utils';
+
 import type { ProjectSelectorProps } from './types';
 
 function ProjectSelector({ projects, selectedProject, onProjectSelect }: ProjectSelectorProps) {
@@ -48,7 +50,7 @@ function ProjectSelector({ projects, selectedProject, onProjectSelect }: Project
           open && 'bg-accent/50 border-border/60',
         )}
       >
-        <Folder className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+        <Folder className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
         <span className="max-w-[140px] truncate font-medium">
           {selectedProject?.displayName || 'Select Project'}
         </span>
@@ -66,11 +68,11 @@ function ProjectSelector({ projects, selectedProject, onProjectSelect }: Project
             aria-label="Close project selector"
           />
           <div
-            className="absolute left-0 top-full mt-1 z-40 w-64 rounded-lg border border-border/50 bg-popover shadow-lg"
+            className="absolute left-0 top-full z-40 mt-1 w-64 rounded-lg border border-border/50 bg-popover shadow-lg"
             onKeyDown={handleKeyDown}
           >
             <div className="flex items-center gap-2 border-b border-border/30 px-3 py-2">
-              <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <Search className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
               <input
                 type="text"
                 value={search}
@@ -97,7 +99,7 @@ function ProjectSelector({ projects, selectedProject, onProjectSelect }: Project
                       selectedProject?.projectId === project.projectId && 'bg-accent/40 font-medium',
                     )}
                   >
-                    <Folder className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <Folder className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate">{project.displayName}</p>
                       <p className="truncate text-[11px] text-muted-foreground">

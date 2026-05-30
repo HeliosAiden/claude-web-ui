@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+
 import { cn } from '../../lib/utils';
 
 const SHEET_TARGET = '40vh';
@@ -95,12 +96,12 @@ export default function BottomSheet({ isOpen, onClose, children }: BottomSheetPr
       >
         {/* Drag handle */}
         <div
-          className="flex items-center justify-center py-3 touch-none bottom-sheet-drag-handle"
+          className="bottom-sheet-drag-handle flex touch-none items-center justify-center py-3"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
         </div>
 
         {/* Content */}

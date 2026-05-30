@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import type { ActivityId } from '../../types/app';
 import type { ActivityBarItemDef } from '../activity-bar/types';
 

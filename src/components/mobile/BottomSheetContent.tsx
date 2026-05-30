@@ -19,8 +19,7 @@ import {
 } from '../../../shared/modelConstants';
 import SessionProviderLogo from '../llm-logo-provider/SessionProviderLogo';
 import { cn } from '../../lib/utils';
-import type { LLMProvider } from '../../types/app';
-import type { ModelAvailabilityMap } from '../../types/app';
+import type { LLMProvider, ModelAvailabilityMap  } from '../../types/app';
 import type { PermissionMode } from '../chat/types/types';
 
 const EFFORT_LEVELS = [
@@ -118,9 +117,10 @@ interface BottomSheetContentProps {
   onProviderSelect: (provider: string) => void;
   fccModels?: { value: string; label: string }[];
   modelAvailability?: ModelAvailabilityMap;
+  onOpenSearch?: () => void;
 }
 
-export default function BottomSheetContent({ selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, selectedModel, onModelSelect, selectedProvider, onProviderSelect, fccModels, modelAvailability }: BottomSheetContentProps) {
+export default function BottomSheetContent({ selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, selectedModel, onModelSelect, selectedProvider, onProviderSelect, fccModels, modelAvailability, onOpenSearch }: BottomSheetContentProps) {
   const modelInfo = useMemo(() => {
     const storedProvider = selectedProvider;
     const providerName = getProviderDisplayName(storedProvider);
@@ -368,7 +368,7 @@ export default function BottomSheetContent({ selectedEffort, onEffortChange, per
       {/* Other Actions — stubs for future mobile features */}
       <SectionHeader label="Other Actions" icon={Zap} />
       <div className="flex flex-col gap-0.5">
-        <ActionRow icon={Search} label="Search" description="Search all conversations" />
+        <ActionRow icon={Search} label="Search" description="Search all conversations" onClick={onOpenSearch} trailing={onOpenSearch ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : undefined} />
         <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" />
         <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" />
       </div>

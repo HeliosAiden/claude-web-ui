@@ -4,6 +4,7 @@
  * list of viable models (providers with configured API keys) from FCC.
  */
 import { Router } from 'express';
+
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();

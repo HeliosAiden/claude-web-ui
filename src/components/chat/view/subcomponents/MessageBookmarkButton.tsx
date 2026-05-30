@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Bookmark } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { authenticatedFetch } from '../../../../utils/api';
 
 type MessageBookmarkButtonProps = {
@@ -75,7 +76,7 @@ export default function MessageBookmarkButton({
       onClick={handleToggle}
       className={`rounded p-0.5 transition-all ${
         bookmarked
-          ? 'text-yellow-500 hover:text-yellow-400 opacity-100'
+          ? 'text-yellow-500 opacity-100 hover:text-yellow-400'
           : unbookmarkedClass
       }`}
       title={bookmarked ? t('removeBookmark') : t('addBookmark')}

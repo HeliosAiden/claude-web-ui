@@ -1,5 +1,6 @@
 import { ArrowUpCircle } from 'lucide-react';
 import type { TFunction } from 'i18next';
+
 import type { ReleaseInfo } from '../../../../types/sharedTypes';
 
 type SidebarFooterProps = {

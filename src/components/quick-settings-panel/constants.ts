@@ -5,6 +5,7 @@ import {
   Languages,
   Maximize2,
 } from 'lucide-react';
+
 import type { PreferenceToggleItem } from './types';
 
 export const HANDLE_POSITION_STORAGE_KEY = 'quickSettingsHandlePosition';

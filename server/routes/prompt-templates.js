@@ -1,4 +1,5 @@
 import express from 'express';
+
 import { promptTemplatesDb } from '../modules/database/index.js';
 
 const router = express.Router();
