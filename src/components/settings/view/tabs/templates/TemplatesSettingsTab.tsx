@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
+
 import { usePromptTemplatesSettings } from '../../../hooks/usePromptTemplatesSettings';
 import type { PromptTemplate } from '../../../hooks/usePromptTemplatesSettings';
+
 import TemplateEditorModal from './TemplateEditorModal';
 
 export default function TemplatesSettingsTab() {

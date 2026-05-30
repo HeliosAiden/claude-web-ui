@@ -1,5 +1,6 @@
 import { ExternalLink, Star, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { IS_PLATFORM } from '../../../../../../constants/config';
 import type { ReleaseInfo } from '../../../../../../types/sharedTypes';
 

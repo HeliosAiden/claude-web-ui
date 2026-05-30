@@ -8,8 +8,9 @@ import {
   Search,
   Settings,
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+
 import type { ActivityId } from '../../types/app';
+
 import ActivityBarItem from './ActivityBarItem';
 import type { ActivityBarItemDef, ActivityBarProps } from './types';
 
@@ -25,7 +26,6 @@ const BUILT_IN_ITEMS: Omit<ActivityBarItemDef, 'id'>[] = [
 function ActivityBar({
   activeActivity,
   onActivitySelect,
-  isMobile,
   updateAvailable,
   onShowSettings,
   pluginActivities,
@@ -60,42 +60,25 @@ function ActivityBar({
 
   return (
     <div
-      className={cn(
-        'flex bg-card border-border/50',
-        isMobile
-          ? cn(
-              'fixed bottom-0 inset-x-0 flex-row items-center justify-around',
-              'h-[52px]',
-              'border-t',
-              'pb-[env(safe-area-inset-bottom,0px)]',
-              'z-30',
-            )
-          : cn(
-              'flex-col h-full w-12 flex-shrink-0',
-              'border-r',
-            ),
-      )}
+      className="flex h-full w-12 flex-shrink-0 flex-col border-r border-border/50 bg-card"
       role="navigation"
       aria-label="Workspace navigation"
     >
-      {/* Main activity items */}
       {items.map((item) => (
         <ActivityBarItem
           key={item.id}
           item={item}
           isActive={activeActivity === item.id}
           onClick={() => handleItemClick(item)}
-          isMobile={isMobile}
+          isMobile={false}
         />
       ))}
-
-      {/* Settings at bottom (desktop) or inline (mobile) */}
-      <div className={cn(isMobile ? '' : 'mt-auto')}>
+      <div className="mt-auto">
         <ActivityBarItem
           item={settingsItem}
           isActive={false}
           onClick={() => handleItemClick(settingsItem)}
-          isMobile={isMobile}
+          isMobile={false}
         />
       </div>
     </div>

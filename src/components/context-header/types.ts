@@ -10,7 +10,6 @@ export type ContextHeaderProps = {
   onProjectSelect: (project: Project) => void;
   onSessionSelect: (session: ProjectSession) => void;
   onNewSession: (project: Project) => void;
-  onMenuClick?: () => void;
 };
 
 export type ProjectSelectorProps = {

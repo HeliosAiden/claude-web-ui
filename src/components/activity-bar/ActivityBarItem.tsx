@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { cn } from '../../lib/utils';
 import Tooltip from '../../shared/view/ui/Tooltip';
+
 import type { ActivityBarItemProps } from './types';
 
 function ActivityBarItem({
@@ -51,25 +53,25 @@ function ActivityBarItem({
     >
       {/* Desktop active accent bar */}
       {!isMobile && isActive && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-sm bg-primary" />
+        <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-sm bg-primary" />
       )}
 
       {/* Mobile active top accent bar */}
       {isMobile && isActive && (
-        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-sm bg-primary" />
+        <span className="absolute left-1/2 top-0 h-[3px] w-8 -translate-x-1/2 rounded-b-sm bg-primary" />
       )}
 
       {iconElement}
 
       {isMobile && (
-        <span className="text-[10px] leading-none font-medium truncate max-w-full">
+        <span className="max-w-full truncate text-[10px] font-medium leading-none">
           {item.label}
         </span>
       )}
 
       {/* Badge (desktop) */}
       {!isMobile && item.badge !== undefined && (
-        <span className="absolute top-1 right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground leading-none">
+        <span className="absolute right-1.5 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
           {item.badge}
         </span>
       )}

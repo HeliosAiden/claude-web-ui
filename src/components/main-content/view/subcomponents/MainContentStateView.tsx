@@ -1,35 +1,15 @@
-import { Folder, Menu } from 'lucide-react';
+import { Folder } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import type { MainContentStateViewProps } from '../../types/types';
 
-export default function MainContentStateView({ mode, isMobile, onMenuClick, activeActivity }: MainContentStateViewProps) {
+export default function MainContentStateView({ mode }: MainContentStateViewProps) {
   const { t } = useTranslation();
 
   const isLoading = mode === 'loading';
 
-  const activityLabel = activeActivity
-    ? activeActivity.charAt(0).toUpperCase() + activeActivity.slice(1)
-    : '';
-
   return (
     <div className="flex h-full flex-col">
-      {/* Minimal context header for empty/loading states */}
-      {isMobile && (
-        <div className="flex items-center gap-2 h-10 px-3 border-b border-border/40 bg-card/50 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onMenuClick}
-            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent/50 transition-colors"
-            aria-label="Open menu"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-          {activityLabel && (
-            <span className="text-xs text-muted-foreground font-medium">{activityLabel}</span>
-          )}
-        </div>
-      )}
-
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center text-muted-foreground">
@@ -57,7 +37,7 @@ export default function MainContentStateView({ mode, isMobile, onMenuClick, acti
             <p className="mb-5 text-sm leading-relaxed text-muted-foreground">{t('mainContent.selectProjectDescription')}</p>
             <div className="rounded-xl border border-primary/10 bg-primary/5 p-3.5">
               <p className="text-sm text-primary">
-                <strong>{t('mainContent.tip')}:</strong> {isMobile ? t('mainContent.createProjectMobile') : t('mainContent.createProjectDesktop')}
+                <strong>{t('mainContent.tip')}:</strong> {t('mainContent.selectProjectTip', 'Select or create a project from the project selector to get started')}
               </p>
             </div>
           </div>

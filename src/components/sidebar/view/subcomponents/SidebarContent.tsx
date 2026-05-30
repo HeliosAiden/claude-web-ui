@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 import { Archive, Bookmark, Folder, RotateCcw, Trash2, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
+
 import { ScrollArea } from '../../../../shared/view/ui';
 import type { AppTab, Project } from '../../../../types/app';
 import type { ReleaseInfo } from '../../../../types/sharedTypes';
 import type { ArchivedProjectListItem, ArchivedSessionListItem, BookmarkedMessage, SidebarSearchMode } from '../../types/types';
 import SessionProviderLogo from '../../../llm-logo-provider/SessionProviderLogo';
+import { getAllSessions } from '../../utils/utils';
+
 import SidebarFooter from './SidebarFooter';
 import SidebarFilePanel from './SidebarFilePanel';
 import SidebarGitPanel from './SidebarGitPanel';
@@ -13,7 +16,6 @@ import SidebarTemplatesPanel from './SidebarTemplatesPanel';
 import SidebarHeader from './SidebarHeader';
 import SidebarProjectList, { type SidebarProjectListProps } from './SidebarProjectList';
 import SidebarSearchPanel from './SidebarSearchPanel';
-import { getAllSessions } from '../../utils/utils';
 
 type ArchivedSessionGroup = {
   key: string;
@@ -300,6 +302,7 @@ export default function SidebarContent({
             selectedProject={projectListProps.selectedProject}
             onOpenGitPanel={onOpenGitPanel}
             onFileOpen={onFileOpen}
+            isMobile={isMobile}
           />
         ) : searchMode === 'templates' ? (
           <SidebarTemplatesPanel />
@@ -354,7 +357,7 @@ export default function SidebarContent({
                           <span className="truncate text-sm font-medium text-foreground">
                             {project.displayName}
                           </span>
-                          <span className="inline-flex items-center justify-center rounded-full bg-muted px-1 py-px text-[7px] font-medium uppercase leading-none tracking-[0.02em] text-center text-muted-foreground">
+                          <span className="inline-flex items-center justify-center rounded-full bg-muted px-1 py-px text-center text-[7px] font-medium uppercase leading-none tracking-[0.02em] text-muted-foreground">
                             {t('archived.projectArchived', 'Project archived')}
                           </span>
                         </div>
@@ -444,7 +447,7 @@ export default function SidebarContent({
                           {group.projectDisplayName}
                         </span>
                         {group.isProjectArchived && (
-                          <span className="inline-flex items-center justify-center rounded-full bg-muted px-1 py-px text-[7px] font-medium uppercase leading-none tracking-[0.02em] text-center text-muted-foreground">
+                          <span className="inline-flex items-center justify-center rounded-full bg-muted px-1 py-px text-center text-[7px] font-medium uppercase leading-none tracking-[0.02em] text-muted-foreground">
                             {t('archived.projectArchived', 'Project archived')}
                           </span>
                         )}

@@ -4,6 +4,7 @@
  * through the appropriate backend (FCC proxy or direct Anthropic API).
  */
 import { Router } from 'express';
+
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
@@ -21,6 +22,121 @@ const ALIAS_TO_FCC_VAR = {
   sonnet: 'MODEL_SONNET',
   haiku: 'MODEL_HAIKU',
 };
+
+// All standard Claude model values that appear in the mobile/desktop model pickers
+const STANDARD_MODEL_VALUES = ['opus', 'sonnet', 'haiku', 'claude-opus-4-6', 'opusplan', 'sonnet[1m]', 'opus[1m]'];
+
+/**
+ * GET /api/models/availability
+ *
+ * Returns per-model availability for standard Claude models without making
+ * actual 1-token API calls (unlike POST /test). Checks config only.
+ *
+ * - Without FCC: available = ANTHROPIC_API_KEY is set
+ * - With FCC: resolves each model through FCC env vars, checks that the
+ *   upstream provider has status "configured" (has an API key)
+ *
+ * FCC-discovered models (deepseek/, etc.) are NOT returned here — they are
+ * always available by construction (the FCC discovery endpoint already filters
+ * to configured providers only).
+ */
+router.get('/availability', authenticateToken, async (_req, res) => {
+  const fccBaseUrl = getFccBaseUrl();
+  const availability = {};
+
+  if (!fccBaseUrl) {
+    // No FCC — check if a direct Anthropic API key is available
+    const hasKey = Boolean(process.env.ANTHROPIC_API_KEY);
+    for (const m of STANDARD_MODEL_VALUES) {
+      if (hasKey) {
+        availability[m] = { available: true };
+      } else {
+        availability[m] = { available: false, reason: 'not_configured', error: 'No ANTHROPIC_API_KEY configured' };
+      }
+    }
+    return res.json({ availability });
+  }
+
+  // FCC mode: fetch provider status + config from FCC admin API
+  try {
+    const token = process.env.ANTHROPIC_AUTH_TOKEN || 'freecc';
+
+    const [statusRes, configRes] = await Promise.all([
+      fetch(`${fccBaseUrl}/admin/api/status`, {
+        headers: { 'x-api-key': token },
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch(`${fccBaseUrl}/admin/api/config`, {
+        headers: { 'x-api-key': token },
+        signal: AbortSignal.timeout(5000),
+      }),
+    ]);
+
+    if (!statusRes.ok || !configRes.ok) {
+      console.error(`[FCC] /admin/api/status or /admin/api/config returned errors (${statusRes.status}, ${configRes.status})`);
+      for (const m of STANDARD_MODEL_VALUES) {
+        availability[m] = { available: false, reason: 'not_ready', error: 'Cannot reach FCC admin API' };
+      }
+      return res.json({ availability });
+    }
+
+    const statusData = await statusRes.json();
+    const config = await configRes.json();
+
+    // Build provider status map: { providerId: 'configured' | 'missing_key' | ... }
+    const providerStatusMap = {};
+    for (const p of (statusData.provider_status || [])) {
+      providerStatusMap[p.provider_id] = p;
+    }
+
+    // Check each standard model
+    for (const m of STANDARD_MODEL_VALUES) {
+      const fccVar = ALIAS_TO_FCC_VAR[m];
+      let resolvedModel = null;
+      if (fccVar) {
+        resolvedModel = config[fccVar] || config.MODEL || null;
+      } else {
+        // Non-standard alias — try the generic MODEL env var
+        resolvedModel = config.MODEL || m;
+      }
+
+      if (!resolvedModel) {
+        availability[m] = {
+          available: false,
+          reason: 'not_configured',
+          error: `No model mapping configured in FCC for "${m}". Set ${fccVar || 'MODEL'} in FCC Admin.`,
+        };
+        continue;
+      }
+
+      const providerId = resolvedModel.split('/')[0];
+      const providerInfo = providerStatusMap[providerId];
+
+      if (providerInfo && providerInfo.status === 'configured') {
+        availability[m] = { available: true };
+      } else if (providerInfo && providerInfo.status === 'missing_key') {
+        availability[m] = {
+          available: false,
+          reason: 'not_configured',
+          error: `${providerInfo.label || providerId} — no API key configured in FCC Admin`,
+        };
+      } else {
+        availability[m] = {
+          available: false,
+          reason: 'not_ready',
+          error: `Provider "${providerId}" status: ${providerInfo?.status || 'unknown'}. Check FCC Admin.`,
+        };
+      }
+    }
+  } catch (err) {
+    console.error('[FCC] Error checking model availability:', err.message);
+    for (const m of STANDARD_MODEL_VALUES) {
+      availability[m] = { available: false, reason: 'not_ready', error: err.message };
+    }
+  }
+
+  return res.json({ availability });
+});
 
 /**
  * Diagnose why a model failed through FCC by inspecting FCC's admin config.

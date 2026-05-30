@@ -6,7 +6,7 @@ import PermissionContext from '../../../contexts/PermissionContext';
 import ChatSessionContext from '../../../contexts/ChatSessionContext';
 import ChatProviderContext from '../../../contexts/ChatProviderContext';
 import { QuickSettingsPanel } from '../../quick-settings-panel';
-import type { ChatInterfaceProps, Provider  } from '../types/types';
+import type { ChatInterfaceProps  } from '../types/types';
 import type { LLMProvider } from '../../../types/app';
 import { useChatProviderState } from '../hooks/useChatProviderState';
 import { useChatSessionState } from '../hooks/useChatSessionState';
@@ -15,6 +15,7 @@ import { useChatPaginationPrimitives } from '../hooks/useChatPaginationPrimitive
 import { useChatRealtimeHandlers } from '../hooks/useChatRealtimeHandlers';
 import { useChatComposerState } from '../hooks/useChatComposerState';
 import { useSessionStore } from '../../../stores/useSessionStore';
+import { useMobileStatusStore } from '../../../stores/useMobileStatusStore';
 
 import ChatMessagesPane from './subcomponents/ChatMessagesPane';
 import ChatComposer from './subcomponents/ChatComposer';
@@ -27,6 +28,7 @@ type PendingViewSession = {
 };
 
 function ChatInterface({
+  isMobile = false,
   selectedProject,
   selectedSession,
   ws,
@@ -349,6 +351,28 @@ function ChatInterface({
     };
   }, [canAbortSession, handleAbortSession, isLoading]);
 
+  // Sync status state into the mobile bridge store so MobileClaudeStatusBar
+  // can display it from outside the ChatInterface component tree.
+  // Cleanup resets the store on unmount so the status bar doesn't remain
+  // stuck on "thinking" across tab switches (root cause of a mobile-only bug).
+  useEffect(() => {
+    if (!isMobile) return;
+    useMobileStatusStore.getState().sync({
+      isLoading,
+      status: claudeStatus,
+      provider,
+      onAbort: isLoading && canAbortSession ? handleAbortSession : null,
+    });
+    return () => {
+      useMobileStatusStore.getState().sync({
+        isLoading: false,
+        status: null,
+        provider: 'claude',
+        onAbort: null,
+      });
+    };
+  }, [isMobile, isLoading, claudeStatus, provider, canAbortSession, handleAbortSession]);
+
   useEffect(() => {
     return () => {
       resetStreamingState();
@@ -415,85 +439,88 @@ function ChatInterface({
           autoExpandTools={autoExpandTools}
           showRawParameters={showRawParameters}
           showThinking={showThinking}
+          isMobile={isMobile}
         />
 
-        <ChatComposer
-          pendingPermissionRequests={pendingPermissionRequests}
-          handlePermissionDecision={handlePermissionDecision}
-          handleGrantToolPermission={handleGrantToolPermission}
-          claudeStatus={claudeStatus}
-          isLoading={isLoading}
-          onAbortSession={handleAbortSession}
-          thinkingMode={thinkingMode}
-          setThinkingMode={setThinkingMode}
-          tokenBudget={tokenBudget}
-          slashCommandsCount={slashCommandsCount}
-          onToggleCommandMenu={handleToggleCommandMenu}
-          hasInput={Boolean(input.trim())}
-          onClearInput={handleClearInput}
-          isUserScrolledUp={isUserScrolledUp}
-          hasMessages={chatMessages.length > 0}
-          onScrollToBottom={scrollToBottomAndReset}
-          onSubmit={handleSubmit}
-          isDragActive={isDragActive}
-          attachedImages={attachedImages}
-          onRemoveImage={(index) =>
-            setAttachedImages((previous) =>
-              previous.filter((_, currentIndex) => currentIndex !== index),
-            )
-          }
-          uploadingImages={uploadingImages}
-          imageErrors={imageErrors}
-          attachedFiles={attachedFiles}
-          onRemoveFile={(index) =>
-            setAttachedFiles((previous) =>
-              previous.filter((_, currentIndex) => currentIndex !== index),
-            )
-          }
-          uploadingFiles={uploadingFiles}
-          fileErrors={fileErrors}
-          openFilePicker={openFilePicker}
-          showFileDropdown={showFileDropdown}
-          filteredFiles={filteredFiles}
-          selectedFileIndex={selectedFileIndex}
-          onSelectFile={selectFile}
-          filteredCommands={filteredCommands}
-          selectedCommandIndex={selectedCommandIndex}
-          onCommandSelect={handleCommandSelect}
-          onCloseCommandMenu={resetCommandMenuState}
-          isCommandMenuOpen={showCommandMenu}
-          frequentCommands={commandQuery ? [] : frequentCommands}
-          getRootProps={getRootProps as (...args: unknown[]) => Record<string, unknown>}
-          getInputProps={getInputProps as (...args: unknown[]) => Record<string, unknown>}
-          openImagePicker={openImagePicker}
-          inputHighlightRef={inputHighlightRef}
-          renderInputWithMentions={renderInputWithMentions}
-          textareaRef={textareaRef}
-          input={input}
-          onInputChange={handleInputChange}
-          onTextareaClick={handleTextareaClick}
-          onTextareaKeyDown={handleKeyDown}
-          onTextareaPaste={handlePaste}
-          onTextareaScrollSync={syncInputOverlayScroll}
-          onTextareaInput={handleTextareaInput}
-          onInputFocusChange={handleInputFocusChange}
-          placeholder={t('input.placeholder', {
-            provider:
-              provider === 'cursor'
-                ? t('messageTypes.cursor')
-                : provider === 'codex'
-                  ? t('messageTypes.codex')
-                  : provider === 'gemini'
-                    ? t('messageTypes.gemini')
-                    : t('messageTypes.claude'),
-          })}
-          isTextareaExpanded={isTextareaExpanded}
-          sendByCtrlEnter={sendByCtrlEnter}
-          onInsertTemplate={handleInsertTemplateWithPlaceholders}
-        />
+        {!isMobile && (
+          <ChatComposer
+            pendingPermissionRequests={pendingPermissionRequests}
+            handlePermissionDecision={handlePermissionDecision}
+            handleGrantToolPermission={handleGrantToolPermission}
+            claudeStatus={claudeStatus}
+            isLoading={isLoading}
+            onAbortSession={handleAbortSession}
+            thinkingMode={thinkingMode}
+            setThinkingMode={setThinkingMode}
+            tokenBudget={tokenBudget}
+            slashCommandsCount={slashCommandsCount}
+            onToggleCommandMenu={handleToggleCommandMenu}
+            hasInput={Boolean(input.trim())}
+            onClearInput={handleClearInput}
+            isUserScrolledUp={isUserScrolledUp}
+            hasMessages={chatMessages.length > 0}
+            onScrollToBottom={scrollToBottomAndReset}
+            onSubmit={handleSubmit}
+            isDragActive={isDragActive}
+            attachedImages={attachedImages}
+            onRemoveImage={(index) =>
+              setAttachedImages((previous) =>
+                previous.filter((_, currentIndex) => currentIndex !== index),
+              )
+            }
+            uploadingImages={uploadingImages}
+            imageErrors={imageErrors}
+            attachedFiles={attachedFiles}
+            onRemoveFile={(index) =>
+              setAttachedFiles((previous) =>
+                previous.filter((_, currentIndex) => currentIndex !== index),
+              )
+            }
+            uploadingFiles={uploadingFiles}
+            fileErrors={fileErrors}
+            openFilePicker={openFilePicker}
+            showFileDropdown={showFileDropdown}
+            filteredFiles={filteredFiles}
+            selectedFileIndex={selectedFileIndex}
+            onSelectFile={selectFile}
+            filteredCommands={filteredCommands}
+            selectedCommandIndex={selectedCommandIndex}
+            onCommandSelect={handleCommandSelect}
+            onCloseCommandMenu={resetCommandMenuState}
+            isCommandMenuOpen={showCommandMenu}
+            frequentCommands={commandQuery ? [] : frequentCommands}
+            getRootProps={getRootProps as (...args: unknown[]) => Record<string, unknown>}
+            getInputProps={getInputProps as (...args: unknown[]) => Record<string, unknown>}
+            openImagePicker={openImagePicker}
+            inputHighlightRef={inputHighlightRef}
+            renderInputWithMentions={renderInputWithMentions}
+            textareaRef={textareaRef}
+            input={input}
+            onInputChange={handleInputChange}
+            onTextareaClick={handleTextareaClick}
+            onTextareaKeyDown={handleKeyDown}
+            onTextareaPaste={handlePaste}
+            onTextareaScrollSync={syncInputOverlayScroll}
+            onTextareaInput={handleTextareaInput}
+            onInputFocusChange={handleInputFocusChange}
+            placeholder={t('input.placeholder', {
+              provider:
+                provider === 'cursor'
+                  ? t('messageTypes.cursor')
+                  : provider === 'codex'
+                    ? t('messageTypes.codex')
+                    : provider === 'gemini'
+                      ? t('messageTypes.gemini')
+                      : t('messageTypes.claude'),
+            })}
+            isTextareaExpanded={isTextareaExpanded}
+            sendByCtrlEnter={sendByCtrlEnter}
+            onInsertTemplate={handleInsertTemplateWithPlaceholders}
+          />
+        )}
       </div>
 
-      <QuickSettingsPanel />
+      {!isMobile && <QuickSettingsPanel />}
 
       <TemplatePlaceholderDialog
         open={pendingTemplate !== null}

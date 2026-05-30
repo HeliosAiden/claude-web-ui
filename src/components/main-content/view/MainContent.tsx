@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import ChatInterface from '../../chat/view/ChatInterface';
 import StandaloneShell from '../../standalone-shell/view/StandaloneShell';
@@ -7,10 +7,9 @@ import type { MainContentProps } from '../types/types';
 import { usePaletteOpsRegister } from '../../../contexts/PaletteOpsContext';
 import { useUiPreferences } from '../../../hooks/useUiPreferences';
 import EditorSidebar from '../../code-editor/view/EditorSidebar';
-
 import ContextHeader from '../../context-header/ContextHeader';
-import MainContentStateView from './subcomponents/MainContentStateView';
 
+import MainContentStateView from './subcomponents/MainContentStateView';
 import ErrorBoundary from './ErrorBoundary';
 
 function MainContent({
@@ -22,7 +21,6 @@ function MainContent({
   sendMessage,
   latestMessage,
   isMobile,
-  onMenuClick,
   isLoading,
   onInputFocusChange,
   onSessionActive,
@@ -35,7 +33,6 @@ function MainContent({
   externalMessageUpdate,
   newSessionTrigger,
   onSessionError,
-  activeActivity,
   projects = [],
   onProjectSelect,
   onNewSession,
@@ -47,7 +44,6 @@ function MainContent({
   resizeHandleRef,
   onFileOpen,
   onCloseEditor,
-  onCloseGitPanel,
   onToggleEditorExpand,
   onResizeStart,
 }: MainContentProps) {
@@ -61,11 +57,11 @@ function MainContent({
   });
 
   if (isLoading) {
-    return <MainContentStateView mode="loading" isMobile={isMobile} onMenuClick={onMenuClick} activeActivity={activeActivity} />;
+    return <MainContentStateView mode="loading" />;
   }
 
   if (!selectedProject) {
-    return <MainContentStateView mode="empty" isMobile={isMobile} onMenuClick={onMenuClick} activeActivity={activeActivity} />;
+    return <MainContentStateView mode="empty" />;
   }
 
   return (
@@ -80,14 +76,14 @@ function MainContent({
         onProjectSelect={onProjectSelect ?? (() => {})}
         onSessionSelect={(session) => onNavigateToSession(session.id)}
         onNewSession={onNewSession ?? (() => {})}
-        onMenuClick={onMenuClick}
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className={`flex min-h-0 min-w-[200px] flex-col overflow-hidden ${editorExpanded ? 'hidden' : ''} flex-1`}>
-          <div className={`h-full ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
+          <div className={`h-full ${activeTab === 'chat' || isMobile ? 'block' : 'hidden'}`}>
             <ErrorBoundary showDetails>
               <ChatInterface
+                isMobile={isMobile}
                 selectedProject={selectedProject}
                 selectedSession={selectedSession}
                 ws={ws}
@@ -114,7 +110,7 @@ function MainContent({
             </ErrorBoundary>
           </div>
 
-          {activeTab === 'shell' && (
+          {activeTab === 'shell' && !isMobile && (
             <div className="h-full w-full overflow-hidden">
               <StandaloneShell
                 project={selectedProject}

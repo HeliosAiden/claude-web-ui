@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { MouseEvent, MutableRefObject } from 'react';
+
 import type { Project } from '../../../types/app';
 import type { CodeEditorDiffInfo, CodeEditorFile } from '../types/types';
+
 import CodeEditor from './CodeEditor';
 import GitEditorPanel from './subcomponents/GitEditorPanel';
 

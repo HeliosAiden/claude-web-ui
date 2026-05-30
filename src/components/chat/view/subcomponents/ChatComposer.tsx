@@ -12,17 +12,9 @@ import type {
   TouchEvent,
 } from 'react';
 import { ImageIcon, PaperclipIcon, MessageSquareIcon, XIcon, ArrowDownIcon } from 'lucide-react';
-import type { PendingPermissionRequest, PermissionMode, Provider } from '../../types/types';
+
+import type { PendingPermissionRequest } from '../../types/types';
 import type { LLMProvider } from '../../../../types/app';
-import CommandMenu from './CommandMenu';
-import ClaudeStatus from './ClaudeStatus';
-import ImageAttachment from './ImageAttachment';
-import FileAttachment from './FileAttachment';
-import PermissionRequestsBanner from './PermissionRequestsBanner';
-import ThinkingModeSelector from './ThinkingModeSelector';
-import TokenUsagePie from './TokenUsagePie';
-import ModelSelectorButton from './ModelSelectorButton';
-import TemplatePickerPopover from './TemplatePickerPopover';
 import {
   PromptInput,
   PromptInputHeader,
@@ -34,6 +26,16 @@ import {
   PromptInputSubmit,
 } from '../../../../shared/view/ui';
 import { useChatProviderContext } from '../../../../contexts/ChatProviderContext';
+
+import CommandMenu from './CommandMenu';
+import ClaudeStatus from './ClaudeStatus';
+import ImageAttachment from './ImageAttachment';
+import FileAttachment from './FileAttachment';
+import PermissionRequestsBanner from './PermissionRequestsBanner';
+import ThinkingModeSelector from './ThinkingModeSelector';
+import TokenUsagePie from './TokenUsagePie';
+import ModelSelectorButton from './ModelSelectorButton';
+import TemplatePickerPopover from './TemplatePickerPopover';
 
 interface MentionableFile {
   name: string;
@@ -284,8 +286,8 @@ export default function ChatComposer({
           )}
 
           {/* Settings bar — model, permission mode, thinking, token usage */}
-          <PromptInputHeader>
-            <div className="flex items-center gap-2 flex-wrap">
+          <PromptInputHeader className="mobile-composer-header">
+            <div className="flex flex-wrap items-center gap-2">
               <ModelSelectorButton
                 provider={provider as LLMProvider}
                 setProvider={setProvider}
@@ -403,7 +405,7 @@ export default function ChatComposer({
         </PromptInputBody>
 
         <PromptInputFooter>
-          <PromptInputTools>
+          <PromptInputTools className="mobile-composer-tools">
             <PromptInputButton
               tooltip={{ content: t('input.attachImages') }}
               onClick={openImagePicker}
@@ -445,7 +447,7 @@ export default function ChatComposer({
               <PromptInputButton
                 tooltip={{ content: t('input.clearInput', { defaultValue: 'Clear input' }) }}
                 onClick={onClearInput}
-                className="hidden sm:No-flex"
+                className="sm:No-flex hidden"
               >
                 <XIcon />
               </PromptInputButton>

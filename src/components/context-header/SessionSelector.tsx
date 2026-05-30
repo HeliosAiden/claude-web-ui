@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ChevronDown, MessageSquare } from 'lucide-react';
+
 import { cn } from '../../lib/utils';
+
 import type { SessionSelectorProps } from './types';
 
 function SessionSelector({ sessions, selectedSession, onSessionSelect, visible }: SessionSelectorProps) {
@@ -34,7 +36,7 @@ function SessionSelector({ sessions, selectedSession, onSessionSelect, visible }
           !selectedSession && 'text-muted-foreground italic',
         )}
       >
-        <MessageSquare className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+        <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
         <span className="max-w-[160px] truncate">{sessionLabel}</span>
         <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', open && 'rotate-180')} />
       </button>
@@ -46,7 +48,7 @@ function SessionSelector({ sessions, selectedSession, onSessionSelect, visible }
             onClick={() => setOpen(false)}
             aria-label="Close session selector"
           />
-          <div className="absolute left-0 top-full mt-1 z-40 w-72 rounded-lg border border-border/50 bg-popover shadow-lg">
+          <div className="absolute left-0 top-full z-40 mt-1 w-72 rounded-lg border border-border/50 bg-popover shadow-lg">
             <div className="max-h-72 overflow-y-auto py-1">
               {sessions.map((session) => (
                 <button
@@ -59,13 +61,13 @@ function SessionSelector({ sessions, selectedSession, onSessionSelect, visible }
                     selectedSession?.id === session.id && 'bg-accent/40 font-medium',
                   )}
                 >
-                  <MessageSquare className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate">
                       {session.summary || session.name || 'Untitled Session'}
                     </p>
                     {session.__provider && (
-                      <p className="text-[11px] text-muted-foreground capitalize">
+                      <p className="text-[11px] capitalize text-muted-foreground">
                         {session.__provider}
                       </p>
                     )}
@@ -84,7 +86,7 @@ function SessionSelector({ sessions, selectedSession, onSessionSelect, visible }
             onClick={() => setOpen(false)}
             aria-label="Close session selector"
           />
-          <div className="absolute left-0 top-full mt-1 z-40 w-56 rounded-lg border border-border/50 bg-popover shadow-lg">
+          <div className="absolute left-0 top-full z-40 mt-1 w-56 rounded-lg border border-border/50 bg-popover shadow-lg">
             <p className="px-3 py-6 text-center text-xs text-muted-foreground">
               No sessions available
             </p>

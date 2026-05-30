@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import { Maximize2, Minimize2, X } from 'lucide-react';
+
 import type { Project } from '../../../../types/app';
 import type { CodeEditorDiffInfo } from '../../types/types';
-import type { FileDiffInfo } from '../../../git-panel/types/types';
+import type { FileDiffInfo, ConfirmationRequest  } from '../../../git-panel/types/types';
 import { useGitPanelController } from '../../../git-panel/hooks/useGitPanelController';
 import ChangesView from '../../../git-panel/view/changes/ChangesView';
 import ConfirmActionModal from '../../../git-panel/view/modals/ConfirmActionModal';
-import type { ConfirmationRequest } from '../../../git-panel/types/types';
 
 type GitEditorPanelProps = {
   selectedProject: Project | null;

@@ -1,5 +1,6 @@
 import { ArrowUpCircle } from 'lucide-react';
 import type { TFunction } from 'i18next';
+
 import type { ReleaseInfo } from '../../../../types/sharedTypes';
 
 type SidebarFooterProps = {
@@ -22,7 +23,10 @@ export default function SidebarFooter({
   t,
 }: SidebarFooterProps) {
   return (
-    <div className="flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+    <div
+      className="flex-shrink-0"
+      style={{ paddingBottom: 'var(--mobile-scroll-bottom-inset, env(safe-area-inset-bottom, 0px))' }}
+    >
       {/* Update banner */}
       {updateAvailable && (
         <>

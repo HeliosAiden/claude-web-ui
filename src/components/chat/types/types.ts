@@ -113,6 +113,7 @@ export type SessionNavigationOptions = {
 };
 
 export interface ChatInterfaceProps {
+  isMobile?: boolean;
   selectedProject: Project | null;
   selectedSession: ProjectSession | null;
   ws: WebSocket | null;

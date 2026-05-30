@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { MessageSquare } from 'lucide-react';
+
 import { IS_PLATFORM } from '../../../constants/config';
 
 type AuthScreenLayoutProps = {

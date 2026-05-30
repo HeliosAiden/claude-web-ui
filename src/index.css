@@ -673,10 +673,10 @@
     }
     
     /* Only disable hover states for interactive elements, not containers */
-    button:hover,
-    [role="button"]:hover,
-    .cursor-pointer:hover,
-    a:hover,
+    button:not([style*="background-color"]):hover,
+    [role="button"]:not([style*="background-color"]):hover,
+    .cursor-pointer:not([style*="background-color"]):hover,
+    a:not([style*="background-color"]):hover,
     .hover\:bg-gray-50:hover,
     .hover\:bg-gray-100:hover,
     .hover\:text-gray-900:hover,
@@ -723,12 +723,6 @@
     }
   }
   
-  @media screen and (max-width: 768px) {
-    .chat-input-mobile {
-      padding-bottom: calc(60px + env(safe-area-inset-bottom));
-    }
-  }
-
   /* Text wrapping improvements */
   .chat-message {
     word-wrap: break-word;
@@ -1015,4 +1009,126 @@
       transition: none;
     }
   }
+
+  /* ── Mobile workspace scope (Phase 1 Foundation) ── */
+  /* All mobile-specific tokens are scoped under [data-layout="mobile"]
+     so desktop can never be accidentally styled. */
+
+  [data-layout="mobile"] {
+    --mobile-topbar-height: 0px;
+    --mobile-nav-height: 52px;
+    --mobile-composer-min-height: 44px;
+    --mobile-scroll-bottom-inset: 8px;
+    --mobile-touch-min: 44px;
+  }
+
+  /* Touch target baseline — 44x44pt per Apple HIG / Material Design */
+  .mobile-touch-target {
+    min-height: var(--mobile-touch-min, 44px);
+    min-width: var(--mobile-touch-min, 44px);
+  }
+
+  /* Focus ring — visible on all devices, respects reduced motion */
+  .mobile-focus-ring:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ── Phase 2: Mobile workspace grid layout ── */
+
+  [data-layout="mobile"].mobile-workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    height: 100vh; /* fallback for browsers without dvh */
+
+    /* BottomNavigation is position:fixed and removed from flow, so the flex-1
+       SwipeAnimatedPageView would otherwise fill the full 100dvh and extend
+       behind the nav bar. This padding constrains the flex children to the
+       visible area above the nav. */
+    padding-bottom: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  /* ── Phase 2: Mobile scroll padding ── */
+
+  [data-layout="mobile"] .chat-messages-scroll-container {
+    padding-bottom: var(--mobile-scroll-bottom-inset) !important;
+  }
+
+  /* When the Ask Model bottom sheet is open, reserve space so the last
+     messages aren't hidden behind the sheet (max-height: 40vh). */
+  [data-layout="mobile"][data-sheet-open] .chat-messages-scroll-container {
+    /* The workspace already reserves var(--mobile-nav-height) + safe-area for
+       the fixed nav. The sheet (max-height: 40vh) sits above the nav, so we
+       only need to add 40vh + breathing room to keep the last messages visible
+       above the sheet. */
+    padding-bottom: calc(40vh + 1rem) !important;
+  }
+
+  /* ── Phase 2: Keyboard open overrides ── */
+
+  /* Collapse composer secondary chrome when keyboard is open on mobile */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-header,
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-tools {
+    display: none !important;
+  }
+
+  /* Hide bottom nav when keyboard is open on mobile */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  /* Composer bar positioning: above nav when closed, flush above keyboard when open */
+  [data-layout="mobile"] .mobile-composer-bar {
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  }
+  html[data-keyboard-open="true"] [data-layout="mobile"] .mobile-composer-bar {
+    bottom: var(--keyboard-height, 0px);
+  }
+
+  /* Prevent drag handle interaction when keyboard is open */
+  html[data-keyboard-open="true"] [data-layout="mobile"] .bottom-sheet-drag-handle {
+    pointer-events: none;
+    opacity: 0.3;
+  }
+
+  /* ── Phase 2: Mobile route slide animations ── */
+
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-out-left {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+  @keyframes slide-in-left {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-out-right {
+    from { transform: translateX(0); }
+    to { transform: translateX(100%); }
+  }
+
+  [data-layout="mobile"] .animate-slide-in-right {
+    animation: slide-in-right 250ms ease-out forwards;
+    will-change: transform;
+  }
+  [data-layout="mobile"] .animate-slide-out-left {
+    animation: slide-out-left 250ms ease-out forwards;
+    will-change: transform;
+  }
+  [data-layout="mobile"] .animate-slide-in-left {
+    animation: slide-in-left 250ms ease-out forwards;
+    will-change: transform;
+  }
+  [data-layout="mobile"] .animate-slide-out-right {
+    animation: slide-out-right 250ms ease-out forwards;
+    will-change: transform;
+  }
+
 }

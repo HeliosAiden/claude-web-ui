@@ -103,8 +103,13 @@ temp/
 .github/
 .husky/
 
+# Test results
+test-results/
+
 # AI specific
 .claude/
+docs/superpowers/
+.codex
 .cursor/
 .roo/
 .taskmaster/

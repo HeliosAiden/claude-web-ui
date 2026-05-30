@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { MutableRefObject } from 'react';
 
 import { authenticatedFetch } from '../../../utils/api';
 import { useSessionStore } from '../../../stores/useSessionStore';
@@ -7,8 +7,8 @@ import type { NormalizedMessage } from '../../../stores/useSessionStore';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
 import type { ChatMessage, Provider } from '../types/types';
 import { createCachedDiffCalculator, type DiffCalculator } from '../utils/messageTransforms';
-import type { ChatPaginationPrimitives } from './useChatPaginationPrimitives';
 
+import type { ChatPaginationPrimitives } from './useChatPaginationPrimitives';
 import { normalizedToChatMessages } from './useChatMessages';
 
 const EMPTY_MESSAGES: NormalizedMessage[] = [];
@@ -125,8 +125,10 @@ export function useChatSessionState({
   }>>([]);
 
   const [searchTarget, setSearchTarget] = useState<{ timestamp?: string; uuid?: string; snippet?: string } | null>(null);
+  const [bookmarkChangeTick, setBookmarkChangeTick] = useState(0);
   const searchScrollActiveRef = useRef(false);
   const isLoadingSessionRef = useRef(false);
+  const initialMountRef = useRef(true); // reset on remount (tab switch); guards processingSessions effect
   const previousNewSessionTriggerRef = useRef(newSessionTrigger ?? 0);
   const lastLoadedSessionKeyRef = useRef<string | null>(null);
 
@@ -241,7 +243,14 @@ export function useChatSessionState({
       .catch(() => {});
 
     return () => { cancelled = true; };
-  }, [activeSessionId]);
+  }, [activeSessionId, bookmarkChangeTick]);
+
+  // Listen for bookmark-changed custom event to refetch immediately
+  useEffect(() => {
+    const handler = () => { setBookmarkChangeTick((t) => t + 1); };
+    window.addEventListener('bookmark-changed', handler);
+    return () => window.removeEventListener('bookmark-changed', handler);
+  }, []);
 
   /* ---------------------------------------------------------------- */
   /*  addMessage / clearMessages / rewindMessages                     */
@@ -500,8 +509,18 @@ export function useChatSessionState({
     fetchInitialTokenUsage();
   }, [selectedProject, selectedSession?.id, selectedSession?.__provider]);
 
-  // Processing sessions sync
+  // Processing sessions sync — on the very first run after mount/remount,
+  // skip so the authoritative check-session-status response can arrive
+  // first. Subsequent runs (triggered by isLoading, processingSessions, or
+  // currentSessionId changes) proceed normally. Without this guard,
+  // processingSessions eagerly re-sets isLoading=true before the
+  // check-session-status round-trip completes, causing a false→true
+  // transition that makes the status bar timer reset and appear stuck.
   useEffect(() => {
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      return;
+    }
     const activeViewSessionId = selectedSession?.id || currentSessionId;
     if (!activeViewSessionId || !processingSessions) return;
     const shouldBeProcessing = processingSessions.has(activeViewSessionId);
