@@ -353,6 +353,8 @@ function ChatInterface({
 
   // Sync status state into the mobile bridge store so MobileClaudeStatusBar
   // can display it from outside the ChatInterface component tree.
+  // Cleanup resets the store on unmount so the status bar doesn't remain
+  // stuck on "thinking" across tab switches (root cause of a mobile-only bug).
   useEffect(() => {
     if (!isMobile) return;
     useMobileStatusStore.getState().sync({
@@ -361,6 +363,14 @@ function ChatInterface({
       provider,
       onAbort: isLoading && canAbortSession ? handleAbortSession : null,
     });
+    return () => {
+      useMobileStatusStore.getState().sync({
+        isLoading: false,
+        status: null,
+        provider: 'claude',
+        onAbort: null,
+      });
+    };
   }, [isMobile, isLoading, claudeStatus, provider, canAbortSession, handleAbortSession]);
 
   useEffect(() => {

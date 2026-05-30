@@ -167,12 +167,14 @@ export function useChatRealtimeHandlers({
             if (isCurrentSession) { setIsLoading(true); setCanAbortSession(true); }
             return;
           }
-          onSessionInactive?.(statusSessionId);
-          onSessionNotProcessing?.(statusSessionId);
+          // Always clear loading state, even when session IDs diverge,
+          // to prevent a permanently stuck status bar.
+          setIsLoading(false);
+          setCanAbortSession(false);
+          setClaudeStatus(null);
           if (isCurrentSession) {
-            setIsLoading(false);
-            setCanAbortSession(false);
-            setClaudeStatus(null);
+            onSessionInactive?.(statusSessionId);
+            onSessionNotProcessing?.(statusSessionId);
           }
           return;
         }

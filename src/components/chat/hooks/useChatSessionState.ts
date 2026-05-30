@@ -127,6 +127,7 @@ export function useChatSessionState({
   const [searchTarget, setSearchTarget] = useState<{ timestamp?: string; uuid?: string; snippet?: string } | null>(null);
   const searchScrollActiveRef = useRef(false);
   const isLoadingSessionRef = useRef(false);
+  const initialMountRef = useRef(true); // reset on remount (tab switch); guards processingSessions effect
   const previousNewSessionTriggerRef = useRef(newSessionTrigger ?? 0);
   const lastLoadedSessionKeyRef = useRef<string | null>(null);
 
@@ -500,8 +501,18 @@ export function useChatSessionState({
     fetchInitialTokenUsage();
   }, [selectedProject, selectedSession?.id, selectedSession?.__provider]);
 
-  // Processing sessions sync
+  // Processing sessions sync — on the very first run after mount/remount,
+  // skip so the authoritative check-session-status response can arrive
+  // first. Subsequent runs (triggered by isLoading, processingSessions, or
+  // currentSessionId changes) proceed normally. Without this guard,
+  // processingSessions eagerly re-sets isLoading=true before the
+  // check-session-status round-trip completes, causing a false→true
+  // transition that makes the status bar timer reset and appear stuck.
   useEffect(() => {
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      return;
+    }
     const activeViewSessionId = selectedSession?.id || currentSessionId;
     if (!activeViewSessionId || !processingSessions) return;
     const shouldBeProcessing = processingSessions.has(activeViewSessionId);
