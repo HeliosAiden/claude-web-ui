@@ -125,6 +125,7 @@ export function useChatSessionState({
   }>>([]);
 
   const [searchTarget, setSearchTarget] = useState<{ timestamp?: string; uuid?: string; snippet?: string } | null>(null);
+  const [bookmarkChangeTick, setBookmarkChangeTick] = useState(0);
   const searchScrollActiveRef = useRef(false);
   const isLoadingSessionRef = useRef(false);
   const initialMountRef = useRef(true); // reset on remount (tab switch); guards processingSessions effect
@@ -242,7 +243,14 @@ export function useChatSessionState({
       .catch(() => {});
 
     return () => { cancelled = true; };
-  }, [activeSessionId]);
+  }, [activeSessionId, bookmarkChangeTick]);
+
+  // Listen for bookmark-changed custom event to refetch immediately
+  useEffect(() => {
+    const handler = () => { setBookmarkChangeTick((t) => t + 1); };
+    window.addEventListener('bookmark-changed', handler);
+    return () => window.removeEventListener('bookmark-changed', handler);
+  }, []);
 
   /* ---------------------------------------------------------------- */
   /*  addMessage / clearMessages / rewindMessages                     */

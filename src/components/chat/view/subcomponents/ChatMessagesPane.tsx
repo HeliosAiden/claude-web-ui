@@ -9,11 +9,9 @@ import { authenticatedFetch } from '../../../../utils/api';
 import { useChatSessionContext } from '../../../../contexts/ChatSessionContext';
 import { useChatProviderContext } from '../../../../contexts/ChatProviderContext';
 import { useConversationSearchStore } from '../../../../stores/useConversationSearchStore';
-import { useBookmarksOverlayStore } from '../../../../stores/useBookmarksOverlayStore';
 
 import MessageComponent from './MessageComponent';
 import ChatFindWidget from './ChatFindWidget';
-import ChatBookmarksOverlay from './ChatBookmarksOverlay';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
 
 function getMessageSearchText(message: ChatMessage): string {
@@ -181,7 +179,6 @@ export default function ChatMessagesPane({
 
   // Mobile conversation search trigger — subscribes to the store
   const csOpen = useConversationSearchStore((s) => s.open);
-  const bookmarksOverlayOpen = useBookmarksOverlayStore((s) => s.open);
   useEffect(() => {
     if (!csOpen) return;
     // Open the find widget and clear the store flag
@@ -478,19 +475,6 @@ export default function ChatMessagesPane({
                 onNext={handleFindNext}
                 onPrev={handleFindPrev}
                 onClose={handleFindClose}
-              />
-            </div>
-          )}
-
-          {/* Bookmarks overlay */}
-          {bookmarksOverlayOpen && (
-            <div className="sticky top-2 z-30">
-              <ChatBookmarksOverlay
-                bookmarks={pinnedBookmarks}
-                scrollContainerRef={scrollContainerRef}
-                allMessagesLoaded={allMessagesLoaded}
-                loadAllMessages={loadAllMessages}
-                onClose={() => useBookmarksOverlayStore.setState({ open: false })}
               />
             </div>
           )}
