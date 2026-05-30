@@ -369,7 +369,7 @@ export default function BottomSheetContent({ selectedEffort, onEffortChange, per
       {/* Other Actions — stubs for future mobile features */}
       <SectionHeader label="Other Actions" icon={Zap} />
       <div className="flex flex-col gap-0.5">
-        <ActionRow icon={Search} label="Search" description="Search all conversations" onClick={() => { onClose?.(); triggerConversationSearch(); }} trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} />
+        <ActionRow icon={Search} label="Search" description="Search this conversation" onClick={() => { onClose?.(); triggerConversationSearch(); }} trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} />
         <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" />
         <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" />
       </div>
