@@ -439,6 +439,7 @@ function ChatInterface({
           autoExpandTools={autoExpandTools}
           showRawParameters={showRawParameters}
           showThinking={showThinking}
+          isMobile={isMobile}
         />
 
         {!isMobile && (

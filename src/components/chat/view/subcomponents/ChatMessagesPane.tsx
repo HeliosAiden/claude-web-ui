@@ -13,7 +13,6 @@ import { useBookmarksOverlayStore } from '../../../../stores/useBookmarksOverlay
 
 import MessageComponent from './MessageComponent';
 import ChatFindWidget from './ChatFindWidget';
-import ChatBookmarksOverlay from './ChatBookmarksOverlay';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
 
 function getMessageSearchText(message: ChatMessage): string {
@@ -35,6 +34,7 @@ interface ChatMessagesPaneProps {
   autoExpandTools?: boolean;
   showRawParameters?: boolean;
   showThinking?: boolean;
+  isMobile?: boolean;
 }
 
 export default function ChatMessagesPane({
@@ -47,6 +47,7 @@ export default function ChatMessagesPane({
   autoExpandTools,
   showRawParameters,
   showThinking,
+  isMobile = false,
 }: ChatMessagesPaneProps) {
   const { t } = useTranslation('chat');
   const {
@@ -107,6 +108,7 @@ export default function ChatMessagesPane({
   }, []);
 
   const [pinnedExpanded, setPinnedExpanded] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(true);
   const [pinnedCycleIndex, setPinnedCycleIndex] = useState(-1);
   const prevPinnedLenRef = useRef(0);
 
@@ -152,8 +154,9 @@ export default function ChatMessagesPane({
     findMatchMessageUuidsRef.current = new Set(matchedUuids);
   }, [findOpen, findQuery, chatMessages]);
 
-  // Ctrl+F handler to open find widget
+  // Ctrl+F handler to open find widget (disabled on mobile — search via bottom sheet only)
   useEffect(() => {
+    if (isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key === 'f') {
@@ -181,7 +184,6 @@ export default function ChatMessagesPane({
 
   // Mobile conversation search trigger — subscribes to the store
   const csOpen = useConversationSearchStore((s) => s.open);
-  const bookmarksOverlayOpen = useBookmarksOverlayStore((s) => s.open);
   useEffect(() => {
     if (!csOpen) return;
     // Open the find widget and clear the store flag
@@ -194,6 +196,16 @@ export default function ChatMessagesPane({
       useConversationSearchStore.setState({ open: false });
     }, 0);
   }, [csOpen]);
+
+  // Mobile bookmarks toggle — subscribes to the store, shows/hides pinned bar
+  const bookmarksOverlayOpen = useBookmarksOverlayStore((s) => s.open);
+  useEffect(() => {
+    if (!bookmarksOverlayOpen) return;
+    setPinnedOpen(true);
+    setTimeout(() => {
+      useBookmarksOverlayStore.setState({ open: false });
+    }, 0);
+  }, [bookmarksOverlayOpen]);
 
   // Scroll to current find match
   const scrollToFindMatch = useCallback(async (uuid: string) => {
@@ -410,7 +422,7 @@ export default function ChatMessagesPane({
           )}
 
           {/* Pinned bookmarked messages */}
-          {pinnedBookmarks.length > 0 && (
+          {pinnedBookmarks.length > 0 && pinnedOpen && (
             <div className="sticky top-0 z-10 mx-3 transition-all duration-300 ease-in-out sm:mx-0">
               <div className="animate-in fade-in slide-in-from-top-2 rounded-lg border border-yellow-200/60 bg-yellow-50/80 shadow-sm backdrop-blur-sm duration-300 dark:border-yellow-800/30 dark:bg-yellow-950/40">
                 <div className="flex items-center justify-between px-3 py-1.5">
@@ -419,19 +431,29 @@ export default function ChatMessagesPane({
                     <span>Pinned</span>
                     <span className="text-yellow-500/60">({pinnedBookmarks.length})</span>
                   </div>
-                  {pinnedBookmarks.length > 1 && (
+                  <div className="flex items-center gap-1">
+                    {pinnedBookmarks.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setPinnedExpanded((prev) => !prev)}
+                        className="rounded p-0.5 text-yellow-600 transition-transform duration-200 hover:bg-yellow-100 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
+                      >
+                        {pinnedExpanded ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setPinnedExpanded((prev) => !prev)}
-                      className="rounded p-0.5 text-yellow-600 transition-transform duration-200 hover:bg-yellow-100 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
+                      onClick={() => setPinnedOpen(false)}
+                      className="rounded p-0.5 text-yellow-600 hover:bg-yellow-100 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
+                      title="Close"
                     >
-                      {pinnedExpanded ? (
-                        <ChevronUp className="h-3.5 w-3.5" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      )}
+                      <X className="h-3.5 w-3.5" />
                     </button>
-                  )}
+                  </div>
                 </div>
                 <div className="space-y-px border-t border-yellow-200/40 dark:border-yellow-800/20">
                   {pinnedVisible.map((bk) => (
@@ -479,19 +501,6 @@ export default function ChatMessagesPane({
                 onNext={handleFindNext}
                 onPrev={handleFindPrev}
                 onClose={handleFindClose}
-              />
-            </div>
-          )}
-
-          {/* Bookmarks overlay */}
-          {bookmarksOverlayOpen && (
-            <div className="sticky top-2 z-30">
-              <ChatBookmarksOverlay
-                bookmarks={pinnedBookmarks}
-                scrollContainerRef={scrollContainerRef}
-                allMessagesLoaded={allMessagesLoaded}
-                loadAllMessages={loadAllMessages}
-                onClose={() => useBookmarksOverlayStore.setState({ open: false })}
               />
             </div>
           )}
