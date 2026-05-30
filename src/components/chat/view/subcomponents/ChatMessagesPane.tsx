@@ -12,6 +12,7 @@ import { useChatProviderContext } from '../../../../contexts/ChatProviderContext
 import MessageComponent from './MessageComponent';
 import ChatFindWidget from './ChatFindWidget';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
+import { useConversationSearchStore } from '../../../../stores/useConversationSearchStore';
 
 function getMessageSearchText(message: ChatMessage): string {
   return [
@@ -175,6 +176,21 @@ export default function ChatMessagesPane({
     document.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [findOpen]);
+
+  // Mobile conversation search trigger — subscribes to the store
+  const csOpen = useConversationSearchStore((s) => s.open);
+  useEffect(() => {
+    if (!csOpen) return;
+    // Open the find widget and clear the store flag
+    setFindOpen(true);
+    setFindQuery('');
+    setFindMatches([]);
+    setFindCurrentIndex(0);
+    // Small timeout to avoid re-triggering during the same render cycle
+    setTimeout(() => {
+      useConversationSearchStore.setState({ open: false });
+    }, 0);
+  }, [csOpen]);
 
   // Scroll to current find match
   const scrollToFindMatch = useCallback(async (uuid: string) => {
