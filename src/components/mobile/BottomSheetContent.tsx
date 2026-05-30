@@ -114,6 +114,7 @@ interface BottomSheetContentProps {
   permissionMode: string;
   cyclePermissionMode: () => void;
   onStartComposing: () => void;
+  onOpenPromptTemplates?: () => void;
   selectedModel?: string;
   onModelSelect?: (model: string) => void;
   selectedProvider: string;
@@ -122,7 +123,7 @@ interface BottomSheetContentProps {
   modelAvailability?: ModelAvailabilityMap;
 }
 
-export default function BottomSheetContent({ selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, selectedModel, onModelSelect, selectedProvider, onProviderSelect, fccModels, modelAvailability, onClose }: BottomSheetContentProps) {
+export default function BottomSheetContent({ selectedEffort, onEffortChange, permissionMode, cyclePermissionMode, onStartComposing, onOpenPromptTemplates, selectedModel, onModelSelect, selectedProvider, onProviderSelect, fccModels, modelAvailability, onClose }: BottomSheetContentProps) {
   const modelInfo = useMemo(() => {
     const storedProvider = selectedProvider;
     const providerName = getProviderDisplayName(storedProvider);
@@ -372,7 +373,7 @@ export default function BottomSheetContent({ selectedEffort, onEffortChange, per
       <div className="flex flex-col gap-0.5">
         <ActionRow icon={Search} label="Search" description="Search this conversation" onClick={() => { onClose?.(); triggerConversationSearch(); }} trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} />
         <ActionRow icon={Bookmark} label="Bookmarks" description="View saved bookmarks" onClick={() => { onClose?.(); triggerBookmarksOverlay(); }} />
-        <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" />
+        <ActionRow icon={FileText} label="Prompt Templates" description="View saved templates" onClick={onOpenPromptTemplates} />
       </div>
     </div>
   );

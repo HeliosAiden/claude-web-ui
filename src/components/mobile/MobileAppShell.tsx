@@ -55,6 +55,8 @@ export default function MobileAppShell({
     const saved = selectedSession?.id ? localStorage.getItem(`permissionMode-${selectedSession.id}`) : null;
     return (saved as PermissionMode) || 'default';
   });
+  const [showPromptTemplates, setShowPromptTemplates] = useState(false);
+  const [pendingTemplateContent, setPendingTemplateContent] = useState('');
   const [fccModels, setFccModels] = useState<{ value: string; label: string }[]>([]);
   const [modelAvailability, setModelAvailability] = useState<ModelAvailabilityMap>({});
   const { sendMessage } = useWebSocket();
@@ -177,6 +179,23 @@ export default function MobileAppShell({
     setComposerActive(false);
   }, []);
 
+  const handleOpenPromptTemplates = useCallback(() => {
+    setSheetOpen(false);
+    setShowPromptTemplates(true);
+  }, []);
+
+  const handleSelectTemplate = useCallback((content: string) => {
+    setPendingTemplateContent(content);
+    setShowPromptTemplates(false);
+    setComposerActive(true);
+    // Reset on next tick so ChatComposerBar's effect captures it first
+    setTimeout(() => setPendingTemplateContent(''), 0);
+  }, []);
+
+  const handleTemplateBack = useCallback(() => {
+    setShowPromptTemplates(false);
+  }, []);
+
   const handleSendMessage = useCallback((text: string) => {
     if (!text.trim() || !selectedProject) return;
 
@@ -238,7 +257,7 @@ export default function MobileAppShell({
         preloadedFileTree={fileTreeData}
       />
     ),
-    chat: <ChatPage mainContent={mainContent} />,
+    chat: <ChatPage mainContent={mainContent} showTemplates={showPromptTemplates} onTemplateSelect={handleSelectTemplate} onTemplateBack={handleTemplateBack} />,
     git: (
       <GitPage
         selectedProject={selectedProject}
@@ -252,6 +271,7 @@ export default function MobileAppShell({
   }), [
     sidebarContent, selectedProject, onFileOpen, handleNavigateToConversations,
     handleOpenGitPanel, mainContent, fileTreeData, gitController,
+    showPromptTemplates, handleSelectTemplate, handleTemplateBack,
   ]);
 
   return (
@@ -278,6 +298,7 @@ export default function MobileAppShell({
           permissionMode={permissionMode}
           cyclePermissionMode={handleCyclePermissionMode}
           onStartComposing={handleStartComposing}
+          onOpenPromptTemplates={handleOpenPromptTemplates}
           selectedModel={selectedModel}
           onModelSelect={handleModelSelect}
           selectedProvider={selectedProvider}
@@ -288,7 +309,7 @@ export default function MobileAppShell({
         />
       </BottomSheet>
 
-      {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} fccModels={fccModels} modelAvailability={modelAvailability} />}
+      {composerActive && <ChatComposerBar onBlur={handleComposerBlur} onSend={handleSendMessage} fccModels={fccModels} modelAvailability={modelAvailability} initialContent={pendingTemplateContent} onOpenPromptTemplates={handleOpenPromptTemplates} />}
 
       {/* Bottom navigation */}
       <BottomNavigation

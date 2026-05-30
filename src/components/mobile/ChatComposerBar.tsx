@@ -28,7 +28,7 @@ function getProviderDisplayName(p: string) {
   return 'Gemini';
 }
 
-function AttachmentsPanel() {
+function AttachmentsPanel({ onOpenPromptTemplates }: { onOpenPromptTemplates?: () => void }) {
   return (
     <div className="animate-in slide-in-from-bottom-2 space-y-1 px-1 py-2 duration-200">
       <div className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -38,6 +38,7 @@ function AttachmentsPanel() {
         <button
           key={opt.label}
           type="button"
+          onClick={opt.label === 'Use prompt templates' ? onOpenPromptTemplates : undefined}
           className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-colors duration-150 hover:bg-accent/50 active:bg-accent"
         >
           <opt.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -58,9 +59,11 @@ interface ChatComposerBarProps {
   onSend: (text: string) => void;
   fccModels?: { value: string; label: string }[];
   modelAvailability?: ModelAvailabilityMap;
+  initialContent?: string;
+  onOpenPromptTemplates?: () => void;
 }
 
-export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, modelAvailability }: ChatComposerBarProps) {
+export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, modelAvailability, initialContent, onOpenPromptTemplates }: ChatComposerBarProps) {
   const [showAttachments, setShowAttachments] = useState(false);
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -108,6 +111,13 @@ export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, mo
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
+
+  // Pre-fill textarea when initialContent is set (from template selection)
+  useEffect(() => {
+    if (initialContent) {
+      setInputText(initialContent);
+    }
+  }, [initialContent]);
 
   // Blur dismiss: two-phase interaction
   // 1st tap outside (keyboard open) → blur textarea, keep bar
@@ -164,7 +174,7 @@ export default function ChatComposerBar({ onBlur, onSend, fccModels: fccProp, mo
     >
       <div className="px-3 pb-3 pt-2">
         {/* Attachment options panel (shown when + toggled) */}
-        {showAttachments && <AttachmentsPanel />}
+        {showAttachments && <AttachmentsPanel onOpenPromptTemplates={onOpenPromptTemplates} />}
 
         {/* Composer bar */}
         <div className="flex items-end gap-2 rounded-xl border border-border/50 bg-accent/40 px-3 py-2">
