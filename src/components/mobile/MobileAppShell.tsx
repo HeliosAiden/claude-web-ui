@@ -196,26 +196,61 @@ export default function MobileAppShell({
     setShowPromptTemplates(false);
   }, []);
 
-  const handleSendMessage = useCallback((text: string) => {
-    if (!text.trim() || !selectedProject) return;
+  const handleSendMessage = useCallback(async (text: string, attachments?: { images?: File[]; files?: File[] }) => {
+    const hasText = text.trim().length > 0;
+    const hasAttachments = attachments && (attachments.images?.length || attachments.files?.length);
+    if (!hasText && !hasAttachments) return;
+    if (!selectedProject) return;
 
     const provider = (localStorage.getItem('selected-provider') as LLMProvider) || 'claude';
     const modelKey = `${provider}-model`;
     const model = localStorage.getItem(modelKey) || undefined;
     const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
-    // Immediately show the status banner — mirrors desktop useChatComposerState.handleSubmit.
-    // Without this, the banner would rely on a WebSocket round-trip that may skip
-    // setIsLoading(true) due to session-matching checks (selectedSession may be null
-    // for a first message in a new session).
+    // ── Read attachments as base64 ──────────────────────────────────────
+    const attachmentData: { data: string }[] = [];
+    const fileData: { data: string; name: string }[] = [];
+
+    if (attachments) {
+      const readFile = (file: File): Promise<string> =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+      if (attachments.images?.length) {
+        const results = await Promise.allSettled(
+          attachments.images.map((f) => readFile(f)),
+        );
+        for (const r of results) {
+          if (r.status === 'fulfilled') attachmentData.push({ data: r.value });
+        }
+      }
+
+      if (attachments.files?.length) {
+        const results = await Promise.allSettled(
+          attachments.files.map((f) => readFile(f)),
+        );
+        for (let i = 0; i < results.length; i++) {
+          const r = results[i];
+          if (r.status === 'fulfilled') fileData.push({ data: r.value, name: attachments.files[i].name });
+        }
+      }
+    }
+
+    // ── Status banner ───────────────────────────────────────────────────
     useMobileStatusStore.getState().sync({
       isLoading: true,
-      status: { text: 'Processing', tokens: 0, can_interrupt: true },
+      status: attachmentData.length || fileData.length
+        ? { text: `Processing${attachmentData.length ? ` (${attachmentData.length} image${attachmentData.length > 1 ? 's' : ''})` : ''}${fileData.length ? ` (${fileData.length} file${fileData.length > 1 ? 's' : ''})` : ''}`, tokens: 0, can_interrupt: true }
+        : { text: 'Processing', tokens: 0, can_interrupt: true },
       provider,
-      onAbort: null, // ChatInterface's sync effect will set the real onAbort once canAbortSession is true
+      onAbort: null,
     });
 
-    // Add user message locally so it appears immediately
+    // ── Local message echo ──────────────────────────────────────────────
     const sessionId = selectedSession?.id || '';
     if (sessionId) {
       const ts = new Date().toISOString();
@@ -226,14 +261,17 @@ export default function MobileAppShell({
         provider,
         kind: 'text',
         role: 'user',
-        content: text.trim(),
+        content: text.trim() || (hasAttachments ? '(attachments)' : ''),
+        images: attachments?.images?.length ? attachments.images.map((f) => f.name) : undefined,
+        files: attachments?.files?.length ? attachments.files.map((f) => f.name) : undefined,
       };
       useSessionStore.getState().appendRealtime(sessionId, normalized);
     }
 
+    // ── Send via WebSocket ──────────────────────────────────────────────
     sendMessage({
       type: `${provider}-command`,
-      command: text.trim(),
+      command: text.trim() || '',
       options: {
         projectPath: selectedProject.fullPath,
         cwd: selectedProject.fullPath,
@@ -243,6 +281,8 @@ export default function MobileAppShell({
         model,
         effort: selectedEffort,
         permissionMode,
+        images: attachmentData.length ? attachmentData : undefined,
+        files: fileData.length ? fileData : undefined,
       },
     });
   }, [sendMessage, selectedProject, selectedSession, selectedEffort, permissionMode]);
