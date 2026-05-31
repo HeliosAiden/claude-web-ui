@@ -4,7 +4,7 @@ A desktop and mobile UI for [Claude Code](https://docs.anthropic.com/en/docs/cla
 
 *A fork of [Claude Code UI](https://github.com/siteboon/claudecodeui) with built-in support for Free Claude Code (FCC) integration.*
 
-[CloudCLI Cloud](https://cloudcli.ai) · [Bug Reports](https://github.com/HeliosAiden/claude-web-ui/issues) · [Contributing](CONTRIBUTING.md)
+[Bug Reports](https://github.com/HeliosAiden/claude-web-ui/issues) · [Contributing](CONTRIBUTING.md)
 
 *English · [Русский](./README.ru.md) · [Deutsch](./README.de.md) · [한국어](./README.ko.md) · [中文](./README.zh-CN.md) · [日本語](./README.ja.md) · [Türkçe](./README.tr.md)*
 
@@ -172,12 +172,10 @@ Claude Web UI has a plugin system that lets you add custom tabs with their own f
 |---|---|
 | **[Project Stats](https://github.com/cloudcli-ai/cloudcli-plugin-starter)** | Shows file counts, lines of code, file-type breakdown, largest files, and recently modified files for your current project |
 | **[Web Terminal](https://github.com/cloudcli-ai/cloudcli-plugin-terminal)** | Full xterm.js terminal with multi-tab support|
-| **[CloudCLI Scheduler](https://github.com/grostim/cloudcli-cron)** | Create workspace-scoped scheduled prompts and execute them through a local CLI such as Codex, Claude Code, or Gemini CLI|
+| **[Scheduler](https://github.com/grostim/cloudcli-cron)** | Create workspace-scoped scheduled prompts and execute them through a local CLI such as Codex, Claude Code, or Gemini CLI|
 ### Build Your Own
 
 **[Plugin Starter Template →](https://github.com/cloudcli-ai/cloudcli-plugin-starter)** — fork this repo to create your own plugin. It includes a working example with frontend rendering, live context updates, and RPC communication to a backend server.
-
-**[Plugin Documentation →](https://cloudcli.ai/docs/plugin-overview)** — full guide to the plugin API, manifest format, security model, and more.
 
 ---
 ## FAQ
@@ -187,7 +185,7 @@ Claude Web UI has a plugin system that lets you add custom tabs with their own f
 
 Claude Code Remote Control lets you send messages to a session already running in your local terminal. Your machine has to stay on, your terminal has to stay open, and sessions time out after roughly 10 minutes without a network connection.
 
-Claude Web UI and CloudCLI Cloud extend Claude Code rather than sit alongside it — your MCP servers, permissions, settings, and sessions are the exact same ones Claude Code uses natively. Nothing is duplicated or managed separately.
+Claude Web UI extends Claude Code rather than sit alongside it — your MCP servers, permissions, settings, and sessions are the exact same ones Claude Code uses natively. Nothing is duplicated or managed separately.
 
 Here's what that means in practice:
 
@@ -195,14 +193,13 @@ Here's what that means in practice:
 - **Your settings are your settings** — MCP servers, tool permissions, and project config you change in Claude Web UI are written directly to your Claude Code config and take effect immediately, and vice versa.
 - **Works with more agents** — Claude Code, Cursor CLI, Codex, Gemini CLI, and Free Claude Code, not just Claude Code.
 - **Full UI, not just a chat window** — file explorer, Git integration, MCP management, and a shell terminal are all built in.
-- **CloudCLI Cloud runs in the cloud** — close your laptop, the agent keeps running. No terminal to babysit, no machine to keep awake.
 
 </details>
 
 <details>
 <summary>Do I need to pay for an AI subscription separately?</summary>
 
-Claude Web UI provides the environment, not the AI. You can bring your own Claude, Cursor, Codex, or Gemini subscription. CloudCLI Cloud starts at $7/month for the hosted environment on top of that.
+Claude Web UI provides the environment, not the AI. You can bring your own Claude, Cursor, Codex, or Gemini subscription.
 
 Alternatively, this fork includes built-in support for [Free Claude Code](https://github.com/Alishahryar1/free-claude-code), which lets you use Claude Code without an Anthropic subscription by routing through alternative API providers. See the [Free Claude Code (FCC) Integration](#free-claude-code-fcc-integration) section above.
 
@@ -225,7 +222,7 @@ See the [Free Claude Code Integration](#free-claude-code-fcc-integration) sectio
 <details>
 <summary>Can I use Claude Web UI on my phone?</summary>
 
-Yes. For self-hosted, run the server on your machine and open `[yourip]:port` in any browser on your network. For CloudCLI Cloud, open it from any device — no VPN, no port forwarding, no setup. A native app is also in the works.
+Yes. For self-hosted, run the server on your machine and open `[yourip]:port` in any browser on your network. A native app is also in the works.
 
 </details>
 
@@ -240,10 +237,9 @@ Yes, for self-hosted. Claude Web UI reads from and writes to the same `~/.claude
 
 ## Community & Support
 
-- **[Documentation](https://cloudcli.ai/docs)** — installation, configuration, features, and troubleshooting
 - **[Discord](https://discord.gg/buxwujPNRE)** — get help and connect with other users
 - **[GitHub Issues](https://github.com/HeliosAiden/claude-web-ui/issues)** — bug reports and feature requests
-- **[Upstream Project](https://github.com/siteboon/claudecodeui)** — original CloudCLI project this fork is based on
+- **[Upstream Project](https://github.com/siteboon/claudecodeui)** — original project this fork is based on
 - **[Contributing Guide](CONTRIBUTING.md)** — how to contribute to the project
 
 ## License
@@ -251,8 +247,6 @@ Yes, for self-hosted. Claude Web UI reads from and writes to the same `~/.claude
 GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later) — see [LICENSE](LICENSE) for the full text, including additional terms under Section 7.
 
 This project is open source and free to use, modify, and distribute under the AGPL-3.0-or-later license. If you modify this software and run it as a network service, you must make your modified source code available to users of that service.
-
-Claude Web UI — a fork of [CloudCLI](https://cloudcli.ai) with Free Claude Code integration.
 
 ## Acknowledgments
 

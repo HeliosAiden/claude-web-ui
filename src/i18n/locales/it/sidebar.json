@@ -20,7 +20,7 @@
     "runClaudeCli": "Esegui Claude CLI in una directory di progetto per iniziare"
   },
   "app": {
-    "title": "CloudCLI",
+    "title": "Claude Web UI",
     "subtitle": "Interfaccia assistente di programmazione AI"
   },
   "sessions": {

@@ -20,7 +20,7 @@
     "runClaudeCli": "Führ Claude CLI in einem Projektverzeichnis aus, um zu beginnen"
   },
   "app": {
-    "title": "CloudCLI",
+    "title": "Claude Web UI",
     "subtitle": "KI-Programmierassistent-Oberfläche"
   },
   "sessions": {

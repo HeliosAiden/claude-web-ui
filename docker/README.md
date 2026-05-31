@@ -150,8 +150,6 @@ The web UI itself doesn't need a policy — access it via `sbx ports`.
 
 ## Links
 
-- [CloudCLI Cloud](https://cloudcli.ai) — fully managed, no setup required
-- [Documentation](https://cloudcli.ai/docs) — full configuration guide
 - [Discord](https://discord.gg/buxwujPNRE) — community support
 - [GitHub](https://github.com/HeliosAiden/claude-web-ui) — source code and issues
 
