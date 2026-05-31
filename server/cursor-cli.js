@@ -1,4 +1,6 @@
 import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 import crossSpawn from 'cross-spawn';
 
@@ -26,9 +28,81 @@ function isWorkspaceTrustPrompt(text = '') {
   return WORKSPACE_TRUST_PATTERNS.some((pattern) => pattern.test(text));
 }
 
+/**
+ * Handles image and file attachments for Cursor CLI
+ * Saves base64 attachments to temporary files and returns modified command with file paths
+ * @param {string} command - Original user prompt
+ * @param {Array} images - Array of image objects with base64 data
+ * @param {Array} files - Array of file objects with base64 data
+ * @param {string} workingDir - Working directory for temp file creation
+ * @returns {Promise<{modifiedCommand: string, tempImagePaths: string[], tempDir: string|null}>}
+ */
+async function handleAttachments(command, images, files, workingDir) {
+  const tempImagePaths = [];
+  let tempDir = null;
+
+  if ((!images || images.length === 0) && (!files || files.length === 0)) {
+    return { modifiedCommand: command, tempImagePaths, tempDir };
+  }
+
+  try {
+    tempDir = path.join(workingDir, '.tmp', 'attachments', Date.now().toString());
+    await fs.mkdir(tempDir, { recursive: true });
+
+    let pathIndex = 0;
+
+    // Process images
+    if (images && images.length > 0) {
+      for (const image of images) {
+        const matches = image.data.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) { continue; }
+
+        const [, mimeType, base64Data] = matches;
+        const extension = mimeType.split('/')[1] || 'png';
+        const filename = `image_${pathIndex}.${extension}`;
+        const filepath = path.join(tempDir, filename);
+        await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+        tempImagePaths.push(filepath);
+        pathIndex++;
+      }
+    }
+
+    // Process files
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const matches = file.data.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) { continue; }
+
+        const [, mimeType, base64Data] = matches;
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `file_${pathIndex}_${safeName}`;
+        const filepath = path.join(tempDir, filename);
+        await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+        tempImagePaths.push(filepath);
+        pathIndex++;
+      }
+    }
+
+    // Include attachment paths in the prompt for the CLI to reference
+    let modifiedCommand = command;
+    if (tempImagePaths.length > 0 && command && command.trim()) {
+      const parts = [];
+      if (images && images.length > 0) parts.push(`${images.length} image(s)`);
+      if (files && files.length > 0) parts.push(`${files.length} file(s)`);
+      const attachmentNote = `\n\n[${parts.join(', ')} attached at the following paths:]\n${tempImagePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+      modifiedCommand = command + attachmentNote;
+    }
+
+    return { modifiedCommand, tempImagePaths, tempDir };
+  } catch (error) {
+    console.error('Error processing attachments for Cursor:', error);
+    return { modifiedCommand: command, tempImagePaths, tempDir };
+  }
+}
+
 async function spawnCursor(command, options = {}, ws) {
   return new Promise(async (resolve, reject) => {
-    const { sessionId, projectPath, cwd, resume, toolsSettings, skipPermissions, model, sessionSummary } = options;
+    const { sessionId, projectPath, cwd, resume, toolsSettings, skipPermissions, model, sessionSummary, images, files } = options;
     let capturedSessionId = sessionId; // Track session ID throughout the process
     let sessionCreatedSent = false; // Track if we've already sent session-created event
     let hasRetriedWithTrust = false;
@@ -49,9 +123,9 @@ async function spawnCursor(command, options = {}, ws) {
       baseArgs.push('--resume=' + sessionId);
     }
 
-    if (command && command.trim()) {
+    if (finalCommand && finalCommand.trim()) {
       // Provide a prompt (works for both new and resumed sessions)
-      baseArgs.push('-p', command);
+      baseArgs.push('-p', finalCommand);
 
       // Add model flag if specified (only meaningful for new sessions; harmless on resume)
       if (!sessionId && model) {
@@ -70,6 +144,17 @@ async function spawnCursor(command, options = {}, ws) {
 
     // Use cwd (actual project directory) instead of projectPath
     const workingDir = cwd || projectPath || process.cwd();
+
+    // Handle image/file attachments before passing command to Cursor CLI
+    let finalCommand = command;
+    let tempImagePaths = [];
+    let tempDir = null;
+    if (command && command.trim() && (images?.length > 0 || files?.length > 0)) {
+      const attachmentResult = await handleAttachments(command, images, files, workingDir);
+      finalCommand = attachmentResult.modifiedCommand;
+      tempImagePaths = attachmentResult.tempImagePaths;
+      tempDir = attachmentResult.tempDir;
+    }
 
     // Store process reference for potential abort
     const processKey = capturedSessionId || Date.now().toString();
@@ -102,6 +187,8 @@ async function spawnCursor(command, options = {}, ws) {
       });
 
       activeCursorProcesses.set(processKey, cursorProcess);
+      cursorProcess.tempImagePaths = tempImagePaths;
+      cursorProcess.tempDir = tempDir;
 
       const shouldSuppressForTrustRetry = (text) => {
         if (hasRetriedWithTrust || args.includes('--trust')) {
@@ -241,6 +328,16 @@ async function spawnCursor(command, options = {}, ws) {
         }
 
         ws.send(createNormalizedMessage({ kind: 'complete', exitCode: code, isNewSession: !sessionId && !!command, sessionId: finalSessionId, provider: 'cursor' }));
+
+        // Clean up temporary image/files directories
+        if (cursorProcess.tempImagePaths && cursorProcess.tempImagePaths.length > 0) {
+          for (const imagePath of cursorProcess.tempImagePaths) {
+            fs.unlink(imagePath).catch(() => {});
+          }
+          if (cursorProcess.tempDir) {
+            fs.rm(cursorProcess.tempDir, { recursive: true, force: true }).catch(() => {});
+          }
+        }
 
         if (code === 0) {
           settleOnce(() => resolve());

@@ -200,7 +200,7 @@ async function spawnGemini(command, options = {}, ws) {
                 if (images && images.length > 0) parts.push(`${images.length} image(s)`);
                 if (options.files && options.files.length > 0) parts.push(`${options.files.length} file(s)`);
                 const attachmentNote = `\n\n[${parts.join(', ')} attached at the following paths:]\n${tempImagePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
-                const modifiedCommand = command + imageNote;
+                const modifiedCommand = command + attachmentNote;
 
                 // Update the command in args
                 const promptIndex = args.indexOf('--prompt');
@@ -208,7 +208,7 @@ async function spawnGemini(command, options = {}, ws) {
                     args[promptIndex + 1] = modifiedCommand;
                 } else if (promptIndex !== -1) {
                     // If we're using context, update the full prompt
-                    args[promptIndex + 1] = args[promptIndex + 1] + imageNote;
+                    args[promptIndex + 1] = args[promptIndex + 1] + attachmentNote;
                 }
             }
         } catch (error) {

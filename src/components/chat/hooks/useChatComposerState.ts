@@ -640,6 +640,8 @@ export function useChatComposerState({
             skipPermissions: toolsSettings?.skipPermissions || false,
             sessionSummary,
             toolsSettings,
+            images: uploadedImages,
+            files: uploadedFiles,
           },
         });
       } else if (provider === 'codex') {
@@ -655,6 +657,8 @@ export function useChatComposerState({
             model: codexModel,
             sessionSummary,
             permissionMode: permissionMode === 'plan' ? 'default' : permissionMode,
+            images: uploadedImages,
+            files: uploadedFiles,
           },
         });
       } else if (provider === 'gemini') {
@@ -671,6 +675,8 @@ export function useChatComposerState({
             sessionSummary,
             permissionMode,
             toolsSettings,
+            images: uploadedImages,
+            files: uploadedFiles,
           },
         });
       } else {

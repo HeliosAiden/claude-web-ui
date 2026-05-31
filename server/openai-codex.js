@@ -13,6 +13,9 @@
  * - getActiveCodexSessions() - List all active sessions
  */
 
+import { promises as fs } from 'fs';
+import path from 'path';
+
 import { Codex } from '@openai/codex-sdk';
 
 import { sessionsService } from './modules/providers/services/sessions.service.js';
@@ -199,7 +202,9 @@ export async function queryCodex(command, options = {}, ws) {
     cwd,
     projectPath,
     model,
-    permissionMode = 'default'
+    permissionMode = 'default',
+    images,
+    files
   } = options;
 
   const workingDirectory = cwd || projectPath || process.cwd();
@@ -210,6 +215,9 @@ export async function queryCodex(command, options = {}, ws) {
   let capturedSessionId = sessionId;
   let sessionCreatedSent = false;
   let terminalFailure = null;
+  let tempImagePaths = [];
+  let tempDir = null;
+  let codexInput = command;
   const abortController = new AbortController();
 
   try {
@@ -245,13 +253,82 @@ export async function queryCodex(command, options = {}, ws) {
       });
     };
 
+    // Handle image/file attachments.
+    // For images: use the SDK's native structured input format.
+    // The Codex SDK's normalizeInput() (node_modules/@openai/codex-sdk/dist/index.js, line 120)
+    // accepts an array of content blocks: [{ type: "text", text }, { type: "local_image", path }]
+    // and passes them as --image flags to the CLI exec. When given a plain string, images are lost.
+    // For non-image files: embed paths in the text since there's no native SDK support.
+    const hasAttachments = (images?.length > 0) || (files?.length > 0);
+    if (hasAttachments) {
+      // Save all attachments to temp files in a single shared directory.
+      try {
+        tempDir = path.join(workingDirectory, '.tmp', 'attachments', Date.now().toString());
+        await fs.mkdir(tempDir, { recursive: true });
+
+        let pathIndex = 0;
+
+        // Process images — track their paths separately for native SDK support
+        const imagePaths = [];
+        if (images?.length > 0) {
+          for (const image of images) {
+            const matches = image.data.match(/^data:([^;]+);base64,(.+)$/);
+            if (!matches) { continue; }
+            const [, mimeType, base64Data] = matches;
+            const extension = mimeType.split('/')[1] || 'png';
+            const filename = `image_${pathIndex}.${extension}`;
+            const filepath = path.join(tempDir, filename);
+            await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+            tempImagePaths.push(filepath);
+            imagePaths.push(filepath);
+            pathIndex++;
+          }
+        }
+
+        // Process files — embed paths in text only
+        const filePaths = [];
+        if (files?.length > 0) {
+          for (const file of files) {
+            const matches = file.data.match(/^data:([^;]+);base64,(.+)$/);
+            if (!matches) { continue; }
+            const [, mimeType, base64Data] = matches;
+            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const filename = `file_${pathIndex}_${safeName}`;
+            const filepath = path.join(tempDir, filename);
+            await fs.writeFile(filepath, Buffer.from(base64Data, 'base64'));
+            tempImagePaths.push(filepath);
+            filePaths.push(filepath);
+            pathIndex++;
+          }
+        }
+
+        // Build the input: native image blocks + file paths in text
+        if (imagePaths.length > 0) {
+          let text = command;
+          if (filePaths.length > 0) {
+            text += `\n\n[${files.length} file(s) attached at the following paths:]\n${filePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+          }
+          codexInput = [{ type: 'text', text }];
+          for (const imgPath of imagePaths) {
+            codexInput.push({ type: 'local_image', path: imgPath });
+          }
+        } else if (filePaths.length > 0) {
+          // Only files — embed paths in the prompt string
+          const attachmentNote = `\n\n[${files.length} file(s) attached at the following paths:]\n${filePaths.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+          codexInput = command + attachmentNote;
+        }
+      } catch (error) {
+        console.error('Error processing attachments for Codex:', error);
+      }
+    }
+
     // Existing sessions can be tracked immediately; new sessions are tracked after thread.started.
     if (capturedSessionId) {
       registerSession(capturedSessionId);
     }
 
     // Execute with streaming
-    const streamedTurn = await thread.runStreamed(command, {
+    const streamedTurn = await thread.runStreamed(codexInput, {
       signal: abortController.signal
     });
 
@@ -338,6 +415,16 @@ export async function queryCodex(command, options = {}, ws) {
     }
 
   } finally {
+    // Clean up temporary image/files directories
+    if (tempImagePaths && tempImagePaths.length > 0) {
+      for (const imagePath of tempImagePaths) {
+        fs.unlink(imagePath).catch(() => {});
+      }
+      if (tempDir) {
+        fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
+    }
+
     // Update session status
     if (capturedSessionId) {
       const session = activeCodexSessions.get(capturedSessionId);
