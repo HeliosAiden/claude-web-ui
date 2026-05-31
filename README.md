@@ -134,28 +134,6 @@ Supports Claude Code, Codex, and Gemini CLI. See the [sandbox docs](docker/) for
 
 ---
 
-## Which option is right for you?
-
-Claude Web UI is a fork of the open source UI layer that powers CloudCLI Cloud, with built-in Free Claude Code integration. You can self-host it on your own machine, run it in a Docker sandbox for isolation, or use CloudCLI Cloud for a fully managed environment.
-
-| | Self-Hosted (npm) | Self-Hosted (Docker Sandbox) *(Experimental)* | CloudCLI Cloud |
-|---|---|---|---|
-| **Best for** | Local agent sessions on your own machine | Isolated agents with web/mobile IDE | Teams who want agents in the cloud |
-| **How you access it** | Browser via `[yourip]:port` | Browser via `localhost:port` | Browser, any IDE, REST API, n8n |
-| **Setup** | `npx @heliosaiden/claude-web-ui` | `npx @heliosaiden/claude-web-ui@latest sandbox ~/project` | No setup required |
-| **Isolation** | Runs on your host | Hypervisor-level sandbox (microVM) | Full cloud isolation |
-| **Machine needs to stay on** | Yes | Yes | No |
-| **Mobile access** | Any browser on your network | Any browser on your network | Any device, native app coming |
-| **Agents supported** | Claude Code, Cursor CLI, Codex, Gemini CLI, Free Claude Code | Claude Code, Codex, Gemini CLI | Claude Code, Cursor CLI, Codex, Gemini CLI |
-| **File explorer and Git** | Yes | Yes | Yes |
-| **MCP configuration** | Synced with `~/.claude` | Managed via UI | Managed via UI |
-| **REST API** | Yes | Yes | Yes |
-| **Team sharing** | No | No | Yes |
-| **Platform cost** | Free, open source | Free, open source | Starts at $7/month |
-
-> All options use your own AI subscriptions (Claude, Cursor, etc.) — CloudCLI provides the environment, not the AI.
-
----
 
 ## Security & Tools Configuration
 

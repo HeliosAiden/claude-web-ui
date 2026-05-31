@@ -109,28 +109,7 @@ Unterstützt Claude Code, Codex und Gemini CLI. Weitere Details in der [Sandbox-
 
 ---
 
-## Welche Option passt zu dir?
 
-CloudCLI UI ist die Open-Source-UI-Schicht, die CloudCLI Cloud antreibt. Du kannst es auf deinem eigenen Rechner selbst hosten oder CloudCLI Cloud nutzen, das darauf aufbaut und eine vollständig verwaltete Cloud-Umgebung, Team-Funktionen und tiefere Integrationen bietet.
-
-| | CloudCLI UI (Self-hosted) | CloudCLI Cloud |
-|---|---|---|
-| **Am besten für** | Entwickler:innen, die eine vollständige UI für lokale Agent-Sitzungen auf ihrem eigenen Rechner möchten | Teams und Entwickler:innen, die Agents in der Cloud betreiben möchten, überall erreichbar |
-| **Zugriff** | Browser via `[deineIP]:port` | Browser, jede IDE, REST API, n8n |
-| **Einrichtung** | `npx @heliosaiden/claude-web-ui` | Keine Einrichtung erforderlich |
-| **Rechner muss laufen** | Ja | Nein |
-| **Mobiler Zugriff** | Jeder Browser im Netzwerk | Jedes Gerät, native App in Entwicklung |
-| **Verfügbare Sitzungen** | Alle Sitzungen automatisch aus `~/.claude` erkannt | Alle Sitzungen in deiner Cloud-Umgebung |
-| **Unterstützte Agents** | Claude Code, Cursor CLI, Codex, Gemini CLI | Claude Code, Cursor CLI, Codex, Gemini CLI |
-| **Datei-Explorer und Git** | Ja, direkt in der UI | Ja, direkt in der UI |
-| **MCP-Konfiguration** | Über UI verwaltet, synchronisiert mit lokalem `~/.claude` | Über UI verwaltet |
-| **IDE-Zugriff** | Deine lokale IDE | Jede IDE, die mit deiner Cloud-Umgebung verbunden ist |
-| **REST API** | Ja | Ja |
-| **n8n-Node** | Nein | Ja |
-| **Team-Sharing** | Nein | Ja |
-| **Plattformkosten** | Kostenlos, Open Source | Ab $7/Monat |
-
-> Beide Optionen verwenden deine eigenen KI-Abonnements (Claude, Cursor usw.) – CloudCLI stellt die Umgebung bereit, nicht die KI.
 
 ---
 
