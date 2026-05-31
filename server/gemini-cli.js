@@ -14,6 +14,7 @@ import { createNormalizedMessage } from './shared/utils.js';
 const spawnFunction = process.platform === 'win32' ? crossSpawn : spawn;
 
 let activeGeminiProcesses = new Map(); // Track active processes by session ID
+let activeGeminiWriters = new Map(); // Track writers by session ID for multi-client broadcast
 
 function mapGeminiExitCodeToMessage(exitCode) {
     switch (exitCode) {
@@ -393,6 +394,9 @@ async function spawnGemini(command, options = {}, ws) {
                             activeGeminiProcesses.set(capturedSessionId, geminiProcess);
                         }
 
+                        // Track writer for multi-client broadcast
+                        activeGeminiWriters.set(capturedSessionId, ws);
+
                         geminiProcess.sessionId = capturedSessionId;
 
                         if (ws.setSessionId && typeof ws.setSessionId === 'function') {
@@ -462,6 +466,7 @@ async function spawnGemini(command, options = {}, ws) {
             // Clean up process reference
             const finalSessionId = capturedSessionId || sessionId || processKey;
             activeGeminiProcesses.delete(finalSessionId);
+            activeGeminiWriters.delete(finalSessionId);
 
             // Save assistant response to session if we have one
             if (finalSessionId && assistantBlocks.length > 0) {
@@ -575,6 +580,10 @@ function abortGeminiSession(sessionId) {
                 }
             }, 2000); // Wait 2 seconds before force kill
 
+            // Clean up writer references immediately; process cleanup is handled
+            // by the 'close' handler which will also clean up the writers map.
+            activeGeminiWriters.delete(processKey);
+
             return true;
         } catch (error) {
             return false;
@@ -591,9 +600,23 @@ function getActiveGeminiSessions() {
     return Array.from(activeGeminiProcesses.keys());
 }
 
+/**
+ * Add a WebSocket client to an active Gemini session's writer for broadcasting.
+ * @param {string} sessionId - Session ID
+ * @param {object} rawWs - WebSocket or WebSocketWriter to add
+ * @returns {boolean} - Whether the client was added
+ */
+function addGeminiSessionClient(sessionId, rawWs) {
+    const writer = activeGeminiWriters.get(sessionId);
+    if (!writer?.addClient) return false;
+    writer.addClient(rawWs);
+    return true;
+}
+
 export {
     spawnGemini,
     abortGeminiSession,
     isGeminiSessionActive,
-    getActiveGeminiSessions
+    getActiveGeminiSessions,
+    addGeminiSessionClient
 };

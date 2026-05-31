@@ -47,6 +47,12 @@ type ChatWebSocketDependencies = {
   isCodexSessionActive: (sessionId: string) => boolean;
   isGeminiSessionActive: (sessionId: string) => boolean;
   reconnectSessionWriter: (sessionId: string, ws: WebSocket) => boolean;
+  /** Add a new client to an active Cursor session's writer. */
+  addCursorSessionClient: (sessionId: string, ws: WebSocket) => boolean;
+  /** Add a new client to an active Codex session's writer. */
+  addCodexSessionClient: (sessionId: string, ws: WebSocket) => boolean;
+  /** Add a new client to an active Gemini session's writer. */
+  addGeminiSessionClient: (sessionId: string, ws: WebSocket) => boolean;
   getPendingApprovalsForSession: (sessionId: string) => unknown[];
   getActiveClaudeSDKSessions: () => unknown;
   getActiveCursorSessions: () => unknown;
@@ -237,10 +243,19 @@ export function handleChatConnection(
 
         if (provider === 'cursor') {
           isActive = dependencies.isCursorSessionActive(sessionId);
+          if (isActive) {
+            dependencies.addCursorSessionClient(sessionId, ws);
+          }
         } else if (provider === 'codex') {
           isActive = dependencies.isCodexSessionActive(sessionId);
+          if (isActive) {
+            dependencies.addCodexSessionClient(sessionId, ws);
+          }
         } else if (provider === 'gemini') {
           isActive = dependencies.isGeminiSessionActive(sessionId);
+          if (isActive) {
+            dependencies.addGeminiSessionClient(sessionId, ws);
+          }
         } else {
           isActive = dependencies.isClaudeSDKSessionActive(sessionId);
           if (isActive) {
@@ -303,5 +318,9 @@ export function handleChatConnection(
   ws.on('close', () => {
     console.log('[INFO] Chat client disconnected');
     connectedClients.delete(ws);
+    // Remove this client from any writer that may be broadcasting session data
+    if (writer && typeof writer.removeClient === 'function') {
+      writer.removeClient(ws);
+    }
   });
 }

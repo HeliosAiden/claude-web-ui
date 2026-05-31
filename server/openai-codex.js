@@ -249,6 +249,7 @@ export async function queryCodex(command, options = {}, ws) {
         codex,
         status: 'running',
         abortController,
+        writer: ws,
         startedAt: new Date().toISOString()
       });
     };
@@ -465,6 +466,19 @@ export function abortCodexSession(sessionId) {
 export function isCodexSessionActive(sessionId) {
   const session = activeCodexSessions.get(sessionId);
   return session?.status === 'running';
+}
+
+/**
+ * Add a WebSocket client to an active Codex session's writer for broadcasting.
+ * @param {string} sessionId - Session ID
+ * @param {object} rawWs - WebSocket or WebSocketWriter to add
+ * @returns {boolean} - Whether the client was added
+ */
+export function addCodexSessionClient(sessionId, rawWs) {
+  const session = activeCodexSessions.get(sessionId);
+  if (!session?.writer?.addClient) return false;
+  session.writer.addClient(rawWs);
+  return true;
 }
 
 /**

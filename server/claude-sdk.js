@@ -952,12 +952,13 @@ async function followSessionViaJSONL(sessionId, options, ws) {
     return;
   }
 
-  // If already following this session, just swap the writer (reconnect pattern)
+  // If already following this session, merge the new writer's clients into the
+  // existing one so both (or more) clients receive streaming data.
   const existing = ptyOwnedSessions.get(sessionId);
   if (existing && existing.status === 'following' && existing.pollTimer) {
-    existing.writer = ws;
+    existing.writer.mergeWriter(ws);
     if (existing.bytesRead > 0) {
-      ws.send(createNormalizedMessage({ kind: 'status', text: 'reconnected_follower', sessionId, provider: 'claude' }));
+      existing.writer.send(createNormalizedMessage({ kind: 'status', text: 'reconnected_follower', sessionId, provider: 'claude' }));
     }
     return;
   }
@@ -1136,9 +1137,9 @@ async function followSessionViaJSONL(sessionId, options, ws) {
  */
 function reconnectSessionWriter(sessionId, newRawWs) {
   const session = getSession(sessionId);
-  if (!session?.writer?.updateWebSocket) return false;
-  session.writer.updateWebSocket(newRawWs);
-  console.log(`[RECONNECT] Writer swapped for session ${sessionId}`);
+  if (!session?.writer?.addClient) return false;
+  session.writer.addClient(newRawWs);
+  console.log(`[RECONNECT] Client added for session ${sessionId} (${session.writer.clientCount()} total clients)`);
   return true;
 }
 

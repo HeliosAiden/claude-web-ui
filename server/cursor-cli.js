@@ -12,6 +12,7 @@ import { createNormalizedMessage } from './shared/utils.js';
 const spawnFunction = process.platform === 'win32' ? crossSpawn : spawn;
 
 let activeCursorProcesses = new Map(); // Track active processes by session ID
+let activeCursorWriters = new Map(); // Track writers by session ID for multi-client broadcast
 
 const WORKSPACE_TRUST_PATTERNS = [
   /workspace trust required/i,
@@ -224,6 +225,9 @@ async function spawnCursor(command, options = {}, ws) {
                     activeCursorProcesses.set(capturedSessionId, cursorProcess);
                   }
 
+                  // Track writer for multi-client broadcast
+                  activeCursorWriters.set(capturedSessionId, ws);
+
                   // Set session ID on writer (for API endpoint compatibility)
                   if (ws.setSessionId && typeof ws.setSessionId === 'function') {
                     ws.setSessionId(capturedSessionId);
@@ -309,6 +313,7 @@ async function spawnCursor(command, options = {}, ws) {
       cursorProcess.on('close', async (code) => {
         const finalSessionId = capturedSessionId || sessionId || processKey;
         activeCursorProcesses.delete(finalSessionId);
+        activeCursorWriters.delete(finalSessionId);
 
         // Flush any final unterminated stdout line before completion handling.
         if (stdoutLineBuffer.trim()) {
@@ -379,6 +384,7 @@ function abortCursorSession(sessionId) {
     console.log(`Aborting Cursor session: ${sessionId}`);
     process.kill('SIGTERM');
     activeCursorProcesses.delete(sessionId);
+    activeCursorWriters.delete(sessionId);
     return true;
   }
   return false;
@@ -392,9 +398,23 @@ function getActiveCursorSessions() {
   return Array.from(activeCursorProcesses.keys());
 }
 
+/**
+ * Add a WebSocket client to an active Cursor session's writer for broadcasting.
+ * @param {string} sessionId - Session ID
+ * @param {object} rawWs - WebSocket or WebSocketWriter to add
+ * @returns {boolean} - Whether the client was added
+ */
+function addCursorSessionClient(sessionId, rawWs) {
+  const writer = activeCursorWriters.get(sessionId);
+  if (!writer?.addClient) return false;
+  writer.addClient(rawWs);
+  return true;
+}
+
 export {
   spawnCursor,
   abortCursorSession,
   isCursorSessionActive,
-  getActiveCursorSessions
+  getActiveCursorSessions,
+  addCursorSessionClient
 };

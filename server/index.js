@@ -34,18 +34,21 @@ import {
     abortCursorSession,
     isCursorSessionActive,
     getActiveCursorSessions,
+    addCursorSessionClient,
 } from './cursor-cli.js';
 import {
     queryCodex,
     abortCodexSession,
     isCodexSessionActive,
     getActiveCodexSessions,
+    addCodexSessionClient,
 } from './openai-codex.js';
 import {
     spawnGemini,
     abortGeminiSession,
     isGeminiSessionActive,
     getActiveGeminiSessions,
+    addGeminiSessionClient,
 } from './gemini-cli.js';
 import sessionManager from './sessionManager.js';
 import {
@@ -107,6 +110,9 @@ const wss = createWebSocketServer(server, {
         isCodexSessionActive,
         isGeminiSessionActive,
         reconnectSessionWriter,
+        addCursorSessionClient,
+        addCodexSessionClient,
+        addGeminiSessionClient,
         getPendingApprovalsForSession,
         getActiveClaudeSDKSessions,
         getActiveCursorSessions,
